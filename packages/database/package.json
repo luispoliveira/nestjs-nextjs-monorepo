@@ -23,12 +23,14 @@
     "prisma": "^7.5.0",
     "typescript": "^5.9.3"
   },
-  "peerDependencies": {
-    "@nestjs/common": "^11.1.16",
-    "@nestjs/config": "^4.0.3",
-    "@nestjs/core": "^11.1.16",
+  "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "pg": "^8.20.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^11.1.16",
+    "@nestjs/config": "^4.0.3",
+    "@nestjs/core": "^11.1.16"
   }
 }
