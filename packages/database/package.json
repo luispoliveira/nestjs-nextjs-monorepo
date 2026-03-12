@@ -1,17 +1,22 @@
 {
   "name": "@repo/database",
   "private": true,
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
   "scripts": {
+    "build": "tsc",
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:push": "prisma db push",
     "dev": "tsc --watch"
   },
   "exports": {
-    "types": "./dist/index.d.ts",
-    "require": "./dist/index.js",
-    "import": "./dist/index.js",
-    "default": "./dist/index.js"
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js",
+      "import": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    }
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
@@ -20,7 +25,8 @@
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
-    "prisma": "^7.5.0"
+    "prisma": "^7.5.0",
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.1.16",
