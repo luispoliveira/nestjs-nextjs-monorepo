@@ -2,13 +2,15 @@
 import eslint from '@eslint/js';
 import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
 import { dirname } from 'path';
+import tseslint from 'typescript-eslint';
 import { fileURLToPath } from 'url';
+import { config as baseConfig } from './base.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 export default tseslint.config(
+  ...baseConfig,
   {
     ignores: ['eslint.config.mjs'],
   },
