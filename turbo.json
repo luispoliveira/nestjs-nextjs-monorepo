@@ -19,6 +19,18 @@
     },
     "check-types": {
       "dependsOn": ["^check-types"]
+    },
+    "db:generate": {
+      "dependsOn": ["^db:generate"]
+    },
+    "db:migrate:dev": {
+      "dependsOn": ["^db:migrate:dev"]
+    },
+    "db:seed": {
+      "dependsOn": ["^db:seed"]
+    },
+    "db:push": {
+      "dependsOn": ["^db:push"]
     }
   }
 }
