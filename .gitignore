@@ -11,6 +11,7 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+!.env.example
 
 # Testing
 coverage
@@ -27,6 +28,9 @@ out/
 build
 dist
 
+coverage/
+generated/
+
 
 # Debug
 npm-debug.log*
@@ -35,5 +39,5 @@ yarn-error.log*
 
 # Misc
 .DS_Store
-.tmp
+.tmp/
 tasks
