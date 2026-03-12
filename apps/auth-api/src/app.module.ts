@@ -1,9 +1,48 @@
+import { prismaAdapter } from '@better-auth/prisma-adapter';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { DatabaseModule } from '@repo/database';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { DatabaseModule, DatabaseService } from '@repo/database';
+import { SharedModule } from '@repo/shared';
+import { AuthModule } from '@thallesp/nestjs-better-auth';
+import { betterAuth } from 'better-auth';
+import { admin } from 'better-auth/plugins';
+import { twoFactor } from 'better-auth/plugins/two-factor';
 
 @Module({
-  imports: [ConfigModule.forRoot(), DatabaseModule],
+  imports: [
+    SharedModule.register(),
+    AuthModule.forRootAsync({
+      imports: [DatabaseModule, ConfigModule],
+      useFactory: (
+        database: DatabaseService,
+        configService: ConfigService,
+      ) => ({
+        auth: betterAuth({
+          appName: 'Nes(x)tJs Template',
+          plugins: [twoFactor(), admin()],
+          baseURL:
+            configService.get<string>('BETTER_AUTH_URL') ||
+            'http://localhost:30000/api/auth',
+          socialProviders: {
+            google: {
+              clientId: process.env.GOOGLE_CLIENT_ID!,
+              clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+            },
+          },
+          database: prismaAdapter(database, {
+            provider: 'postgresql',
+          }),
+          emailAndPassword: {
+            enabled: true,
+          },
+          trustedOrigins: configService.get<string>('UI_URL')
+            ? [configService.get<string>('UI_URL')!]
+            : [],
+        }),
+      }),
+      inject: [DatabaseService, ConfigService],
+    }),
+  ],
   controllers: [],
   providers: [],
 })

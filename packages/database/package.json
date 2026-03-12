@@ -18,11 +18,6 @@
       "default": "./dist/src/index.js"
     }
   },
-  "dependencies": {
-    "@prisma/adapter-pg": "^7.5.0",
-    "@prisma/client": "^7.5.0",
-    "pg": "^8.20.0"
-  },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "prisma": "^7.5.0",
@@ -31,6 +26,9 @@
   "peerDependencies": {
     "@nestjs/common": "^11.1.16",
     "@nestjs/config": "^4.0.3",
-    "@nestjs/core": "^11.1.16"
+    "@nestjs/core": "^11.1.16",
+    "@prisma/adapter-pg": "^7.5.0",
+    "@prisma/client": "^7.5.0",
+    "pg": "^8.20.0"
   }
 }
