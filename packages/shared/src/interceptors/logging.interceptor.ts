@@ -66,7 +66,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
           if (log) {
             this.mongoService
-              .updateLog(log.id as string, {
+              .updateLog(log._id as unknown as string, {
                 statusCode,
                 duration,
                 responseBody:
@@ -104,7 +104,7 @@ export class LoggingInterceptor implements NestInterceptor {
 
           if (log) {
             this.mongoService
-              .updateLog(log.id as string, logData as Partial<Log>)
+              .updateLog(log._id as unknown as string, logData as Partial<Log>)
               .catch((logError) => {
                 this.logger.error('Failed to update error log:', logError);
               });

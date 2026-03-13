@@ -3,9 +3,6 @@ import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Log extends Document {
-  @Prop({ type: 'ObjectId', auto: true })
-  id!: string;
-
   @Prop({ required: true })
   method!: string;
 
