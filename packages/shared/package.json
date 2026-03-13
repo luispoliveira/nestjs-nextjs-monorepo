@@ -18,7 +18,9 @@
   "peerDependencies": {
     "@nestjs/common": "^11.1.16",
     "@nestjs/config": "^4.0.3",
-    "@nestjs/core": "^11.1.16"
+    "@nestjs/core": "^11.1.16",
+    "@nestjs/microservices": "^11.1.16",
+    "rxjs": "^7.8.2"
   },
   "dependencies": {
     "@nestjs/swagger": "^11.2.6",

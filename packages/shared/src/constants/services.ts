@@ -1,0 +1,4 @@
+export const SERVICES = {
+  AUTH: 'AUTH_SERVICE',
+  NOTIFICATIONS: 'NOTIFICATIONS_SERVICE',
+} as const;

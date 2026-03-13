@@ -1,16 +1,22 @@
 import { prismaAdapter } from '@better-auth/prisma-adapter';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ClientsModule } from '@nestjs/microservices';
 import { DatabaseModule, DatabaseService } from '@repo/database';
-import { SharedModule } from '@repo/shared';
-import { AuthModule } from '@thallesp/nestjs-better-auth';
+import { MicroserviceUtil, SharedModule } from '@repo/shared';
+import { AuthGuard, AuthModule } from '@thallesp/nestjs-better-auth';
 import { betterAuth } from 'better-auth';
 import { admin } from 'better-auth/plugins';
 import { twoFactor } from 'better-auth/plugins/two-factor';
+import { AuthController } from './auth.controller';
 
 @Module({
   imports: [
     SharedModule.register(),
+    ClientsModule.registerAsync([
+      MicroserviceUtil.registerNotificationsService(),
+    ]),
     AuthModule.forRootAsync({
       imports: [DatabaseModule, ConfigModule],
       useFactory: (
@@ -43,7 +49,12 @@ import { twoFactor } from 'better-auth/plugins/two-factor';
       inject: [DatabaseService, ConfigService],
     }),
   ],
-  controllers: [],
-  providers: [],
+  controllers: [AuthController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+  ],
 })
 export class AppModule {}
