@@ -1,16 +1,26 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { NestExpressApplication } from '@nestjs/platform-express';
+import { Transport } from '@nestjs/microservices';
 import { BootstrapUtil, EnvironmentEnum } from '@repo/shared';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  const app = await NestFactory.create(AppModule, {
     bodyParser: false,
   });
   app.useLogger(app.get(Logger));
   const configService = app.get(ConfigService);
+
+  app.connectMicroservice({
+    transport: Transport.REDIS,
+    options: {
+      host: configService.getOrThrow<string>('REDIS_HOST'),
+      port: configService.getOrThrow<number>('REDIS_PORT'),
+      retryAttempts: 5,
+      retryDelay: 3000,
+    },
+  });
 
   const environment = configService.get<EnvironmentEnum>(
     'NODE_ENV',
@@ -39,7 +49,8 @@ async function bootstrap() {
   });
 
   const port = configService.getOrThrow<number>('PORT');
-
+  await app.startAllMicroservices();
+  app.enableShutdownHooks();
   await app.listen(port);
   console.log(`Auth API is running on port ${port}`);
   console.log(`🚀 Auth Service running on: http://localhost:${port}/api/auth`);
