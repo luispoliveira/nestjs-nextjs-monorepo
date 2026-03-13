@@ -1,5 +1,5 @@
 import { UseMiddlewares } from 'nestjs-trpc-v2';
-import { AuthTrpcMiddleware, LoggingTrpcMiddleware } from '../middlewares';
+import { LoggingTrpcMiddleware } from '../middlewares/logging-trpc.middleware';
 
 /**
  * Abstract base router that applies logging and auth middlewares to all
@@ -14,5 +14,5 @@ import { AuthTrpcMiddleware, LoggingTrpcMiddleware } from '../middlewares';
  * export class UsersRouter extends BaseRouter { ... }
  * ```
  */
-@UseMiddlewares(LoggingTrpcMiddleware, AuthTrpcMiddleware)
+@UseMiddlewares(LoggingTrpcMiddleware)
 export abstract class BaseRouter {}

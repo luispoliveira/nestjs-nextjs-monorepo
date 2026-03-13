@@ -50,10 +50,13 @@ importers:
         version: link:../../packages/database
       '@repo/shared':
         specifier: workspace:*
-        version: link:../../packages/shared
+        version: file:packages/shared(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/config@4.0.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2))(@nestjs/core@11.1.16)(@nestjs/microservices@11.1.16)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.11.0(typescript@5.9.3))(pino-http@11.0.0)(pino@10.3.1)(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(reflect-metadata@0.2.2)(rxjs@7.8.2)(typescript@5.9.3)
       '@repo/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
+      '@repo/trpc':
+        specifier: workspace:*
+        version: link:../../packages/trpc
       '@thallesp/nestjs-better-auth':
         specifier: ^2.5.1
         version: 2.5.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(better-auth@1.5.5(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(mongodb@7.1.0)(mysql2@3.15.3)(pg@8.20.0)(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(express@5.2.1)(qs@6.15.0)(typescript@5.9.3)
@@ -66,6 +69,9 @@ importers:
       nestjs-pino:
         specifier: ^4.6.0
         version: 4.6.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.3.1)(rxjs@7.8.2)
+      nestjs-trpc-v2:
+        specifier: ^1.4.1
+        version: 1.4.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@trpc/server@11.11.0(typescript@5.9.3))(reflect-metadata@0.2.2)(rxjs@7.8.2)(zod@4.3.6)
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -78,6 +84,9 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3.3.5
@@ -536,6 +545,22 @@ importers:
         version: 1.4.10(@types/express@5.0.6)
 
   packages/shared-types: {}
+
+  packages/trpc:
+    dependencies:
+      '@repo/shared':
+        specifier: workspace:*
+        version: file:packages/shared(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/config@4.0.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2))(@nestjs/core@11.1.16)(@nestjs/microservices@11.1.16)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.11.0(typescript@5.9.3))(pino-http@11.0.0)(pino@10.3.1)(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(reflect-metadata@0.2.2)(rxjs@7.8.2)(typescript@5.9.3)
+      '@trpc/server':
+        specifier: 11.11.0
+        version: 11.11.0(typescript@5.9.3)
+      zod:
+        specifier: 4.3.6
+        version: 4.3.6
+    devDependencies:
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
 
   packages/typescript-config: {}
 
@@ -1566,6 +1591,25 @@ packages:
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
 
+  '@repo/database@file:packages/database':
+    resolution: {directory: packages/database, type: directory}
+    peerDependencies:
+      '@nestjs/common': ^11.1.16
+      '@nestjs/config': ^4.0.3
+      '@nestjs/core': ^11.1.16
+
+  '@repo/shared-types@file:packages/shared-types':
+    resolution: {directory: packages/shared-types, type: directory}
+
+  '@repo/shared@file:packages/shared':
+    resolution: {directory: packages/shared, type: directory}
+    peerDependencies:
+      '@nestjs/common': ^11.1.16
+      '@nestjs/config': ^4.0.3
+      '@nestjs/core': ^11.1.16
+      '@nestjs/microservices': ^11.1.16
+      rxjs: ^7.8.2
+
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
 
@@ -1610,6 +1654,11 @@ packages:
 
   '@tokenizer/token@0.3.0':
     resolution: {integrity: sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A==}
+
+  '@trpc/server@11.11.0':
+    resolution: {integrity: sha512-5CBK5Oit8qv2k2zgIHrUsa12tnCIVpZIJLvMa4n2tejuWz/d7Qb1B1v9zZioapr7y8sEvnk8zPcNnxcT2LlQxg==}
+    peerDependencies:
+      typescript: '>=5.7.2'
 
   '@trpc/server@11.12.0':
     resolution: {integrity: sha512-rpZnf5FUjNndE/AjGIy+FvEHR52iBd0u0wySqWCwXj67wraj3qCuBr5Opcf0Te/g67C/YztqceFkLoG0r4mp4Q==}
@@ -6214,6 +6263,76 @@ snapshots:
       react: 19.2.4
       react-dom: 19.2.4(react@19.2.4)
 
+  '@repo/database@file:packages/database(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/config@4.0.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2))(@nestjs/core@11.1.16)(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)':
+    dependencies:
+      '@nestjs/common': 11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config': 4.0.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@nestjs/core': 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.16)(@nestjs/platform-express@11.1.16)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@prisma/adapter-pg': 7.5.0
+      '@prisma/client': 7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      '@repo/shared-types': file:packages/shared-types
+      pg: 8.20.0
+    transitivePeerDependencies:
+      - pg-native
+      - prisma
+      - typescript
+
+  '@repo/shared-types@file:packages/shared-types': {}
+
+  '@repo/shared@file:packages/shared(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/config@4.0.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2))(@nestjs/core@11.1.16)(@nestjs/microservices@11.1.16)(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(@trpc/server@11.11.0(typescript@5.9.3))(pino-http@11.0.0)(pino@10.3.1)(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(reflect-metadata@0.2.2)(rxjs@7.8.2)(typescript@5.9.3)':
+    dependencies:
+      '@nestjs/bull': 11.0.4(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(bull@4.16.5)
+      '@nestjs/common': 11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/config': 4.0.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@nestjs/core': 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.16)(@nestjs/platform-express@11.1.16)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/microservices': 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(ioredis@5.10.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/mongoose': 11.0.4(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(mongoose@9.3.0)(rxjs@7.8.2)
+      '@nestjs/swagger': 11.2.6(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(reflect-metadata@0.2.2)
+      '@nestjs/terminus': 11.1.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@nestjs/microservices@11.1.16)(@nestjs/mongoose@11.0.4(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(mongoose@9.3.0)(rxjs@7.8.2))(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(mongoose@9.3.0)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/throttler': 6.5.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(reflect-metadata@0.2.2)
+      '@repo/database': file:packages/database(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/config@4.0.3(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(rxjs@7.8.2))(@nestjs/core@11.1.16)(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      '@repo/shared-types': file:packages/shared-types
+      bull: 4.16.5
+      cookie-parser: 1.4.7
+      helmet: 8.1.0
+      mongoose: 9.3.0
+      nestjs-cls: 6.2.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      nestjs-pino: 4.6.0(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(pino-http@11.0.0)(pino@10.3.1)(rxjs@7.8.2)
+      nestjs-trpc-v2: 1.4.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@trpc/server@11.11.0(typescript@5.9.3))(reflect-metadata@0.2.2)(rxjs@7.8.2)(zod@4.3.6)
+      nestjs-zod: 5.1.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/swagger@11.2.6(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(reflect-metadata@0.2.2))(rxjs@7.8.2)(zod@4.3.6)
+      pino-pretty: 13.1.3
+      rxjs: 7.8.2
+      zod: 4.3.6
+    transitivePeerDependencies:
+      - '@aws-sdk/credential-providers'
+      - '@fastify/static'
+      - '@grpc/grpc-js'
+      - '@grpc/proto-loader'
+      - '@mikro-orm/core'
+      - '@mikro-orm/nestjs'
+      - '@mongodb-js/zstd'
+      - '@nestjs/axios'
+      - '@nestjs/sequelize'
+      - '@nestjs/typeorm'
+      - '@prisma/client'
+      - '@trpc/server'
+      - class-transformer
+      - class-validator
+      - gcp-metadata
+      - kerberos
+      - mongodb-client-encryption
+      - pg-native
+      - pino
+      - pino-http
+      - prisma
+      - reflect-metadata
+      - sequelize
+      - snappy
+      - socks
+      - supports-color
+      - typeorm
+      - typescript
+
   '@scarf/scarf@1.4.0': {}
 
   '@sinclair/typebox@0.34.48': {}
@@ -6246,6 +6365,10 @@ snapshots:
       - supports-color
 
   '@tokenizer/token@0.3.0': {}
+
+  '@trpc/server@11.11.0(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
 
   '@trpc/server@11.12.0(typescript@5.9.3)':
     dependencies:
@@ -8853,6 +8976,18 @@ snapshots:
       pino: 10.3.1
       pino-http: 11.0.0
       rxjs: 7.8.2
+
+  nestjs-trpc-v2@1.4.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@trpc/server@11.11.0(typescript@5.9.3))(reflect-metadata@0.2.2)(rxjs@7.8.2)(zod@4.3.6):
+    dependencies:
+      '@nestjs/common': 11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.16(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/microservices@11.1.16)(@nestjs/platform-express@11.1.16)(reflect-metadata@0.2.2)(rxjs@7.8.2)
+      '@trpc/server': 11.11.0(typescript@5.9.3)
+      lodash: 4.17.23
+      reflect-metadata: 0.2.2
+      rxjs: 7.8.2
+      ts-morph: 27.0.2
+      tslib: 2.8.1
+      zod: 4.3.6
 
   nestjs-trpc-v2@1.4.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(@trpc/server@11.12.0(typescript@5.9.3))(reflect-metadata@0.2.2)(rxjs@7.8.2)(zod@4.3.6):
     dependencies:

@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { ContextUtil, MESSAGE_PATTERNS, SERVICES } from '@repo/shared';
 import { Request } from 'express';
 import {
   MiddlewareOptions,
@@ -7,8 +8,6 @@ import {
   TRPCMiddleware,
 } from 'nestjs-trpc-v2';
 import { firstValueFrom } from 'rxjs';
-import { MESSAGE_PATTERNS, SERVICES } from '../constants';
-import { ContextUtil } from '../utils';
 
 type TrpcContext = {
   req: Request;

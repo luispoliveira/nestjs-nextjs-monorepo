@@ -8,20 +8,23 @@ import {
   MicroserviceUtil,
   NotificationsPublisher,
   SharedModule,
+  TrpcModule,
 } from '@repo/shared';
 import { AuthGuard, AuthModule } from '@thallesp/nestjs-better-auth';
 import { betterAuth } from 'better-auth';
 import { admin } from 'better-auth/plugins';
 import { twoFactor } from 'better-auth/plugins/two-factor';
+import { AuthTrpcMiddleware } from './auth-trpc.middleware';
 import { AuthController } from './auth.controller';
+import { AuthRouter } from './auth.router';
 import { LocalAuthService } from './local-auth.service';
-
 @Module({
   imports: [
     SharedModule.register(),
     ClientsModule.registerAsync([
       MicroserviceUtil.registerNotificationsService(),
     ]),
+    TrpcModule.register('../../packages/trpc/src/server/api', '/api/auth/trpc'),
     AuthModule.forRootAsync({
       imports: [DatabaseModule, ConfigModule],
       useFactory: (
@@ -62,6 +65,8 @@ import { LocalAuthService } from './local-auth.service';
     },
     NotificationsPublisher,
     LocalAuthService,
+    AuthRouter,
+    AuthTrpcMiddleware,
   ],
 })
 export class AppModule {}

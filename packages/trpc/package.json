@@ -1,0 +1,25 @@
+{
+  "name": "@repo/trpc",
+  "version": "1.0.0",
+  "private": true,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "peerDependencies": {
+    "zod": "4.3.6",
+    "@trpc/server": "11.11.0",
+    "@repo/shared": "workspace:*"
+  }
+}

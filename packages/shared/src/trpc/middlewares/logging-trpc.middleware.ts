@@ -1,4 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
+import {
+  CLS_CORRELATION_ID,
+  Log,
+  MongoService,
+  SanitizeUtil,
+} from '@repo/shared';
 import { Request } from 'express';
 import { ClsService } from 'nestjs-cls';
 import {
@@ -6,10 +12,6 @@ import {
   MiddlewareResponse,
   TRPCMiddleware,
 } from 'nestjs-trpc-v2';
-import { CLS_CORRELATION_ID } from '../constants';
-import { MongoService } from '../mongo/mongo.service';
-import { Log } from '../mongo/schema/log.schema';
-import { SanitizeUtil } from '../utils';
 
 type TrpcContext = {
   req: Request;
