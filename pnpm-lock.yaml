@@ -263,6 +263,9 @@ importers:
       '@repo/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@repo/mail':
+        specifier: workspace:*
+        version: link:../../packages/mail
       '@repo/shared':
         specifier: workspace:*
         version: link:../../packages/shared

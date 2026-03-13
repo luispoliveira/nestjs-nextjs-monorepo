@@ -1,5 +1,6 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
+import { MailService } from '@repo/mail';
 import {
   JOB_PATTERNS,
   QUEUES,
@@ -12,12 +13,11 @@ import {
 } from '@repo/shared';
 import bull from 'bull';
 import z from 'zod';
-
 @Processor(QUEUES.EMAIL)
 export class EmailConsumer {
   private readonly logger = new Logger(EmailConsumer.name);
 
-  constructor() {}
+  constructor(private readonly mailService: MailService) {}
 
   @Process(JOB_PATTERNS.SEND_WELCOME_EMAIL)
   async sendWelcomeEmail(job: bull.Job<SendWelcomeEmailInput>) {
@@ -25,6 +25,12 @@ export class EmailConsumer {
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
     );
     const validated = z.parse(sendWelcomeEmailInputSchema, job.data);
+
+    await this.mailService.send({
+      to: [{ email: validated.email }],
+      subject: 'Welcome to Our Service!',
+      text: 'Thank you for registering with us.',
+    });
   }
 
   async sendPasswordResetEmail(job: bull.Job<SendPasswordResetEmailInput>) {
@@ -32,6 +38,11 @@ export class EmailConsumer {
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
     );
     const validated = z.parse(sendPasswordResetEmailInputSchema, job.data);
+    await this.mailService.send({
+      to: [{ email: validated.email }],
+      subject: 'Password Reset Request',
+      text: `Click the following link to reset your password: ${validated.resetLink}`,
+    });
   }
 
   async sendPasswordChangedEmail(job: bull.Job<SendPasswordChangedEmailInput>) {
@@ -39,5 +50,10 @@ export class EmailConsumer {
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
     );
     const validated = z.parse(sendPasswordChangedEmailInputSchema, job.data);
+    await this.mailService.send({
+      to: [{ email: validated.email }],
+      subject: 'Your Password Has Been Changed',
+      text: 'This is a confirmation that your password has been successfully changed.',
+    });
   }
 }
