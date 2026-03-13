@@ -3,6 +3,9 @@ import { Document } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class EmailLog extends Document {
+  @Prop({ type: 'ObjectId', auto: true })
+  id!: string;
+
   @Prop({ required: true, type: Object })
   from!: { name?: string; email: string };
   @Prop({ required: true, type: [Object] })
