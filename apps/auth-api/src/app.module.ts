@@ -14,6 +14,7 @@ import { betterAuth } from 'better-auth';
 import { admin } from 'better-auth/plugins';
 import { twoFactor } from 'better-auth/plugins/two-factor';
 import { AuthController } from './auth.controller';
+import { LocalAuthService } from './local-auth.service';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { AuthController } from './auth.controller';
       useClass: AuthGuard,
     },
     NotificationsPublisher,
+    LocalAuthService,
   ],
 })
 export class AppModule {}
