@@ -12,6 +12,7 @@ import { Request } from 'express';
 import { catchError, map, Observable, throwError } from 'rxjs';
 import { MESSAGE_PATTERNS, SERVICES } from '../constants';
 import { IS_PUBLIC_KEY } from '../decorators';
+import { ContextUtil } from '../utils';
 
 @Injectable()
 export class MicroserviceAuthGuard implements CanActivate {
@@ -33,7 +34,7 @@ export class MicroserviceAuthGuard implements CanActivate {
     if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractToken(request);
+    const token = ContextUtil.extractToken(request);
 
     if (!token) {
       throw new UnauthorizedException('No authentication token provided');
@@ -55,15 +56,5 @@ export class MicroserviceAuthGuard implements CanActivate {
           );
         }),
       );
-  }
-
-  private extractToken(request: Request): string | null {
-    const authHeader = request.headers['authorization'];
-    if (authHeader?.startsWith('Bearer ')) {
-      return authHeader.substring(7);
-    }
-
-    const cookies = request.cookies as Record<string, string | undefined>;
-    return cookies?.['better-auth.session_token'] ?? null;
   }
 }
