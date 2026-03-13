@@ -10,11 +10,11 @@ export abstract class BasePublisher {
   ) {}
 
   protected publish<T>(pattern: string, data: T) {
-    this.logger.debug(
-      `Publishing event with pattern: ${pattern} and data: ${JSON.stringify(data)}`,
-    );
-
     const correlationId = this.clsService.get<string>('correlationId');
+
+    this.logger.debug(
+      `Publishing event with pattern: ${pattern} and data: ${JSON.stringify(data)} and correlationId: ${correlationId}`,
+    );
 
     this.client.emit(pattern, {
       ...data,

@@ -4,7 +4,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ClientsModule } from '@nestjs/microservices';
 import { DatabaseModule, DatabaseService } from '@repo/database';
-import { MicroserviceUtil, SharedModule } from '@repo/shared';
+import {
+  MicroserviceUtil,
+  NotificationsPublisher,
+  SharedModule,
+} from '@repo/shared';
 import { AuthGuard, AuthModule } from '@thallesp/nestjs-better-auth';
 import { betterAuth } from 'better-auth';
 import { admin } from 'better-auth/plugins';
@@ -55,6 +59,7 @@ import { AuthController } from './auth.controller';
       provide: APP_GUARD,
       useClass: AuthGuard,
     },
+    NotificationsPublisher,
   ],
 })
 export class AppModule {}

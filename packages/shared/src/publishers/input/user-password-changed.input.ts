@@ -3,7 +3,7 @@ import z from 'zod';
 
 export const userPasswordChangedInputSchema = z
   .object({
-    userId: z.number(),
+    userId: z.string(),
     email: z.email(),
     reason: z.string(),
   })

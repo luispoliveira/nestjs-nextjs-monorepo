@@ -3,7 +3,7 @@ import z from 'zod';
 
 export const userPasswordResetRequestedInputSchema = z
   .object({
-    userId: z.number(),
+    userId: z.string(),
     email: z.email(),
     resetToken: z.string(),
     expiresAt: z.iso.datetime(),

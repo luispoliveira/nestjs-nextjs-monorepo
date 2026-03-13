@@ -3,7 +3,7 @@ import z from 'zod';
 
 export const userCreatedInputSchema = z
   .object({
-    userId: z.number(),
+    userId: z.string(),
     email: z.email(),
   })
   .meta({ id: 'UserCreated' });
