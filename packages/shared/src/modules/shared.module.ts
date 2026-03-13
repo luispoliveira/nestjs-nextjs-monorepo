@@ -10,6 +10,7 @@ import z from 'zod';
 import { CLS_CORRELATION_ID } from '../constants';
 import { AllExceptionFilter } from '../filters';
 import { pinoConfig } from '../logging';
+import { MongoModule } from '../mongo/mongo.module';
 
 const sharedModuleRegisterParamsSchema = z.object({
   throttlerOptions: z
@@ -42,6 +43,7 @@ export class SharedModule {
           isGlobal: true,
         }),
         DatabaseModule,
+        MongoModule,
         LoggerModule.forRoot(pinoConfig),
         ThrottlerModule.forRoot([
           params.throttlerOptions || defaultParams.throttlerOptions!,
