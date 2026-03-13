@@ -1,6 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { TerminusModule } from '@nestjs/terminus';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from '@repo/database';
 import { ClsModule } from 'nestjs-cls';
@@ -9,6 +10,7 @@ import { randomUUID } from 'node:crypto';
 import z from 'zod';
 import { CLS_CORRELATION_ID } from '../constants';
 import { AllExceptionFilter } from '../filters';
+import { HealthController } from '../health/health.controller';
 import { LoggingInterceptor } from '../interceptors';
 import { pinoConfig } from '../logging';
 import { MongoModule } from '../mongo/mongo.module';
@@ -44,6 +46,9 @@ export class SharedModule {
           isGlobal: true,
         }),
         DatabaseModule,
+        TerminusModule.forRoot({
+          errorLogStyle: 'pretty',
+        }),
         MongoModule,
         LoggerModule.forRoot(pinoConfig),
         ThrottlerModule.forRoot([
@@ -75,6 +80,7 @@ export class SharedModule {
           useClass: LoggingInterceptor,
         },
       ],
+      controllers: [HealthController],
       exports: [],
     };
   }
