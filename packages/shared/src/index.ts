@@ -7,6 +7,7 @@ export * from './interceptors';
 export * from './middlewares';
 export * from './modules';
 export * from './mongo';
+export * from './publishers';
 export * from './queue';
 export * from './router';
 export * from './utils';
