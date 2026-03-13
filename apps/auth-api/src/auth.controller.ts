@@ -1,26 +1,13 @@
-import { Controller, Logger, OnModuleInit } from '@nestjs/common';
+import { Controller, Logger } from '@nestjs/common';
 import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
-import { MESSAGE_PATTERNS, NotificationsPublisher } from '@repo/shared';
+import { MESSAGE_PATTERNS } from '@repo/shared';
 import { AuthService } from '@thallesp/nestjs-better-auth';
 
 @Controller()
-export class AuthController implements OnModuleInit {
+export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(
-    private readonly authService: AuthService,
-    private readonly notificationsPublisher: NotificationsPublisher,
-  ) {}
-
-  async onModuleInit() {
-    this.logger.log('AuthController initialized');
-    this.logger.debug('Test notification publisher');
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for the microservice to be ready
-    this.notificationsPublisher.emitUserCreated({
-      userId: 'test-user-id',
-      email: 'sd@test.com',
-    });
-  }
+  constructor(private readonly authService: AuthService) {}
 
   @MessagePattern(MESSAGE_PATTERNS.AUTH_AUTHENTICATE)
   async authenticate(@Payload() data: { token: string }) {
