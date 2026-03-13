@@ -60,7 +60,7 @@ export class SharedModule {
           middleware: {
             mount: true,
             setup(cls, req: Request, res: Response) {
-              const correlationId = randomUUID();
+              const correlationId = `${Date.now()}-${randomUUID()}`;
               cls.set(CLS_CORRELATION_ID, correlationId);
               (req as unknown as Record<string, unknown>)[CLS_CORRELATION_ID] =
                 correlationId;
