@@ -6,4 +6,6 @@ export * from './guards';
 export * from './interceptors';
 export * from './middlewares';
 export * from './modules';
+export * from './mongo';
+export * from './router';
 export * from './utils';
