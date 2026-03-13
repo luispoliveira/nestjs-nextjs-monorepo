@@ -51,6 +51,9 @@ importers:
       '@repo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@repo/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       '@thallesp/nestjs-better-auth':
         specifier: ^2.5.1
         version: 2.5.1(@nestjs/common@11.1.16(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.16)(better-auth@1.5.5(@prisma/client@7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3))(mongodb@7.1.0)(mysql2@3.15.3)(pg@8.20.0)(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(express@5.2.1)(qs@6.15.0)(typescript@5.9.3)
@@ -166,6 +169,9 @@ importers:
       '@repo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@repo/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
@@ -269,6 +275,9 @@ importers:
       '@repo/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@repo/shared-types':
+        specifier: workspace:*
+        version: link:../../packages/shared-types
       bull:
         specifier: ^4.16.5
         version: 4.16.5
@@ -369,6 +378,9 @@ importers:
       '@prisma/client':
         specifier: ^7.5.0
         version: 7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      '@repo/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -439,6 +451,9 @@ importers:
       '@repo/shared':
         specifier: workspace:*
         version: link:../shared
+      '@repo/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -479,6 +494,9 @@ importers:
       '@repo/database':
         specifier: workspace:*
         version: link:../database
+      '@repo/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
       bull:
         specifier: ^4.16.5
         version: 4.16.5
@@ -516,6 +534,8 @@ importers:
       '@types/cookie-parser':
         specifier: ^1.4.10
         version: 1.4.10(@types/express@5.0.6)
+
+  packages/shared-types: {}
 
   packages/typescript-config: {}
 

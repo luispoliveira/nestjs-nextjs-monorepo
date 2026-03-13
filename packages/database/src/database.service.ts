@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { EnvironmentEnum } from '@repo/shared-types';
 import { PrismaClient } from '../generated/prisma/client';
 
 @Injectable()
@@ -17,13 +18,16 @@ export class DatabaseService
 
   constructor(private readonly configService: ConfigService) {
     const databaseUrl = configService.getOrThrow<string>('DATABASE_URL');
-    const environment = configService.get<string>('NODE_ENV', 'development');
+    const environment = configService.get<EnvironmentEnum>(
+      'NODE_ENV',
+      EnvironmentEnum.DEVELOPMENT,
+    );
     const adapter = new PrismaPg({ connectionString: databaseUrl });
 
     super({
       adapter: adapter,
       log:
-        environment === 'development'
+        environment === EnvironmentEnum.DEVELOPMENT
           ? ['query', 'info', 'warn', 'error']
           : ['warn', 'error'],
     });

@@ -1,5 +1,5 @@
 import { LogLevel } from '@nestjs/common';
-import { EnvironmentEnum } from '../enums';
+import { EnvironmentEnum } from '@repo/shared-types';
 
 export class LoggerUtil {
   static getAppLogger(environment: EnvironmentEnum): LogLevel[] {

@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EnvironmentEnum, MongoService } from '@repo/shared';
+import { MongoService } from '@repo/shared';
+import { EnvironmentEnum } from '@repo/shared-types';
 import type { Mail, MailModuleOptions } from './interfaces/mail.interface';
 import type { MailProvider } from './interfaces/provider.interface';
 

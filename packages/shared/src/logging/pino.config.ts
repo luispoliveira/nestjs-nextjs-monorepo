@@ -1,6 +1,6 @@
+import { EnvironmentEnum } from '@repo/shared-types';
 import { IncomingMessage } from 'http';
 import { Params } from 'nestjs-pino';
-import { EnvironmentEnum } from '../enums';
 
 const isProduction = process.env.NODE_ENV === EnvironmentEnum.PRODUCTION;
 

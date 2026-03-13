@@ -23,6 +23,7 @@
   "dependencies": {
     "@getbrevo/brevo": "^3.0.1",
     "@repo/shared": "workspace:*",
+    "@repo/shared-types": "workspace:*",
     "zod": "^4.3.6"
   },
   "devDependencies": {

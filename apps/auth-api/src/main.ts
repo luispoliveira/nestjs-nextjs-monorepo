@@ -1,7 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { Transport } from '@nestjs/microservices';
-import { BootstrapUtil, EnvironmentEnum } from '@repo/shared';
+import { BootstrapUtil } from '@repo/shared';
+import { EnvironmentEnum } from '@repo/shared-types';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 

@@ -2,7 +2,8 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { Transport } from '@nestjs/microservices';
-import { BootstrapUtil, EnvironmentEnum, LoggerUtil } from '@repo/shared';
+import { BootstrapUtil, LoggerUtil } from '@repo/shared';
+import { EnvironmentEnum } from '@repo/shared-types';
 import { AppModule } from './app.module';
 
 async function bootstrap() {

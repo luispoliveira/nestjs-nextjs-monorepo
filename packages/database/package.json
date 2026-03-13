@@ -26,7 +26,8 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "@repo/shared-types": "workspace:*"
   },
   "peerDependencies": {
     "@nestjs/common": "^11.1.16",

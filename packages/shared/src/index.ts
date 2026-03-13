@@ -10,4 +10,5 @@ export * from './mongo';
 export * from './publishers';
 export * from './queue';
 export * from './router';
+export * from './types';
 export * from './utils';
