@@ -1,9 +1,13 @@
 import { Module } from '@nestjs/common';
-import { SharedModule } from '@repo/shared';
+import { QueueModule, QUEUES, SharedModule } from '@repo/shared';
+import { EmailConsumer } from './consumer/email.consumer';
 
 @Module({
-  imports: [SharedModule.register()],
+  imports: [
+    SharedModule.register(),
+    QueueModule.registerQueues([QUEUES.EMAIL]),
+  ],
   controllers: [],
-  providers: [],
+  providers: [EmailConsumer],
 })
 export class AppModule {}

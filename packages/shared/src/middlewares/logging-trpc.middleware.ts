@@ -59,7 +59,7 @@ export class LoggingTrpcMiddleware implements TRPCMiddleware {
 
       if (log) {
         this.mongoService
-          .updateLog(log.id as string, {
+          .updateLog(log._id as unknown as string, {
             statusCode: 200,
             duration,
             responseBody:
@@ -86,7 +86,7 @@ export class LoggingTrpcMiddleware implements TRPCMiddleware {
 
       if (log) {
         this.mongoService
-          .updateLog(log.id as string, {
+          .updateLog(log._id as unknown as string, {
             statusCode: trpcError.httpStatus ?? 500,
             duration,
             responseBody: {
