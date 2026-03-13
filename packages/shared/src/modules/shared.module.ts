@@ -1,6 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from '@repo/database';
 import { ClsModule } from 'nestjs-cls';
@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto';
 import z from 'zod';
 import { CLS_CORRELATION_ID } from '../constants';
 import { AllExceptionFilter } from '../filters';
+import { LoggingInterceptor } from '../interceptors';
 import { pinoConfig } from '../logging';
 import { MongoModule } from '../mongo/mongo.module';
 
@@ -68,6 +69,10 @@ export class SharedModule {
         {
           provide: APP_FILTER,
           useClass: AllExceptionFilter,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: LoggingInterceptor,
         },
       ],
       exports: [],

@@ -2,6 +2,8 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongoService } from './mongo.service';
+import { EmailLog, EmailLogSchema } from './schema/email-log.schema';
+import { Log, LogSchema } from './schema/log.schema';
 
 @Global()
 @Module({
@@ -13,6 +15,10 @@ import { MongoService } from './mongo.service';
       }),
       inject: [ConfigService],
     }),
+    MongooseModule.forFeature([{ name: Log.name, schema: LogSchema }]),
+    MongooseModule.forFeature([
+      { name: EmailLog.name, schema: EmailLogSchema },
+    ]),
   ],
   providers: [MongoService],
   exports: [MongoService],
