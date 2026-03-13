@@ -12,7 +12,7 @@ import z from 'zod';
 import { CLS_CORRELATION_ID } from '../constants';
 import { AllExceptionFilter } from '../filters';
 import { HealthController } from '../health/health.controller';
-import { LoggingInterceptor } from '../interceptors';
+import { CorrelationInterceptor, LoggingInterceptor } from '../interceptors';
 import { pinoConfig } from '../logging';
 import { MongoModule } from '../mongo/mongo.module';
 
@@ -79,6 +79,10 @@ export class SharedModule {
         {
           provide: APP_INTERCEPTOR,
           useClass: LoggingInterceptor,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: CorrelationInterceptor,
         },
         {
           provide: APP_PIPE,
