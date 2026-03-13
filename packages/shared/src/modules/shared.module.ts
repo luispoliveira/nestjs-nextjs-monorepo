@@ -1,11 +1,12 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { TerminusModule } from '@nestjs/terminus';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { DatabaseModule } from '@repo/database';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
+import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
 import { CLS_CORRELATION_ID } from '../constants';
@@ -78,6 +79,14 @@ export class SharedModule {
         {
           provide: APP_INTERCEPTOR,
           useClass: LoggingInterceptor,
+        },
+        {
+          provide: APP_PIPE,
+          useClass: ZodValidationPipe,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: ZodSerializerInterceptor,
         },
       ],
       controllers: [HealthController],

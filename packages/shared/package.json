@@ -23,11 +23,13 @@
     "rxjs": "^7.8.2"
   },
   "dependencies": {
+    "@nestjs/bull": "^11.0.4",
     "@nestjs/mongoose": "^11.0.4",
     "@nestjs/swagger": "^11.2.6",
     "@nestjs/terminus": "^11.1.1",
     "@nestjs/throttler": "^6.5.0",
     "@repo/database": "workspace:*",
+    "bull": "^4.16.5",
     "cookie-parser": "^1.4.7",
     "helmet": "^8.1.0",
     "mongoose": "^9.3.0",
