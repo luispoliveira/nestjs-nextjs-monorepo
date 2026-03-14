@@ -21,7 +21,6 @@ import { LocalAuthService } from './local-auth.service';
     ClientsModule.registerAsync([
       MicroserviceUtil.registerNotificationsService(),
     ]),
-    // TrpcModule.register('../../packages/trpc/src/auth', '/api/auth/trpc'),
     AuthModule.forRootAsync({
       imports: [DatabaseModule, ConfigModule],
       useFactory: (
