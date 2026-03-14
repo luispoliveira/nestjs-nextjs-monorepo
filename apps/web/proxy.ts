@@ -1,17 +1,20 @@
 import { getSessionCookie } from 'better-auth/cookies';
 import { NextRequest, NextResponse } from 'next/server';
 
-const publicRoutes = ['/login', '/signup'];
+const publicRoutes = ['/sign-in'];
 
 export default function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  if (publicRoutes.includes(pathname)) return NextResponse.next();
-
   const sessionCookie = getSessionCookie(request);
 
-  if (!sessionCookie) {
-    return NextResponse.redirect(new URL('/login', request.url));
+  // Authenticated user landing on a public auth route → send to dashboard
+  if (publicRoutes.includes(pathname) && sessionCookie) {
+    return NextResponse.redirect(new URL('/dashboard', request.url));
+  }
+
+  // Unauthenticated user on any protected route → send to sign-in
+  if (!publicRoutes.includes(pathname) && !sessionCookie) {
+    return NextResponse.redirect(new URL('/sign-in', request.url));
   }
 
   return NextResponse.next();
