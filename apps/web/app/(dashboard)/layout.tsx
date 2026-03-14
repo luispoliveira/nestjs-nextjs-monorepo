@@ -9,6 +9,8 @@ import { RoleEnum } from '@repo/shared-types';
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();
+  console.log("🚀 ~ DashboardLayout ~ session:", session)
+
 
   if (!session) {
     redirect('/sign-in');
