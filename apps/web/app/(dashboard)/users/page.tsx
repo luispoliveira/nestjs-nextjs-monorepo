@@ -1,13 +1,9 @@
-import { authClient } from '@/lib/auth/client';
+import { getServerSession } from '@/lib/auth/server';
 import { RoleEnum } from '@repo/shared-types';
 import { redirect } from 'next/navigation';
 
-
 export default async function UsersPage() {
-  const { data: session } = await authClient.getSession();
-  console.log("🚀 ~ UsersPage ~ session:", session)
-
-
+  const session = await getServerSession();
 
   if (session?.user?.role !== RoleEnum.ADMIN) {
     redirect('/dashboard');
