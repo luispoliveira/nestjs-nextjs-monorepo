@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "require": "./dist/index.js",
-      "import": "./dist/index.js",
-      "default": "./dist/index.js"
+    "./auth": {
+      "types": "./dist/auth/server.d.ts",
+      "require": "./dist/auth/server.js",
+      "import": "./dist/auth/server.js",
+      "default": "./dist/auth/server.js"
     }
   },
   "scripts": {

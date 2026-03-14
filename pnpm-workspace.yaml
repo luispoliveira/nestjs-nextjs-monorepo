@@ -6,5 +6,7 @@ allowBuilds:
   '@prisma/engines': true
   '@scarf/scarf': true
   msgpackr-extract: true
+  msw: true
   prisma: true
+  sharp: true
   unrs-resolver: true
