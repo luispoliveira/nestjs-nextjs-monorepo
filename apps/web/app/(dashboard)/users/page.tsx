@@ -1,14 +1,16 @@
-import { getServerSession } from '@/lib/auth/server';
-import { RoleEnum } from '@repo/shared-types';
 import { redirect } from 'next/navigation';
+
+import { getServerSession } from '@/lib/auth/server';
+
+import { UsersClient } from './users-client';
 
 export default async function UsersPage() {
   const session = await getServerSession();
 
-
-  if (session?.user?.role !== RoleEnum.ADMIN) {
+  if (!session || session.user.role !== 'admin') {
     redirect('/dashboard');
   }
 
-  return <div className="text-sm text-muted-foreground">User management</div>;
+  return <UsersClient />;
 }
+
