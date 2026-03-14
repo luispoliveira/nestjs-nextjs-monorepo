@@ -547,13 +547,6 @@ importers:
       '@repo/shared-types':
         specifier: workspace:*
         version: link:../shared-types
-      zod:
-        specifier: ^4.3.6
-        version: 4.3.6
-    devDependencies:
-      '@types/cookie-parser':
-        specifier: ^1.4.10
-        version: 1.4.10(@types/express@5.0.6)
 
   packages/shared:
     dependencies:
@@ -628,19 +621,17 @@ importers:
         specifier: ^1.4.10
         version: 1.4.10(@types/express@5.0.6)
 
-  packages/shared-types: {}
+  packages/shared-types:
+    dependencies:
+      zod:
+        specifier: ^4.3.6
+        version: 4.3.6
 
   packages/trpc:
     dependencies:
-      '@repo/shared':
-        specifier: workspace:*
-        version: link:../shared
       '@trpc/server':
         specifier: 11.11.0
         version: 11.11.0(typescript@5.9.3)
-      zod:
-        specifier: 4.3.6
-        version: 4.3.6
     devDependencies:
       typescript:
         specifier: 5.9.3

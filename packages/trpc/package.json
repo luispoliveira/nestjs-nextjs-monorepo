@@ -17,9 +17,7 @@
   "devDependencies": {
     "typescript": "5.9.3"
   },
-  "peerDependencies": {
-    "zod": "4.3.6",
-    "@trpc/server": "11.11.0",
-    "@repo/shared": "workspace:*"
+  "dependencies": {
+    "@trpc/server": "11.11.0"
   }
 }

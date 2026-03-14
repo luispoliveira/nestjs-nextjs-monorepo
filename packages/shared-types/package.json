@@ -14,5 +14,8 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     }
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
   }
 }
