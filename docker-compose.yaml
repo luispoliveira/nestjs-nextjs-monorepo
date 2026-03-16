@@ -69,7 +69,46 @@ services:
       - 'traefik.http.routers.auth.rule=PathPrefix(`/api/auth`)'
       - 'traefik.http.routers.auth.entrypoints=web'
       - 'traefik.http.services.auth.loadbalancer.server.port=3000'
-
+  notifications:
+    build:
+      context: .
+      dockerfile: ./apps/notifications/Dockerfile
+      target: development
+    command: turbo dev --filter=notifications
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 1
+    ports:
+      - '3100:3100'
+    volumes:
+      - ./apps/notifications/src:/usr/src/app/apps/notifications/src
+    env_file:
+      - ./apps/notifications/.env.development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - app
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'wget -qO /dev/null http://localhost:3100/api/notifications/health/ready || exit 1',
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.notifications.rule=PathPrefix(`/api/notifications`)'
+      - 'traefik.http.routers.notifications.entrypoints=web'
+      - 'traefik.http.services.notifications.loadbalancer.server.port=3100'
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped

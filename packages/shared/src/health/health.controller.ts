@@ -1,4 +1,4 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Transport } from '@nestjs/microservices';
 import {
@@ -13,7 +13,7 @@ import { DatabaseService } from '@repo/database';
 import { Public } from '../decorators';
 
 @Controller({
-  version: '1',
+  version: VERSION_NEUTRAL,
   path: 'health',
 })
 export class HealthController {

@@ -29,5 +29,4 @@ tasks
 
 # App bundles not needed for auth-api image
 apps/web
-apps/notifications
 apps/worker
