@@ -12,8 +12,6 @@ import { Log, LogSchema } from './schema/log.schema';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         const uri = configService.getOrThrow<string>('MONGO_URI');
-        console.log('🚀 ~ uri:', uri);
-
         return {
           uri: configService.getOrThrow<string>('MONGO_URI'),
         };

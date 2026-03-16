@@ -26,6 +26,8 @@ RUN pnpm install --frozen-lockfile
 COPY packages ./packages
 COPY apps/notifications ./apps/notifications
 
+COPY apps/notifications/.env.development ./apps/notifications/.env
+
 RUN turbo db:generate
 
 RUN turbo build --filter=notifications

@@ -25,6 +25,8 @@ RUN pnpm install --frozen-lockfile
 
 COPY packages ./packages
 COPY apps/auth-api ./apps/auth-api
+# Use the Docker-specific env (service hostnames) as the runtime .env file
+COPY apps/auth-api/.env.development ./apps/auth-api/.env
 
 RUN turbo db:generate
 

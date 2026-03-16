@@ -26,6 +26,9 @@ RUN pnpm install --frozen-lockfile
 COPY packages ./packages
 COPY apps/worker ./apps/worker
 
+COPY apps/worker/.env.development ./apps/worker/.env
+
+
 RUN turbo db:generate
 
 RUN turbo build --filter=worker
