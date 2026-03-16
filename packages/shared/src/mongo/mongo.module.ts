@@ -10,9 +10,14 @@ import { Log, LogSchema } from './schema/log.schema';
   imports: [
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        uri: configService.getOrThrow<string>('MONGO_URI'),
-      }),
+      useFactory: (configService: ConfigService) => {
+        const uri = configService.getOrThrow<string>('MONGO_URI');
+        console.log('🚀 ~ uri:', uri);
+
+        return {
+          uri: configService.getOrThrow<string>('MONGO_URI'),
+        };
+      },
       inject: [ConfigService],
     }),
     MongooseModule.forFeature([{ name: Log.name, schema: LogSchema }]),

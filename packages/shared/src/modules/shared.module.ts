@@ -45,6 +45,7 @@ export class SharedModule {
       imports: [
         ConfigModule.forRoot({
           isGlobal: true,
+          envFilePath: `.env.${process.env.NODE_ENV ?? 'development'}`,
         }),
         DatabaseModule,
         TerminusModule.forRoot({

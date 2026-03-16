@@ -3,12 +3,12 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": ["^build", "^db:generate"],
+      "dependsOn": ["db:generate", "^build", "^db:generate"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {
-      "dependsOn": ["^db:generate"],
+      "dependsOn": ["^build"],
       "persistent": true,
       "cache": false
     },

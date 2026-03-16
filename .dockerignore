@@ -1,0 +1,33 @@
+# Dependencies — managed by pnpm inside the container
+**/node_modules
+
+# Compiled output — rebuilt inside the container by turbo build
+**/dist
+
+# TypeScript incremental build cache — must not carry over between environments
+**/*.tsbuildinfo
+
+# Prisma generated client — regenerated inside the container by turbo db:generate
+packages/database/generated
+
+# Base .env files contain localhost values for local dev — env vars come from
+# docker-compose env_file in Docker, so these files are not needed in the image
+**/.env
+
+# VCS and local tooling
+.git
+.gitignore
+.github
+
+# Local dev infrastructure
+.tmp
+docker
+
+# Tasks and docs
+tasks
+*.md
+
+# App bundles not needed for auth-api image
+apps/web
+apps/notifications
+apps/worker
