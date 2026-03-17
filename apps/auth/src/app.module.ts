@@ -14,7 +14,7 @@ import { betterAuth } from 'better-auth';
 import { admin } from 'better-auth/plugins';
 import { twoFactor } from 'better-auth/plugins/two-factor';
 import { AuthController } from './auth.controller';
-import { LocalAuthService } from './local-auth.service';
+import { LocalAuthService, publisherProxy } from './local-auth.service';
 @Module({
   imports: [
     SharedModule.register(),
@@ -49,17 +49,70 @@ import { LocalAuthService } from './local-auth.service';
           }),
           emailAndPassword: {
             enabled: true,
-            // sendResetPassword: (data, _request) => {
-            //   console.log(
-            //     `Send reset password email to ${data.user.email} with token ${data.token}`,
-            //   );
-            //   // Implement your email sending logic here using your preferred email service
-            //   return;
-            // },
+            sendResetPassword: ({ user, token }): Promise<void> => {
+              if (!publisherProxy.instance)
+                throw new Error('NotificationsPublisher instance not set');
+
+              const uiUrl =
+                configService.get<string>('UI_URL') ?? 'http://localhost:8080';
+              const resetUrl = `${uiUrl}/reset-password?token=${token}`;
+              const expiresAt = new Date(
+                Date.now() + 60 * 60 * 1000,
+              ).toISOString();
+
+              publisherProxy.instance.emitUserPasswordResetRequested({
+                userId: user.id,
+                email: user.email,
+                resetToken: resetUrl,
+                expiresAt,
+              });
+
+              return Promise.resolve();
+            },
+          },
+          emailVerification: {
+            sendVerificationEmail: ({ user, token }): Promise<void> => {
+              if (!publisherProxy.instance)
+                throw new Error('NotificationsPublisher instance not set');
+
+              const uiUrl =
+                configService.get<string>('UI_URL') ?? 'http://localhost:8080';
+              const verificationUrl = `${uiUrl}/verify-email?token=${token}`;
+
+              publisherProxy.instance.emitUserEmailVerificationRequested({
+                userId: user.id,
+                email: user.email,
+                verificationToken: verificationUrl,
+              });
+
+              return Promise.resolve();
+            },
           },
           trustedOrigins: configService.get<string>('UI_URL')
             ? [configService.get<string>('UI_URL')!]
             : ['http://localhost:8080', 'http://localhost:8090'],
+          hooks: {},
+          databaseHooks: {
+            user: {
+              create: {
+                after: (user): Promise<void> => {
+                  const adminEmail =
+                    configService.getOrThrow<string>('ADMIN_EMAIL');
+                  if (user.email === adminEmail) return Promise.resolve();
+
+                  if (!publisherProxy.instance)
+                    throw new Error('NotificationsPublisher instance not set');
+
+                  publisherProxy.instance.emitUserCreated({
+                    userId: user.id,
+                    email: user.email,
+                  });
+
+                  return Promise.resolve();
+                },
+              },
+            },
+          },
         }),
       }),
       inject: [DatabaseService, ConfigService],

@@ -1,29 +1,28 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DatabaseService, User } from '@repo/database';
+import { DatabaseService } from '@repo/database';
 import { NotificationsPublisher } from '@repo/shared';
-import { AuthService } from '@thallesp/nestjs-better-auth';
+import * as nestjsBetterAuth from '@thallesp/nestjs-better-auth';
 
+export const publisherProxy: { instance: NotificationsPublisher | null } = {
+  instance: null,
+};
+
+@nestjsBetterAuth.Hook()
 @Injectable()
 export class LocalAuthService implements OnModuleInit {
   private readonly logger = new Logger(LocalAuthService.name);
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly authService: AuthService,
+    private readonly authService: nestjsBetterAuth.AuthService,
     private readonly databaseService: DatabaseService,
     private readonly notificationsPublisher: NotificationsPublisher,
   ) {}
 
   async onModuleInit() {
+    publisherProxy.instance = this.notificationsPublisher;
     await this.ensureAdminUser();
-  }
-
-  emitUserCreatedEvent(user: User) {
-    this.notificationsPublisher.emitUserCreated({
-      userId: user.id,
-      email: user.email,
-    });
   }
 
   async ensureAdminUser() {
@@ -50,5 +49,54 @@ export class LocalAuthService implements OnModuleInit {
     });
 
     this.logger.log(`Admin user created with email ${adminEmail}.`);
+  }
+
+  @nestjsBetterAuth.AfterHook('/change-password')
+  async handlePasswordChanged(ctx: nestjsBetterAuth.AuthHookContext) {
+    const session = await this.authService.api.getSession({
+      headers: ctx.headers as Headers,
+    });
+
+    if (!session || !session.user) {
+      throw new Error('Session not found');
+    }
+
+    this.notificationsPublisher.emitUserPasswordChanged({
+      userId: session.user.id,
+      email: session.user.email,
+      reason: 'User changed password',
+    });
+  }
+
+  @nestjsBetterAuth.AfterHook('/two-factor/enable')
+  async handleTwoFactorEnabled(ctx: nestjsBetterAuth.AuthHookContext) {
+    const session = await this.authService.api.getSession({
+      headers: ctx.headers as Headers,
+    });
+
+    if (!session || !session.user) {
+      throw new Error('Session not found');
+    }
+
+    this.notificationsPublisher.emitUserTwoFactorEnabled({
+      userId: session.user.id,
+      email: session.user.email,
+    });
+  }
+
+  @nestjsBetterAuth.AfterHook('/two-factor/disable')
+  async handleTwoFactorDisabled(ctx: nestjsBetterAuth.AuthHookContext) {
+    const session = await this.authService.api.getSession({
+      headers: ctx.headers as Headers,
+    });
+
+    if (!session || !session.user) {
+      throw new Error('Session not found');
+    }
+
+    this.notificationsPublisher.emitUserTwoFactorDisabled({
+      userId: session.user.id,
+      email: session.user.email,
+    });
   }
 }
