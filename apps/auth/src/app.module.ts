@@ -47,7 +47,7 @@ import { LocalAuthService } from './local-auth.service';
           },
           trustedOrigins: configService.get<string>('UI_URL')
             ? [configService.get<string>('UI_URL')!]
-            : ['http://localhost:8080'],
+            : ['http://localhost:8080', 'http://localhost:8090'],
         }),
       }),
       inject: [DatabaseService, ConfigService],

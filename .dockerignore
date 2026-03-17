@@ -27,5 +27,3 @@ docker
 tasks
 *.md
 
-# App bundles not needed for auth image
-apps/web

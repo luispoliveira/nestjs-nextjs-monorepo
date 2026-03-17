@@ -151,6 +151,43 @@ services:
       - 'traefik.http.routers.worker.entrypoints=web'
       - 'traefik.http.services.worker.loadbalancer.server.port=3200'
 
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+      target: development
+    command: turbo dev --filter=web
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 1
+    ports:
+      - '8090:8080'
+    volumes:
+      - ./apps/web/app:/usr/src/app/apps/web/app
+      - ./apps/web/components:/usr/src/app/apps/web/components
+      - ./apps/web/hooks:/usr/src/app/apps/web/hooks
+      - ./apps/web/lib:/usr/src/app/apps/web/lib
+      - ./apps/web/public:/usr/src/app/apps/web/public
+    env_file:
+      - ./apps/web/.env.development
+    depends_on:
+      auth:
+        condition: service_healthy
+    networks:
+      - app
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO /dev/null http://localhost:8080 || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.web.rule=PathPrefix(`/`)'
+      - 'traefik.http.routers.web.entrypoints=web'
+      - 'traefik.http.services.web.loadbalancer.server.port=8080'
+
   postgres:
     image: postgres:17-alpine
     restart: unless-stopped
