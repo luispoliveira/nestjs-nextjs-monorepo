@@ -27,6 +27,11 @@ import { LocalAuthService } from './local-auth.service';
         database: DatabaseService,
         configService: ConfigService,
       ) => ({
+        bodyParser: {
+          json: { limit: '10mb' },
+          urlencoded: { limit: '10mb', extended: true },
+          rawBody: true,
+        },
         auth: betterAuth({
           appName: 'Nes(x)tJs Template',
           plugins: [twoFactor(), admin()],
@@ -44,6 +49,13 @@ import { LocalAuthService } from './local-auth.service';
           }),
           emailAndPassword: {
             enabled: true,
+            // sendResetPassword: (data, _request) => {
+            //   console.log(
+            //     `Send reset password email to ${data.user.email} with token ${data.token}`,
+            //   );
+            //   // Implement your email sending logic here using your preferred email service
+            //   return;
+            // },
           },
           trustedOrigins: configService.get<string>('UI_URL')
             ? [configService.get<string>('UI_URL')!]

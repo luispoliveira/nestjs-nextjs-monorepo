@@ -5,8 +5,11 @@ import { BasePublisher } from '../abstracts';
 import { EVENT_PATTERNS, SERVICES } from '../constants';
 import {
   UserCreatedInput,
+  UserEmailVerificationRequestedInput,
   UserPasswordChangedInput,
   UserPasswordResetRequestedInput,
+  UserTwoFactorDisabledInput,
+  UserTwoFactorEnabledInput,
 } from './input';
 
 @Injectable()
@@ -33,6 +36,29 @@ export class NotificationsPublisher extends BasePublisher {
   emitUserPasswordChanged(data: UserPasswordChangedInput) {
     this.publish<UserPasswordChangedInput>(
       EVENT_PATTERNS.USER_PASSWORD_CHANGED,
+      data,
+    );
+  }
+
+  emitUserEmailVerificationRequested(
+    data: UserEmailVerificationRequestedInput,
+  ) {
+    this.publish<UserEmailVerificationRequestedInput>(
+      EVENT_PATTERNS.USER_EMAIL_VERIFICATION_REQUESTED,
+      data,
+    );
+  }
+
+  emitUserTwoFactorEnabled(data: UserTwoFactorEnabledInput) {
+    this.publish<UserTwoFactorEnabledInput>(
+      EVENT_PATTERNS.USER_TWO_FACTOR_ENABLED,
+      data,
+    );
+  }
+
+  emitUserTwoFactorDisabled(data: UserTwoFactorDisabledInput) {
+    this.publish<UserTwoFactorDisabledInput>(
+      EVENT_PATTERNS.USER_TWO_FACTOR_DISABLED,
       data,
     );
   }

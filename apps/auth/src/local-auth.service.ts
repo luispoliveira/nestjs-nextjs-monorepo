@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DatabaseService } from '@repo/database';
+import { DatabaseService, User } from '@repo/database';
+import { NotificationsPublisher } from '@repo/shared';
 import { AuthService } from '@thallesp/nestjs-better-auth';
 
 @Injectable()
@@ -11,10 +12,18 @@ export class LocalAuthService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly authService: AuthService,
     private readonly databaseService: DatabaseService,
+    private readonly notificationsPublisher: NotificationsPublisher,
   ) {}
 
   async onModuleInit() {
     await this.ensureAdminUser();
+  }
+
+  emitUserCreatedEvent(user: User) {
+    this.notificationsPublisher.emitUserCreated({
+      userId: user.id,
+      email: user.email,
+    });
   }
 
   async ensureAdminUser() {
@@ -32,7 +41,7 @@ export class LocalAuthService implements OnModuleInit {
     const adminPassword =
       this.configService.getOrThrow<string>('ADMIN_PASSWORD');
 
-    const adminUser = await this.authService.api.signUpEmail({
+    await this.authService.api.signUpEmail({
       body: {
         email: adminEmail,
         password: adminPassword,
