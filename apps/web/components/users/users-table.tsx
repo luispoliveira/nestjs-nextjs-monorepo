@@ -12,15 +12,15 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { RoleEnum } from '@repo/shared-types';
-
-// import { UserActionsMenu } from './user-actions-menu';
+import { UserActionsMenu } from './user-actions-menu';
 
 interface UsersTableProps {
   users: UserWithRole[];
+  currentUserId: string;
   onRefetch: () => void;
 }
 
-export function UsersTable({ users, onRefetch }: UsersTableProps) {
+export function UsersTable({ users, currentUserId, onRefetch }: UsersTableProps) {
   return (
     <Table>
       <TableHeader>
@@ -63,7 +63,11 @@ export function UsersTable({ users, onRefetch }: UsersTableProps) {
               {new Date(user.createdAt).toLocaleDateString()}
             </TableCell>
             <TableCell className="text-right">
-              {/* <UserActionsMenu user={user} onRefetch={onRefetch} /> */}
+              <UserActionsMenu
+                user={user}
+                currentUserId={currentUserId}
+                onRefetch={onRefetch}
+              />
             </TableCell>
           </TableRow>
         ))}

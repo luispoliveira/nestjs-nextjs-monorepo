@@ -25,6 +25,9 @@ type StatusFilter = 'all' | 'active' | 'banned';
 type ListUsersQuery = Parameters<typeof authClient.admin.listUsers>[0]['query'];
 
 export function UsersClient() {
+  const { data: session } = authClient.useSession();
+  const currentUserId = session?.user.id ?? '';
+
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
@@ -148,7 +151,7 @@ export function UsersClient() {
         </Select>
       </div>
 
-      <UsersTable users={users} onRefetch={refetch} />
+      <UsersTable users={users} currentUserId={currentUserId} onRefetch={refetch} />
 
       <CreateUserDialog
         open={createOpen}
