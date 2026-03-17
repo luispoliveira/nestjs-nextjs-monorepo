@@ -7,4 +7,10 @@ export const createUserSchema = z.object({
   role: z.enum(RoleEnum),
 });
 
+export const editRoleSchema = z.object({
+  role: z.enum(RoleEnum),
+});
+
+export type EditRoleInput = z.infer<typeof editRoleSchema>;
+
 export type CreateUserInput = z.infer<typeof createUserSchema>;
