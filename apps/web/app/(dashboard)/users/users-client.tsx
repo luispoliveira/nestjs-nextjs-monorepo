@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { CreateUserDialog } from '@/components/users/create-user-dialog';
 import { UsersTable } from '@/components/users/users-table';
 import { authClient } from '@/lib/auth/client';
 
@@ -30,6 +31,7 @@ export function UsersClient() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [page, setPage] = useState(0);
   const [pageSize] = useState(20);
+  const [createOpen, setCreateOpen] = useState(false);
 
   // Debounce search at 300 ms; reset to first page on new search term
   useEffect(() => {
@@ -99,7 +101,7 @@ export function UsersClient() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Users</h1>
-        <Button>New User</Button>
+        <Button onClick={() => setCreateOpen(true)}>New User</Button>
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -147,6 +149,15 @@ export function UsersClient() {
       </div>
 
       <UsersTable users={users} onRefetch={refetch} />
+
+      <CreateUserDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSuccess={() => {
+          setCreateOpen(false);
+          refetch();
+        }}
+      />
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
