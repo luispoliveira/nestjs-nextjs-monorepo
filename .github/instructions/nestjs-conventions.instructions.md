@@ -1,6 +1,6 @@
 ---
 description: 'Use when creating or modifying NestJS apps or shared packages. Covers module setup, microservices, validation, guards, publishers, consumers, and queue patterns for this monorepo.'
-applyTo: 'apps/{auth-api,notifications,worker}/**/*.ts,packages/{shared,mail,database}/**/*.ts'
+applyTo: 'apps/{auth,notifications,worker}/**/*.ts,packages/{shared,mail,database}/**/*.ts'
 ---
 
 # NestJS Conventions

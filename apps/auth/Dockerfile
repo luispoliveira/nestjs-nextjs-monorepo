@@ -17,20 +17,20 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/trpc/package.json ./packages/trpc/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
-COPY apps/auth-api/package.json ./apps/auth-api/
+COPY apps/auth/package.json ./apps/auth/
 
 RUN npm install -g pnpm
 RUN npm install -g turbo
 RUN pnpm install --frozen-lockfile
 
 COPY packages ./packages
-COPY apps/auth-api ./apps/auth-api
+COPY apps/auth ./apps/auth
 # Use the Docker-specific env (service hostnames) as the runtime .env file
-COPY apps/auth-api/.env.development ./apps/auth-api/.env
+COPY apps/auth/.env.development ./apps/auth/.env
 
 RUN turbo db:generate
 
-RUN turbo build --filter=auth-api
+RUN turbo build --filter=auth
 
 FROM node:22-alpine AS production
 
@@ -48,6 +48,6 @@ RUN npm install -g pnpm
 RUN npm install -g turbo
 RUN pnpm install --frozen-lockfile --prod
 
-COPY --from=development /usr/src/app/apps/auth-api/dist ./dist
+COPY --from=development /usr/src/app/apps/auth/dist ./dist
 
 CMD ["node", "dist/index.js"]

@@ -27,5 +27,5 @@ docker
 tasks
 *.md
 
-# App bundles not needed for auth-api image
+# App bundles not needed for auth image
 apps/web

@@ -32,9 +32,9 @@ services:
   auth:
     build:
       context: .
-      dockerfile: ./apps/auth-api/Dockerfile
+      dockerfile: ./apps/auth/Dockerfile
       target: development
-    command: turbo dev --filter=auth-api
+    command: turbo dev --filter=auth
     restart: unless-stopped
     deploy:
       mode: replicated
@@ -42,9 +42,9 @@ services:
     ports:
       - '3000:3000'
     volumes:
-      - ./apps/auth-api/src:/usr/src/app/apps/auth-api/src
+      - ./apps/auth/src:/usr/src/app/apps/auth/src
     env_file:
-      - ./apps/auth-api/.env.development
+      - ./apps/auth/.env.development
     depends_on:
       postgres:
         condition: service_healthy

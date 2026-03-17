@@ -23,7 +23,7 @@
 
 ```
 apps/
-  auth-api/        # NestJS — authentication service (better-auth)
+  auth/        # NestJS — authentication service (better-auth)
   notifications/   # NestJS — notification delivery stub
   worker/          # NestJS — BullMQ worker (email jobs)
   web/             # Next.js — frontend admin dashboard
