@@ -4,189 +4,189 @@ networks:
   edge:
     driver: bridge
 services:
-  traefik:
-    container_name: traefik
-    image: traefik:v3.6.2
-    command:
-      - --api.dashboard=true
-      - --api.insecure=true
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.websecure.address=:443
-      # Uncomment for production with Let's Encrypt
-      # - --certificatesresolvers.le.acme.email=${TRAEFIK_ACME_EMAIL}
-      # - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
-      # - --certificatesresolvers.le.acme.tlschallenge=true
-    ports:
-      - '80:80'
-      - '443:443'
-      - '8080:8080'
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./.tmp/traefik/letsencrypt:/letsencrypt
-    networks:
-      - edge
-      - app
-    restart: unless-stopped
-  auth:
-    build:
-      context: .
-      dockerfile: ./apps/auth/Dockerfile
-      target: development
-    command: turbo dev --filter=auth
-    restart: unless-stopped
-    deploy:
-      mode: replicated
-      replicas: 1
-    ports:
-      - '3000:3000'
-    volumes:
-      - ./apps/auth/src:/usr/src/app/apps/auth/src
-    env_file:
-      - ./apps/auth/.env.development
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mongo:
-        condition: service_healthy
-    networks:
-      - app
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'wget -qO /dev/null http://localhost:3000/api/auth/ok || exit 1',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.auth.rule=PathPrefix(`/api/auth`)'
-      - 'traefik.http.routers.auth.entrypoints=web'
-      - 'traefik.http.services.auth.loadbalancer.server.port=3000'
-  notifications:
-    build:
-      context: .
-      dockerfile: ./apps/notifications/Dockerfile
-      target: development
-    command: turbo dev --filter=notifications
-    restart: unless-stopped
-    deploy:
-      mode: replicated
-      replicas: 1
-    ports:
-      - '3100:3100'
-    volumes:
-      - ./apps/notifications/src:/usr/src/app/apps/notifications/src
-    env_file:
-      - ./apps/notifications/.env.development
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mongo:
-        condition: service_healthy
-    networks:
-      - app
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'wget -qO /dev/null http://localhost:3100/api/notifications/health/ready || exit 1',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.notifications.rule=PathPrefix(`/api/notifications`)'
-      - 'traefik.http.routers.notifications.entrypoints=web'
-      - 'traefik.http.services.notifications.loadbalancer.server.port=3100'
+  # traefik:
+  #   container_name: traefik
+  #   image: traefik:v3.6.2
+  #   command:
+  #     - --api.dashboard=true
+  #     - --api.insecure=true
+  #     - --providers.docker=true
+  #     - --providers.docker.exposedbydefault=false
+  #     - --entrypoints.web.address=:80
+  #     - --entrypoints.websecure.address=:443
+  #     # Uncomment for production with Let's Encrypt
+  #     # - --certificatesresolvers.le.acme.email=${TRAEFIK_ACME_EMAIL}
+  #     # - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+  #     # - --certificatesresolvers.le.acme.tlschallenge=true
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #     - '8080:8080'
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock:ro
+  #     - ./.tmp/traefik/letsencrypt:/letsencrypt
+  #   networks:
+  #     - edge
+  #     - app
+  #   restart: unless-stopped
+  # auth:
+  #   build:
+  #     context: .
+  #     dockerfile: ./apps/auth/Dockerfile
+  #     target: development
+  #   command: turbo dev --filter=auth
+  #   restart: unless-stopped
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   ports:
+  #     - '3000:3000'
+  #   volumes:
+  #     - ./apps/auth/src:/usr/src/app/apps/auth/src
+  #   env_file:
+  #     - ./apps/auth/.env.development
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     mongo:
+  #       condition: service_healthy
+  #   networks:
+  #     - app
+  #   healthcheck:
+  #     test:
+  #       [
+  #         'CMD-SHELL',
+  #         'wget -qO /dev/null http://localhost:3000/api/auth/ok || exit 1',
+  #       ]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   labels:
+  #     - 'traefik.enable=true'
+  #     - 'traefik.http.routers.auth.rule=PathPrefix(`/api/auth`)'
+  #     - 'traefik.http.routers.auth.entrypoints=web'
+  #     - 'traefik.http.services.auth.loadbalancer.server.port=3000'
+  # notifications:
+  #   build:
+  #     context: .
+  #     dockerfile: ./apps/notifications/Dockerfile
+  #     target: development
+  #   command: turbo dev --filter=notifications
+  #   restart: unless-stopped
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   ports:
+  #     - '3100:3100'
+  #   volumes:
+  #     - ./apps/notifications/src:/usr/src/app/apps/notifications/src
+  #   env_file:
+  #     - ./apps/notifications/.env.development
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     mongo:
+  #       condition: service_healthy
+  #   networks:
+  #     - app
+  #   healthcheck:
+  #     test:
+  #       [
+  #         'CMD-SHELL',
+  #         'wget -qO /dev/null http://localhost:3100/api/notifications/health/ready || exit 1',
+  #       ]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   labels:
+  #     - 'traefik.enable=true'
+  #     - 'traefik.http.routers.notifications.rule=PathPrefix(`/api/notifications`)'
+  #     - 'traefik.http.routers.notifications.entrypoints=web'
+  #     - 'traefik.http.services.notifications.loadbalancer.server.port=3100'
 
-  worker:
-    build:
-      context: .
-      dockerfile: ./apps/worker/Dockerfile
-      target: development
-    command: turbo dev --filter=worker
-    restart: unless-stopped
-    deploy:
-      mode: replicated
-      replicas: 1
-    ports:
-      - '3200:3200'
-    volumes:
-      - ./apps/worker/src:/usr/src/app/apps/worker/src
-    env_file:
-      - ./apps/worker/.env.development
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mongo:
-        condition: service_healthy
-    networks:
-      - app
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'wget -qO /dev/null http://localhost:3200/api/worker/health/ready || exit 1',
-        ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.worker.rule=PathPrefix(`/api/worker`)'
-      - 'traefik.http.routers.worker.entrypoints=web'
-      - 'traefik.http.services.worker.loadbalancer.server.port=3200'
+  # worker:
+  #   build:
+  #     context: .
+  #     dockerfile: ./apps/worker/Dockerfile
+  #     target: development
+  #   command: turbo dev --filter=worker
+  #   restart: unless-stopped
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   ports:
+  #     - '3200:3200'
+  #   volumes:
+  #     - ./apps/worker/src:/usr/src/app/apps/worker/src
+  #   env_file:
+  #     - ./apps/worker/.env.development
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #     mongo:
+  #       condition: service_healthy
+  #   networks:
+  #     - app
+  #   healthcheck:
+  #     test:
+  #       [
+  #         'CMD-SHELL',
+  #         'wget -qO /dev/null http://localhost:3200/api/worker/health/ready || exit 1',
+  #       ]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   labels:
+  #     - 'traefik.enable=true'
+  #     - 'traefik.http.routers.worker.rule=PathPrefix(`/api/worker`)'
+  #     - 'traefik.http.routers.worker.entrypoints=web'
+  #     - 'traefik.http.services.worker.loadbalancer.server.port=3200'
 
-  web:
-    build:
-      context: .
-      dockerfile: ./apps/web/Dockerfile
-      target: development
-    command: turbo dev --filter=web
-    restart: unless-stopped
-    deploy:
-      mode: replicated
-      replicas: 1
-    ports:
-      - '8090:8080'
-    volumes:
-      - ./apps/web/app:/usr/src/app/apps/web/app
-      - ./apps/web/components:/usr/src/app/apps/web/components
-      - ./apps/web/hooks:/usr/src/app/apps/web/hooks
-      - ./apps/web/lib:/usr/src/app/apps/web/lib
-      - ./apps/web/public:/usr/src/app/apps/web/public
-    env_file:
-      - ./apps/web/.env.development
-    depends_on:
-      auth:
-        condition: service_healthy
-    networks:
-      - app
-    healthcheck:
-      test: ['CMD-SHELL', 'wget -qO /dev/null http://localhost:8080 || exit 1']
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.web.rule=PathPrefix(`/`)'
-      - 'traefik.http.routers.web.entrypoints=web'
-      - 'traefik.http.services.web.loadbalancer.server.port=8080'
+  # web:
+  #   build:
+  #     context: .
+  #     dockerfile: ./apps/web/Dockerfile
+  #     target: development
+  #   command: turbo dev --filter=web
+  #   restart: unless-stopped
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #   ports:
+  #     - '8090:8080'
+  #   volumes:
+  #     - ./apps/web/app:/usr/src/app/apps/web/app
+  #     - ./apps/web/components:/usr/src/app/apps/web/components
+  #     - ./apps/web/hooks:/usr/src/app/apps/web/hooks
+  #     - ./apps/web/lib:/usr/src/app/apps/web/lib
+  #     - ./apps/web/public:/usr/src/app/apps/web/public
+  #   env_file:
+  #     - ./apps/web/.env.development
+  #   depends_on:
+  #     auth:
+  #       condition: service_healthy
+  #   networks:
+  #     - app
+  #   healthcheck:
+  #     test: ['CMD-SHELL', 'wget -qO /dev/null http://localhost:8080 || exit 1']
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 30s
+  #   labels:
+  #     - 'traefik.enable=true'
+  #     - 'traefik.http.routers.web.rule=PathPrefix(`/`)'
+  #     - 'traefik.http.routers.web.entrypoints=web'
+  #     - 'traefik.http.services.web.loadbalancer.server.port=8080'
 
   postgres:
     image: postgres:17-alpine
