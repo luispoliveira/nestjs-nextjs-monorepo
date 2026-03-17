@@ -22,7 +22,7 @@ export class AuthRouter extends BaseRouter {
     input: greetInputSchema,
     output: greetOutputSchema,
   })
-  async greet(@Input() input: GreetInput): Promise<GreetOutput> {
+  greet(@Input() input: GreetInput): GreetOutput {
     return {
       greeting: `Hello, ${input.name}!`,
     };
