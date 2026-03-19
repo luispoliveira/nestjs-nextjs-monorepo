@@ -5,6 +5,7 @@ import { EnvironmentEnum } from '@repo/shared-types';
 import type { Mail, MailModuleOptions } from './interfaces/mail.interface';
 import type { MailProvider } from './interfaces/provider.interface';
 
+const MAX_RETRIES = 1;
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
@@ -19,7 +20,7 @@ export class MailService {
 
   private async sendWithRetry(
     mail: Mail,
-    retries = 3,
+    retries = MAX_RETRIES,
     attempt = 1,
   ): Promise<void> {
     try {
