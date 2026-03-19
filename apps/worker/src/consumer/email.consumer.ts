@@ -10,6 +10,8 @@ import {
   sendPasswordChangedEmailInputSchema,
   SendPasswordResetEmailInput,
   sendPasswordResetEmailInputSchema,
+  SendTwoFactorEnabledEmailInput,
+  sendUserTwoFactorEnabledInputSchema,
   SendWelcomeEmailInput,
   sendWelcomeEmailInputSchema,
 } from '@repo/shared';
@@ -73,6 +75,21 @@ export class EmailConsumer {
       to: [{ email: validated.email }],
       subject: 'Your Password Has Been Changed',
       text: 'This is a confirmation that your password has been successfully changed.',
+    });
+  }
+
+  @Process(JOB_PATTERNS.SEND_TWO_FACTOR_ENABLED_EMAIL)
+  async sendTwoFactorEnabledEmail(
+    job: bull.Job<SendTwoFactorEnabledEmailInput>,
+  ) {
+    this.logger.log(
+      `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
+    );
+    const validated = z.parse(sendUserTwoFactorEnabledInputSchema, job.data);
+    await this.mailService.send({
+      to: [{ email: validated.email }],
+      subject: 'Two-factor authentication enabled',
+      text: 'Two-factor authentication has been successfully enabled on your account.',
     });
   }
 }
