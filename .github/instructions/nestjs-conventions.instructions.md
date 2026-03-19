@@ -7,142 +7,290 @@ applyTo: 'apps/{auth,notifications,worker}/**/*.ts,packages/{shared,mail,databas
 
 ## Module Bootstrap
 
-Every NestJS app module MUST import `SharedModule.register()` first. It globally provides:
+Every NestJS app module **must** import `SharedModule.register()` first. It is `global: true` and provides:
 
-- `ConfigModule` (env vars)
-- `DatabaseModule` (Prisma)
-- `LoggerModule` (nestjs-pino)
-- `ThrottlerModule` (rate limiting)
-- `ClsModule` (correlation IDs)
-- `AllExceptionFilter`
-- `ZodValidationPipe`
-- `ZodSerializerInterceptor`
-- `CorrelationInterceptor`
+- `ConfigModule` (env vars, `isGlobal: true`, reads `.env`)
+- `DatabaseModule` (Prisma via `PrismaPg` adapter)
+- `TerminusModule` (health checks)
+- `MongoModule` (Mongoose — for logs/audit only)
+- `LoggerModule` (nestjs-pino, pino-pretty in dev, JSON in prod)
+- `ThrottlerModule` (default: 10 req / 60s per IP)
+- `ClsModule` (correlation IDs — auto-set in HTTP middleware + RPC interceptor)
+- Global providers: `AllExceptionFilter`, `LoggingInterceptor`, `CorrelationInterceptor`, `ZodValidationPipe`, `ZodSerializerInterceptor`
+- Global controller: `HealthController` (`GET /health/live`, `GET /health/ready`)
 
 ```typescript
 @Module({
   imports: [
     SharedModule.register(),
-    // ... other imports
+    // feature modules...
   ],
 })
 export class AppModule {}
 ```
 
+## App Bootstrap (`main.ts`)
+
+Use `BootstrapUtil.setup(app, config)` from `@repo/shared` to configure the HTTP server. For microservice apps, attach the Redis transport **before** calling `app.listen()`:
+
+```typescript
+import { BootstrapUtil, MicroserviceUtil } from '@repo/shared';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule, { bodyParser: false });
+
+  app.connectMicroservice(MicroserviceUtil.getRedisOptions());
+
+  await BootstrapUtil.setup(app, {
+    globalPrefix: 'api/my-service',
+    useHelmet: true,
+    enableVersioning: true,
+    swagger: { path: 'docs' },
+    cors: { origin: process.env.FRONTEND_URL },
+    enableCookieParser: true,
+  });
+
+  await app.startAllMicroservices();
+  await app.listen(process.env.PORT ?? 3000);
+}
+```
+
 ## Validation
 
-- Use **Zod** schemas for all DTOs. Prefer schemas from `@repo/shared-types` if shared with frontend.
-- Use `nestjs-zod` decorators: `@ZodSerializerDto(MyZodSchema)` on controllers.
-- `ZodValidationPipe` and `ZodSerializerInterceptor` are registered globally by `SharedModule`.
+- Use **Zod v4** for all DTOs. Prefer schemas from `@repo/shared-types` when shared with the frontend.
+- Create DTO classes with `createZodDto` from `nestjs-zod`.
+- Use `z.email()` (not `z.string().email()`). Use `.meta({ id: 'SchemaName' })` for OpenAPI schema IDs.
+- `ZodValidationPipe` and `ZodSerializerInterceptor` are registered globally — do not add them manually.
 
 ```typescript
 import { z } from 'zod';
 import { createZodDto } from 'nestjs-zod';
 
-const CreateUserSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1),
-});
+const CreateUserSchema = z
+  .object({
+    email: z.email(),
+    name: z.string().min(1),
+    role: z.enum(['admin', 'user']),
+  })
+  .meta({ id: 'CreateUser' });
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) {}
 ```
 
 ## Microservices (Redis Transport)
 
-- Service injection tokens come from `SERVICES` constant in `@repo/shared`.
-- Register client microservices using `MicroserviceUtil` helpers from `@repo/shared`.
-- Emit events with `EventPatterns`, request/response with `MessagePatterns`.
-- Never hardcode service names or patterns as raw strings.
+- Service injection tokens come from `SERVICES` in `@repo/shared/constants`.
+- Register client microservices via `MicroserviceUtil` helpers from `@repo/shared`:
+  - `MicroserviceUtil.registerAuthService()` — registers the auth service client
+  - `MicroserviceUtil.registerNotificationsService()` — registers the notifications service client
+- Both use `Transport.REDIS`, `retryAttempts: 5`, `retryDelay: 3000`.
+- Emit fire-and-forget events with `EventPatterns`; use `MessagePatterns` for request/response.
+- **Never use raw string patterns** — always import from `EVENT_PATTERNS` / `MESSAGE_PATTERNS`.
 
 ```typescript
-import { SERVICES, EVENT_PATTERNS, MicroserviceUtil } from '@repo/shared';
+import { SERVICES, MicroserviceUtil } from '@repo/shared';
 
-// In module imports:
+// In module:
 ClientsModule.registerAsync([MicroserviceUtil.registerNotificationsService()]);
-
-// Emitting events — use a Publisher class, not raw client:
-this.notificationsPublisher.emitUserCreated({ userId, email });
 ```
 
-## Publishers
+## Publishers (Emitting Events)
 
-To emit microservice events, extend `BasePublisher` from `@repo/shared/abstracts`:
+To emit Redis events to another service, extend `BasePublisher` from `@repo/shared/abstracts`. The base class handles correlation ID propagation automatically via `ClsService`.
 
 ```typescript
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { ClsService } from 'nestjs-cls';
+import { BasePublisher, SERVICES, EVENT_PATTERNS } from '@repo/shared';
+
 @Injectable()
 export class MyPublisher extends BasePublisher {
   constructor(
-    @Inject(SERVICES.MY_SERVICE) client: ClientProxy,
+    @Inject(SERVICES.NOTIFICATIONS) client: ClientProxy,
     protected clsService: ClsService,
   ) {
     super(client, clsService);
   }
 
-  emitSomethingHappened(data: SomethingHappenedInput) {
-    this.publish<SomethingHappenedInput>(
-      EVENT_PATTERNS.SOMETHING_HAPPENED,
-      data,
-    );
+  emitUserCreated(data: UserCreatedInput): void {
+    this.publish<UserCreatedInput>(EVENT_PATTERNS.USER_CREATED, data);
   }
 }
 ```
 
-## Queue (BullMQ/Bull)
+Use the pre-built `NotificationsPublisher` from `@repo/shared/publishers` instead of building a custom one when emitting to the notifications service.
 
-- Register queues with `QueueModule.registerQueues([QUEUES.EMAIL])` — always use queue names from `QUEUES` constant.
-- Job producers extend `BaseProducer` from `@repo/shared/abstracts`.
-- Workers/consumers decorate methods with `@Process(JOBS.MY_JOB)`.
+## Queue — Bull v4 (`@nestjs/bull`)
+
+> **Important**: This project uses `@nestjs/bull` (Bull v4), **not** BullMQ. Do not install or import from `bullmq`.
+
+### Registering Queues
 
 ```typescript
-// Registering:
+import { QueueModule, QUEUES } from '@repo/shared';
+
+// In feature module:
 QueueModule.registerQueues([QUEUES.EMAIL]);
+```
 
-// Producer:
-export class EmailProducer extends BaseProducer {
-  async queueSendEmail(data: SendEmailInput) {
-    await this.addJob(QUEUES.EMAIL, JOBS.SEND_EMAIL, data);
+### Job Producers
+
+Extend `BaseProducer` from `@repo/shared/abstracts`. The base class handles correlation ID injection into job data.
+
+```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+import { ClsService } from 'nestjs-cls';
+import { BaseProducer, QUEUES, JOB_PATTERNS } from '@repo/shared';
+
+@Injectable()
+export class MyProducer extends BaseProducer {
+  constructor(@InjectQueue(QUEUES.EMAIL) queue: Queue, clsService: ClsService) {
+    super(queue, clsService);
+  }
+
+  async queueWelcomeEmail(data: SendWelcomeEmailInput): Promise<void> {
+    await this.addJob(JOB_PATTERNS.SEND_WELCOME_EMAIL, data);
   }
 }
 ```
 
-## Error Handling
+Use the pre-built `EmailProducer` from `@repo/shared/queue` instead of building a custom one for email jobs.
 
-`AllExceptionFilter` is registered globally. In services:
+### Job Consumers (Workers)
 
 ```typescript
-try {
-  const result = await operation();
-  return result;
-} catch (error) {
-  this.logger.error('Operation failed', { error });
-  throw new InternalServerErrorException('User-friendly message');
+import { Process, Processor } from '@nestjs/bull';
+import { Job } from 'bull';
+import { QUEUES, JOB_PATTERNS } from '@repo/shared';
+
+@Processor(QUEUES.EMAIL)
+export class EmailConsumer {
+  @Process(JOB_PATTERNS.SEND_WELCOME_EMAIL)
+  async handleWelcomeEmail(job: Job<SendWelcomeEmailInput>): Promise<void> {
+    const { data } = job;
+    // process job...
+  }
 }
 ```
+
+Default job options (set in `QueueModule`): `attempts: 3`, exponential back-off starting at `2000ms`, `removeOnComplete: true`, `removeOnFail: 500`.
 
 ## Authentication
 
 - Auth is handled entirely by `better-auth` via `@thallesp/nestjs-better-auth`.
-- Use `@Public()` decorator (from shared) to bypass global `AuthGuard`.
-- Do NOT implement custom JWT strategies or Passport guards.
+- `APP_GUARD: AuthGuard` is set globally in the auth app — all routes are protected by default.
+- Use `@Public()` decorator (from `@repo/shared/decorators`) to bypass the guard on public routes.
+- Use `@CurrentUser()` decorator (from `@repo/shared/decorators`) to extract the authenticated user from `request.user`.
+- **Never** implement custom JWT strategies or Passport guards.
+
+```typescript
+import { Public, CurrentUser } from '@repo/shared';
+
+@Controller('profile')
+export class ProfileController {
+  @Get()
+  getProfile(@CurrentUser() user: AuthUser) {
+    return user;
+  }
+
+  @Public()
+  @Get('public-info')
+  getPublicInfo() {
+    return { info: '...' };
+  }
+}
+```
+
+## Guards
+
+**`MicroserviceAuthGuard`** (in `@repo/shared/guards`) is used for routes that need auth in microservice context. It:
+
+1. Checks `IS_PUBLIC_KEY` reflector metadata (set by `@Public()`)
+2. Extracts the bearer token from `Authorization` header or `better-auth.session_token` cookie via `ContextUtil.extractToken()`
+3. Sends token to `MESSAGE_PATTERNS.AUTH_AUTHENTICATE` on the auth microservice
+4. Attaches the session result to `request.user`
 
 ## Configuration
 
-Always use `ConfigService` — never access `process.env` directly in application code (exception: `main.ts` bootstrap).
+Always use `ConfigService` — never access `process.env` directly in application code (exception: `main.ts` bootstrap only).
 
 ```typescript
 // ✓ correct
-const apiKey = configService.getOrThrow<string>('API_KEY');
+const apiKey = this.configService.getOrThrow<string>('API_KEY');
 
-// ✗ avoid
+// ✗ never do this in services/modules
 const apiKey = process.env.API_KEY;
 ```
 
 ## Logging
 
-Inject `Logger` from `@nestjs/common` or use `PinoLogger` from `nestjs-pino`:
+Use `Logger` from `@nestjs/common` (standard NestJS logger — backed by pino):
 
 ```typescript
-private readonly logger = new Logger(MyService.name);
+import { Injectable, Logger } from '@nestjs/common';
+
+@Injectable()
+export class MyService {
+  private readonly logger = new Logger(MyService.name);
+
+  doSomething() {
+    this.logger.log('Doing something');
+    this.logger.error('Something failed', { context: 'additional data' });
+  }
+}
 ```
 
-Correlation IDs are automatically propagated via `ClsService`.
+Correlation IDs are automatically propagated by `ClsModule` — no manual threading needed.
+
+HTTP request/response logs are written to MongoDB automatically by `LoggingInterceptor`. The following paths are silenced: `/health`, `/metrics`, `/favicon.ico`.
+
+## Error Handling
+
+`AllExceptionFilter` is registered globally and handles all uncaught exceptions. It returns:
+
+```json
+{
+  "statusCode": 500,
+  "timestamp": "2024-01-01T00:00:00.000Z",
+  "path": "/api/auth/users",
+  "message": "Internal server error",
+  "correlationId": "abc-123"
+}
+```
+
+`ZodValidationException` is handled separately with a 422 status. In services, throw NestJS HTTP exceptions:
+
+```typescript
+throw new NotFoundException(`User ${id} not found`);
+throw new BadRequestException('Invalid input');
+throw new InternalServerErrorException('Unexpected error');
+```
+
+## Health Checks
+
+`HealthController` is registered globally by `SharedModule`. It exposes:
+
+- `GET /health/live` — always returns 200 (liveness)
+- `GET /health/ready` — checks: Prisma DB ping, Redis microservice ping, memory heap < 250MB, disk < 70%
+
+No additional health setup is needed.
+
+## tRPC Integration
+
+Use `TrpcModule.register(filePath, basePath)` from `@repo/shared/trpc` to mount tRPC in an app. Define routers by extending `BaseRouter` and decorating with `@Router()` from `nestjs-trpc-v2`. The `AppRouter` type is auto-generated into `packages/trpc/src/` when not in production.
+
+```typescript
+import { Router, Query } from 'nestjs-trpc-v2';
+import { BaseRouter } from '@repo/shared';
+
+@Router({ alias: 'users' })
+export class UsersRouter extends BaseRouter {
+  @Query()
+  list() {
+    return this.usersService.findAll();
+  }
+}
+```
