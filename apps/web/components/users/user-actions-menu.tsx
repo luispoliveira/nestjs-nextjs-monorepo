@@ -3,6 +3,7 @@
 import type { UserWithRole } from 'better-auth/plugins/admin';
 import { MoreHorizontalIcon } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 import {
   AlertDialog,
@@ -47,16 +48,31 @@ export function UserActionsMenu({
 
   async function handleUnban() {
     const { error } = await authClient.admin.unbanUser({ userId: user.id });
-    if (!error) onRefetch();
+    if (error) {
+      toast.error(error.message ?? 'Failed to unban user.');
+    } else {
+      toast.success('User unbanned successfully.');
+      onRefetch();
+    }
   }
 
   async function handleConfirm() {
     if (confirmAction === 'ban') {
       const { error } = await authClient.admin.banUser({ userId: user.id });
-      if (!error) onRefetch();
+      if (error) {
+        toast.error(error.message ?? 'Failed to ban user.');
+      } else {
+        toast.success('User banned successfully.');
+        onRefetch();
+      }
     } else if (confirmAction === 'delete') {
       const { error } = await authClient.admin.removeUser({ userId: user.id });
-      if (!error) onRefetch();
+      if (error) {
+        toast.error(error.message ?? 'Failed to delete user.');
+      } else {
+        toast.success('User deleted successfully.');
+        onRefetch();
+      }
     }
     setConfirmAction(null);
   }

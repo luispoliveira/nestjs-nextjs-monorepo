@@ -51,8 +51,12 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
             enabled: true,
             requireEmailVerification: true,
             sendResetPassword: ({ user, token }): Promise<void> => {
-              if (!publisherProxy.instance)
-                throw new Error('NotificationsPublisher instance not set');
+              if (!publisherProxy.instance) {
+                console.warn(
+                  '[auth] NotificationsPublisher not ready — skipping sendResetPassword hook',
+                );
+                return Promise.resolve();
+              }
 
               const uiUrl =
                 configService.get<string>('UI_URL') ?? 'http://localhost:8080';
@@ -71,8 +75,12 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
               return Promise.resolve();
             },
             onPasswordReset: ({ user }): Promise<void> => {
-              if (!publisherProxy.instance)
-                throw new Error('NotificationsPublisher instance not set');
+              if (!publisherProxy.instance) {
+                console.warn(
+                  '[auth] NotificationsPublisher not ready — skipping onPasswordReset hook',
+                );
+                return Promise.resolve();
+              }
 
               publisherProxy.instance.emitUserPasswordChanged({
                 userId: user.id,
@@ -85,8 +93,12 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
           },
           emailVerification: {
             sendVerificationEmail: ({ user, token }): Promise<void> => {
-              if (!publisherProxy.instance)
-                throw new Error('NotificationsPublisher instance not set');
+              if (!publisherProxy.instance) {
+                console.warn(
+                  '[auth] NotificationsPublisher not ready — skipping sendVerificationEmail hook',
+                );
+                return Promise.resolve();
+              }
 
               const uiUrl =
                 configService.get<string>('UI_URL') ?? 'http://localhost:8080';
@@ -114,8 +126,12 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
                     configService.getOrThrow<string>('ADMIN_EMAIL');
                   if (user.email === adminEmail) return Promise.resolve();
 
-                  if (!publisherProxy.instance)
-                    throw new Error('NotificationsPublisher instance not set');
+                  if (!publisherProxy.instance) {
+                    console.warn(
+                      '[auth] NotificationsPublisher not ready — skipping user.create.after hook',
+                    );
+                    return Promise.resolve();
+                  }
 
                   publisherProxy.instance.emitUserCreated({
                     userId: user.id,

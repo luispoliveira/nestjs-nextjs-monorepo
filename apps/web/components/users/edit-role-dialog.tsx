@@ -49,7 +49,6 @@ export function EditRoleDialog({ user, onSuccess }: EditRoleDialogProps) {
     if (!next) {
       form.reset();
       setServerError(null);
-      onSuccess();
     }
   }
 
@@ -70,7 +69,6 @@ export function EditRoleDialog({ user, onSuccess }: EditRoleDialogProps) {
 
     form.reset();
     setServerError(null);
-    handleOpenChange(false);
     onSuccess();
   }
 

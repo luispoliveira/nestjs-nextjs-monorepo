@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
-import { BootstrapUtil, LoggerUtil } from '@repo/shared';
+import { BootstrapUtil } from '@repo/shared';
 import { EnvironmentEnum } from '@repo/shared-types';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
@@ -37,10 +37,7 @@ async function bootstrap() {
     enableCookieParser: true,
   });
 
-  app.useLogger(LoggerUtil.getAppLogger(environment));
   app.enableShutdownHooks();
-  await app.startAllMicroservices();
-
   await app.listen(port);
   console.log(`Worker application is running on port ${port}`);
 }
