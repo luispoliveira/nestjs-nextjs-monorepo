@@ -4,7 +4,7 @@ import z from 'zod';
 export const userEmailVerificationRequestedSchema = z.object({
   userId: z.string(),
   email: z.email(),
-  verificationToken: z.string(),
+  verificationLink: z.url(),
 });
 
 export class UserEmailVerificationRequestedInput extends createZodDto(

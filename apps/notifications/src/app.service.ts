@@ -11,6 +11,16 @@ export class AppService {
     });
   }
 
+  async sendEmailVerificationNotification(
+    email: string,
+    verificationLink: string,
+  ) {
+    await this.producer.sendEmailVerificationEmail({
+      email,
+      verificationLink,
+    });
+  }
+
   async sendPasswordResetNotification(email: string, resetLink: string) {
     await this.producer.sendPasswordResetEmail({
       email,
@@ -20,6 +30,18 @@ export class AppService {
 
   async sendPasswordChangeConfirmation(email: string) {
     await this.producer.sendPasswordChangedEmail({
+      email,
+    });
+  }
+
+  async sendTwoFactorEnabledNotification(email: string) {
+    await this.producer.sendTwoFactorEnabledEmail({
+      email,
+    });
+  }
+
+  async sendTwoFactorDisabledNotification(email: string) {
+    await this.producer.sendTwoFactorDisabledEmail({
       email,
     });
   }

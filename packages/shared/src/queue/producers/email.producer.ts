@@ -46,10 +46,11 @@ export class EmailProducer extends BaseProducer {
   }
 
   async sendEmailVerificationEmail(payload: SendEmailVerificationEmailInput) {
-    const { email } = payload;
+    const { email, verificationLink } = payload;
 
     await this.addJob(JOB_PATTERNS.SEND_EMAIL_VERIFICATION_EMAIL, {
       email,
+      verificationLink,
     });
   }
 

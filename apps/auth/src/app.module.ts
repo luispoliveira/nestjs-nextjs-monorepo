@@ -92,12 +92,11 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
                 configService.get<string>('UI_URL') ?? 'http://localhost:8080';
 
               const verificationUrl = `${uiUrl}/verify-email?token=${token}`;
-              console.log('🚀 ~ uiUrl:', uiUrl);
 
               publisherProxy.instance.emitUserEmailVerificationRequested({
                 userId: user.id,
                 email: user.email,
-                verificationToken: verificationUrl,
+                verificationLink: verificationUrl,
               });
 
               return Promise.resolve();
