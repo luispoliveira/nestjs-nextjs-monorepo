@@ -29,7 +29,7 @@ async function bootstrap() {
           }
         : undefined,
     cors: {
-      origin: configService.get<string>('CORS_ORIGIN', '*'),
+      origin: configService.getOrThrow<string>('CORS_ORIGIN'),
       credentials: true,
     },
     enableCookieParser: true,
@@ -42,4 +42,9 @@ async function bootstrap() {
   await app.listen(port);
   Logger.log(`Worker application is running on port ${port}`);
 }
-bootstrap();
+bootstrap()
+  .then(() => Logger.log('Worker service started successfully'))
+  .catch((error) => {
+    Logger.error('Failed to start Worker service', error);
+    process.exit(1);
+  });

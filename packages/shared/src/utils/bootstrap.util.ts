@@ -30,7 +30,7 @@ const bootstrapUtilConfigSchema = z.object({
     .optional(),
   enableCookieParser: z.boolean(),
   cors: z.object({
-    origin: z.union([z.string(), z.array(z.string())]),
+    origin: z.union([z.string().min(1), z.array(z.string().min(1))]),
     credentials: z.boolean(),
   }),
 });

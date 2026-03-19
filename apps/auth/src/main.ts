@@ -44,7 +44,7 @@ async function bootstrap() {
           }
         : undefined,
     cors: {
-      origin: configService.get<string>('CORS_ORIGIN', '*'),
+      origin: configService.getOrThrow<string>('CORS_ORIGIN'),
       credentials: true,
     },
     enableCookieParser: true,
