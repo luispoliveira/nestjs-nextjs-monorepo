@@ -12,6 +12,7 @@ import { EmailProducer } from './producers';
         redis: {
           host: configService.getOrThrow<string>('REDIS_HOST'),
           port: configService.getOrThrow<number>('REDIS_PORT'),
+          password: configService.get<string>('REDIS_PASSWORD') || undefined,
         },
         defaultJobOptions: {
           attempts: 3,

@@ -19,6 +19,7 @@ async function bootstrap() {
     options: {
       host: configService.getOrThrow<string>('REDIS_HOST'),
       port: configService.getOrThrow<number>('REDIS_PORT'),
+      password: configService.get<string>('REDIS_PASSWORD') || undefined,
       retryAttempts: 5,
       retryDelay: 3000,
     },
