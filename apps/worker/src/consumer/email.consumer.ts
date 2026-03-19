@@ -33,6 +33,10 @@ export class EmailConsumer {
     });
   }
 
+  @Process(JOB_PATTERNS.SEND_EMAIL_VERIFICATION_EMAIL)
+  async sendEmailVerificationEmail() {}
+
+  @Process(JOB_PATTERNS.SEND_PASSWORD_RESET_EMAIL)
   async sendPasswordResetEmail(job: bull.Job<SendPasswordResetEmailInput>) {
     this.logger.log(
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
@@ -45,6 +49,7 @@ export class EmailConsumer {
     });
   }
 
+  @Process(JOB_PATTERNS.SEND_PASSWORD_CHANGED_EMAIL)
   async sendPasswordChangedEmail(job: bull.Job<SendPasswordChangedEmailInput>) {
     this.logger.log(
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
