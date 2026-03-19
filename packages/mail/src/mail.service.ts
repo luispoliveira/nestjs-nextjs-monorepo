@@ -5,7 +5,7 @@ import { EnvironmentEnum } from '@repo/shared-types';
 import type { Mail, MailModuleOptions } from './interfaces/mail.interface';
 import type { MailProvider } from './interfaces/provider.interface';
 
-const MAX_RETRIES = 1;
+const MAX_RETRIES = 0; // Set to 0 to disable retries, adjust as needed
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
