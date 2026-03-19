@@ -10,7 +10,9 @@ import {
   sendPasswordChangedEmailInputSchema,
   SendPasswordResetEmailInput,
   sendPasswordResetEmailInputSchema,
+  SendTwoFactorDisabledEmailInput,
   SendTwoFactorEnabledEmailInput,
+  sendUserTwoFactorDisabledInputSchema,
   sendUserTwoFactorEnabledInputSchema,
   SendWelcomeEmailInput,
   sendWelcomeEmailInputSchema,
@@ -90,6 +92,21 @@ export class EmailConsumer {
       to: [{ email: validated.email }],
       subject: 'Two-factor authentication enabled',
       text: 'Two-factor authentication has been successfully enabled on your account.',
+    });
+  }
+
+  @Process(JOB_PATTERNS.SEND_TWO_FACTOR_DISABLED_EMAIL)
+  async sendTwoFactorDisabledEmail(
+    job: bull.Job<SendTwoFactorDisabledEmailInput>,
+  ) {
+    this.logger.log(
+      `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
+    );
+    const validated = z.parse(sendUserTwoFactorDisabledInputSchema, job.data);
+    await this.mailService.send({
+      to: [{ email: validated.email }],
+      subject: 'Two-factor authentication disabled',
+      text: 'Two-factor authentication has been successfully disabled on your account.',
     });
   }
 }
