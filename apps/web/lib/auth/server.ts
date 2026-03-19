@@ -22,12 +22,18 @@ export async function getServerSession(): Promise<AuthSession> {
     throw new Error('AUTH_API_URL environment variable is not set');
   }
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
+
   try {
     const response = await fetch(`${authApiUrl}/api/auth/get-session`, {
       method: 'GET',
       headers: { cookie },
       cache: 'no-store',
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok) return null;
 
