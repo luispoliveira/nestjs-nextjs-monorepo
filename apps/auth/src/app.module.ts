@@ -140,8 +140,6 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
     },
     NotificationsPublisher,
     LocalAuthService,
-    // AuthRouter,
-    // AuthTrpcMiddleware,
   ],
 })
 export class AppModule {}

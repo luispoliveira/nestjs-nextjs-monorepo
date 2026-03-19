@@ -11,7 +11,6 @@ import { Log, LogSchema } from './schema/log.schema';
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
-        const uri = configService.getOrThrow<string>('MONGO_URI');
         return {
           uri: configService.getOrThrow<string>('MONGO_URI'),
         };

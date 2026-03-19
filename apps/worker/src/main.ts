@@ -1,12 +1,14 @@
-import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { BootstrapUtil, LoggerUtil } from '@repo/shared';
 import { EnvironmentEnum } from '@repo/shared-types';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useLogger(app.get(Logger));
+
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT') || 3200;
   const environment = configService.get<EnvironmentEnum>(
@@ -40,11 +42,11 @@ async function bootstrap() {
   await app.startAllMicroservices();
 
   await app.listen(port);
-  Logger.log(`Worker application is running on port ${port}`);
+  console.log(`Worker application is running on port ${port}`);
 }
 bootstrap()
-  .then(() => Logger.log('Worker service started successfully'))
+  .then(() => console.log('Worker service started successfully'))
   .catch((error) => {
-    Logger.error('Failed to start Worker service', error);
+    console.error('Failed to start Worker service', error);
     process.exit(1);
   });

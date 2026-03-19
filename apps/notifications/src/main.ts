@@ -1,19 +1,16 @@
-import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { Transport } from '@nestjs/microservices';
-import { BootstrapUtil, LoggerUtil } from '@repo/shared';
+import { BootstrapUtil } from '@repo/shared';
 import { EnvironmentEnum } from '@repo/shared-types';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.useLogger(app.get(Logger));
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT') || 3100;
-  const environment = configService.get<EnvironmentEnum>(
-    'NODE_ENV',
-    EnvironmentEnum.DEVELOPMENT,
-  );
+
   app.connectMicroservice({
     transport: Transport.REDIS,
     options: {
@@ -24,6 +21,11 @@ async function bootstrap() {
       retryDelay: 3000,
     },
   });
+
+  const environment = configService.get<EnvironmentEnum>(
+    'NODE_ENV',
+    EnvironmentEnum.DEVELOPMENT,
+  );
 
   BootstrapUtil.setup(app, {
     globalPrefix: 'api/notifications',
@@ -46,16 +48,16 @@ async function bootstrap() {
     enableCookieParser: true,
   });
 
-  app.useLogger(LoggerUtil.getAppLogger(environment));
+  const port = configService.get<number>('PORT') || 3100;
+
   app.enableShutdownHooks();
   await app.startAllMicroservices();
-
   await app.listen(port);
-  Logger.log(`Notifications application is running on port ${port}`);
+  console.log(`Notifications API is running on port ${port}`);
 }
 bootstrap()
-  .then(() => Logger.log('Notifications service started successfully'))
+  .then(() => console.log('Notifications service started successfully'))
   .catch((error) => {
-    Logger.error('Failed to start Notifications service', error);
+    console.error('Failed to start Notifications service', error);
     process.exit(1);
   });

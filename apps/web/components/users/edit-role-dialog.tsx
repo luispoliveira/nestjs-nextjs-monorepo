@@ -69,6 +69,8 @@ export function EditRoleDialog({ user, onSuccess }: EditRoleDialogProps) {
     }
 
     form.reset();
+    setServerError(null);
+    handleOpenChange(false);
     onSuccess();
   }
 

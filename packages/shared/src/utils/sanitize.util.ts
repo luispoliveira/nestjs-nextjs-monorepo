@@ -7,6 +7,9 @@ const SENSITIVE_KEYS = [
   'cardnumber',
   'cvv',
   'ssn',
+  'secret',
+  'access_token',
+  'x-api-key',
 ];
 
 export class SanitizeUtil {
