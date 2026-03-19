@@ -49,6 +49,7 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
           }),
           emailAndPassword: {
             enabled: true,
+            requireEmailVerification: true,
             sendResetPassword: ({ user, token }): Promise<void> => {
               if (!publisherProxy.instance)
                 throw new Error('NotificationsPublisher instance not set');
@@ -69,6 +70,18 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
 
               return Promise.resolve();
             },
+            onPasswordReset: ({ user }): Promise<void> => {
+              if (!publisherProxy.instance)
+                throw new Error('NotificationsPublisher instance not set');
+
+              publisherProxy.instance.emitUserPasswordChanged({
+                userId: user.id,
+                email: user.email,
+                reason: 'Password reset requested by user',
+              });
+
+              return Promise.resolve();
+            },
           },
           emailVerification: {
             sendVerificationEmail: ({ user, token }): Promise<void> => {
@@ -77,7 +90,9 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
 
               const uiUrl =
                 configService.get<string>('UI_URL') ?? 'http://localhost:8080';
+
               const verificationUrl = `${uiUrl}/verify-email?token=${token}`;
+              console.log('🚀 ~ uiUrl:', uiUrl);
 
               publisherProxy.instance.emitUserEmailVerificationRequested({
                 userId: user.id,

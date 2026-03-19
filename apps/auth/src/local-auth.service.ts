@@ -48,6 +48,11 @@ export class LocalAuthService implements OnModuleInit {
       },
     });
 
+    await this.databaseService.user.update({
+      where: { email: adminEmail },
+      data: { emailVerified: true },
+    });
+
     this.logger.log(`Admin user created with email ${adminEmail}.`);
   }
 
