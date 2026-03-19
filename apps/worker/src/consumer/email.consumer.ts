@@ -4,6 +4,8 @@ import { MailService } from '@repo/mail';
 import {
   JOB_PATTERNS,
   QUEUES,
+  SendEmailVerificationEmailInput,
+  sendEmailVerificationEmailSchema,
   SendPasswordChangedEmailInput,
   sendPasswordChangedEmailInputSchema,
   SendPasswordResetEmailInput,
@@ -34,7 +36,19 @@ export class EmailConsumer {
   }
 
   @Process(JOB_PATTERNS.SEND_EMAIL_VERIFICATION_EMAIL)
-  async sendEmailVerificationEmail() {}
+  async sendEmailVerificationEmail(
+    job: bull.Job<SendEmailVerificationEmailInput>,
+  ) {
+    this.logger.log(
+      `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
+    );
+    const validated = z.parse(sendEmailVerificationEmailSchema, job.data);
+    await this.mailService.send({
+      to: [{ email: validated.email }],
+      subject: 'Verify your email address',
+      text: `Click the following link to verify your email: ${validated.verificationLink}`,
+    });
+  }
 
   @Process(JOB_PATTERNS.SEND_PASSWORD_RESET_EMAIL)
   async sendPasswordResetEmail(job: bull.Job<SendPasswordResetEmailInput>) {
