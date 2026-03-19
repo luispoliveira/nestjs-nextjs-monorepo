@@ -25,5 +25,8 @@
     "@repo/shared": "workspace:*",
     "@repo/shared-types": "workspace:*"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "typescript": "^5.9.3"
+  }
 }
