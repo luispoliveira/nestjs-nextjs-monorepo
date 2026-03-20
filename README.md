@@ -89,13 +89,13 @@ pnpm db:seed       # Seed initial data (creates admin user)
 pnpm dev
 ```
 
-| Service                 | URL                        |
-| ----------------------- | -------------------------- |
-| Auth API                | http://localhost:3000      |
-| Auth API Docs (Swagger) | http://localhost:3000/docs |
-| Notifications           | http://localhost:3100      |
-| Worker                  | http://localhost:3200      |
-| Web (backoffice)        | http://localhost:8080      |
+| Service                 | URL                          |
+| ----------------------- | ---------------------------- |
+| Auth API                | <http://localhost:3000>      |
+| Auth API Docs (Swagger) | <http://localhost:3000/docs> |
+| Notifications           | <http://localhost:3100>      |
+| Worker                  | <http://localhost:3200>      |
+| Web (backoffice)        | <http://localhost:8080>      |
 
 ## Commands
 
