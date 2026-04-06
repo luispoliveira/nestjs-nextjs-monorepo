@@ -23,7 +23,7 @@
     "@nestjs/bull": "^11.0.4",
     "@nestjs/common": "^11.1.16",
     "@nestjs/config": "^4.0.3",
-    "@nestjs/core": "^11.1.16",
+    "@nestjs/core": "^11.1.18",
     "@nestjs/platform-express": "^11.1.16",
     "@repo/database": "workspace:*",
     "@repo/mail": "workspace:*",
