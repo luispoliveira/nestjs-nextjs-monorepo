@@ -1,4 +1,5 @@
-import * as Brevo from '@getbrevo/brevo';
+import { BrevoClient } from '@getbrevo/brevo';
+import { SendTransacEmailRequest } from '@getbrevo/brevo/transactionalEmails';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Mail, MailModuleOptions } from '../interfaces/mail.interface';
 import { MailProvider } from '../interfaces/provider.interface';
@@ -6,39 +7,37 @@ import { MailProvider } from '../interfaces/provider.interface';
 @Injectable()
 export class BrevoProvider implements MailProvider {
   private readonly logger = new Logger(BrevoProvider.name);
-  private readonly apiInstance: Brevo.TransactionalEmailsApi;
+  private readonly brevo: BrevoClient;
 
   constructor(
     @Inject('MAIL_MODULE_OPTIONS')
     private readonly options: MailModuleOptions,
   ) {
-    this.apiInstance = new Brevo.TransactionalEmailsApi();
-    this.apiInstance.setApiKey(
-      Brevo.TransactionalEmailsApiApiKeys.apiKey,
-      this.options.apiKey,
-    );
+    this.brevo = new BrevoClient({
+      apiKey: this.options.apiKey,
+    });
   }
 
   async send(mail: Mail): Promise<void> {
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+    const request: SendTransacEmailRequest = {};
 
-    sendSmtpEmail.sender = {
+    request.sender = {
       email: this.options.fromEmail,
       name: this.options.fromName,
     };
-    sendSmtpEmail.to = mail.to;
-    sendSmtpEmail.subject = mail.subject;
-    sendSmtpEmail.textContent = mail.text;
+    request.to = mail.to;
+    request.subject = mail.subject;
+    request.textContent = mail.text;
 
-    if (mail.cc) sendSmtpEmail.cc = mail.cc;
+    if (mail.cc) request.cc = mail.cc;
 
-    if (mail.bcc) sendSmtpEmail.bcc = mail.bcc;
+    if (mail.bcc) request.bcc = mail.bcc;
 
-    if (mail.templateId) sendSmtpEmail.templateId = Number(mail.templateId);
-    if (mail.data) sendSmtpEmail.params = mail.data;
+    if (mail.templateId) request.templateId = Number(mail.templateId);
+    if (mail.data) request.params = mail.data;
 
     if (mail.attachments)
-      sendSmtpEmail.attachment = mail.attachments.map((att) => ({
+      request.attachment = mail.attachments.map((att) => ({
         name: att.filename,
         content: att.content.toString('base64'),
       }));
@@ -47,7 +46,7 @@ export class BrevoProvider implements MailProvider {
       this.logger.log(
         `Sending email to ${mail.to.map((r) => r.email).join(', ')}`,
       );
-      await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      await this.brevo.transactionalEmails.sendTransacEmail(request);
       this.logger.log('Email sent successfully.');
     } catch (error) {
       this.logger.error('Failed to send email with Brevo', error);

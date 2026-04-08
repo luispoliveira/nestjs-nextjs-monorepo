@@ -1,6 +1,7 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "concurrency": "15",
   "tasks": {
     "build": {
       "dependsOn": ["db:generate", "^build", "^db:generate"],
@@ -24,8 +25,8 @@
     "db:generate": {
       "dependsOn": ["^db:generate"]
     },
-    "db:migrate:dev": {
-      "dependsOn": ["^db:migrate:dev"]
+    "db:migrate": {
+      "dependsOn": ["^db:migrate"]
     },
     "db:seed": {
       "dependsOn": ["^db:seed"]
