@@ -18,6 +18,7 @@
     "typescript": "^6.0.2"
   },
   "dependencies": {
-    "@trpc/server": "11.16.0"
+    "@trpc/server": "11.16.0",
+    "zod": "^4.3.6"
   }
 }

@@ -1,7 +1,10 @@
 {
-  "extends": "../typescript-config/nestjs.json",
+  "extends": "../typescript-config/base.json",
   "compilerOptions": {
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "declarationMap": true
   },
   "include": [
     "src/**/*",
