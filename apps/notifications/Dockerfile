@@ -1,4 +1,4 @@
-FROM node:22-alpine AS development
+FROM node:24-alpine AS development
 
 ENV CI=true
 ENV NODE_ENV=development
@@ -32,7 +32,7 @@ RUN turbo db:generate
 
 RUN turbo build --filter=notifications
 
-FROM node:22-alpine AS production
+FROM node:24-alpine AS production
 
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}

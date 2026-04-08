@@ -34,6 +34,6 @@
   "peerDependencies": {
     "@nestjs/common": "^11.1.18",
     "@nestjs/config": "^4.0.3",
-    "@nestjs/core": "^11.1.16"
+    "@nestjs/core": "^11.1.18"
   }
 }
