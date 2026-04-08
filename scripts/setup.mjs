@@ -53,6 +53,7 @@ const APP_ENV_FILES = [
   ['apps/notifications/.env.example', 'apps/notifications/.env'],
   ['apps/worker/.env.example', 'apps/worker/.env'],
   ['apps/web/.env.example', 'apps/web/.env'],
+  ['packages/database/.env.example', 'packages/database/.env'],
 ];
 
 // ─── Main ────────────────────────────────────────────────────────────────────
