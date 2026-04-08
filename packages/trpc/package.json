@@ -8,6 +8,12 @@
       "require": "./dist/auth/server.js",
       "import": "./dist/auth/server.js",
       "default": "./dist/auth/server.js"
+    },
+    "./api": {
+      "types": "./dist/server/api/server.d.ts",
+      "require": "./dist/server/api/server.js",
+      "import": "./dist/server/api/server.js",
+      "default": "./dist/server/api/server.js"
     }
   },
   "scripts": {

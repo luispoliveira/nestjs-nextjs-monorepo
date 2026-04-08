@@ -1,5 +1,5 @@
 import { ThemeProvider } from "@/components/theme/theme-provider";
-import TrpcProvider from "@/components/trpc/trpc-provider";
+import ApiTrpcProvider from "@/components/trpc/api-trpc-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { Metadata } from "next";
 import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
@@ -30,12 +30,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning className={`${plusJakartaSans.variable} ${geistMono.variable}`}>
       <body className="antialiased">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <TrpcProvider>
+          <ApiTrpcProvider>
             <TooltipProvider>
               {children}
               <Toaster richColors />
             </TooltipProvider>
-          </TrpcProvider>
+          </ApiTrpcProvider>
         </ThemeProvider>
       </body>
     </html>
