@@ -21,12 +21,12 @@
     "@nestjs/core": "^11.1.16"
   },
   "dependencies": {
-    "@getbrevo/brevo": "^3.0.1",
+    "@getbrevo/brevo": "^5.0.3",
     "@repo/shared": "workspace:*",
     "@repo/shared-types": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
-    "typescript": "^5.9.3"
+    "@types/node": "^25.5.2",
+    "typescript": "^6.0.2"
   }
 }
