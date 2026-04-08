@@ -56,16 +56,26 @@ tasks/            # PRDs and task lists (template + home platform)
 pnpm install
 ```
 
-### 2. Configure environment
+### 2. First-time setup
 
-Copy and fill in environment files:
+Run the interactive setup wizard. It will ask for the project name, PostgreSQL credentials, and MongoDB credentials, then generate all `.env` files and Docker env files automatically:
 
 ```bash
-cp docker/postgres.env.example docker/postgres.env
-cp docker/mongo.env.example docker/mongo.env
+pnpm setup
 ```
 
-Create `.env` files for each app (see [Environment Variables](#environment-variables)).
+The wizard will:
+
+- Update the project name in `package.json`
+- Prompt for **PostgreSQL** database name, username, and password
+- Prompt for **MongoDB** database name, username, and password
+- Copy every `.env.example` → `.env` (root and all apps) with the provided credentials substituted in all connection strings
+- Copy `docker/postgres.env.example` → `docker/postgres.env`
+- Copy `docker/mongo.env.example` → `docker/mongo.env`
+
+> Files that already exist are skipped automatically — safe to re-run.
+
+See [Environment Variables](#environment-variables) for a description of each variable.
 
 ### 3. Start infrastructure
 
@@ -102,6 +112,8 @@ pnpm dev
 All commands use **Turborepo** for caching and parallel execution.
 
 ```bash
+pnpm setup           # Interactive first-time setup wizard (env files + credentials)
+
 pnpm build           # Build all apps and packages
 pnpm dev             # Start all services in watch mode
 pnpm lint            # Lint all packages
