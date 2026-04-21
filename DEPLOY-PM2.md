@@ -238,86 +238,35 @@ NEXT_PUBLIC_STORAGE_URL=
 
 ## 5. Ecosystem File do PM2
 
-Criar o ficheiro `ecosystem.config.cjs` na raiz do projeto:
+O ficheiro `ecosystem.config.js` já existe na raiz do projeto.
 
-```js
-module.exports = {
-  apps: [
-    {
-      name: 'auth',
-      script: 'apps/auth/dist/main.js',
-      cwd: '/opt/tx-home',
-      instances: 1,
-      exec_mode: 'fork',
-      env_file: 'apps/auth/.env',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      error_file: '/var/log/tx-home/auth-error.log',
-      out_file: '/var/log/tx-home/auth-out.log',
-      restart_delay: 3000,
-      max_restarts: 10,
-    },
-    {
-      name: 'api',
-      script: 'apps/api/dist/main.js',
-      cwd: '/opt/tx-home',
-      instances: 1,
-      exec_mode: 'fork',
-      env_file: 'apps/api/.env',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      error_file: '/var/log/tx-home/api-error.log',
-      out_file: '/var/log/tx-home/api-out.log',
-      restart_delay: 3000,
-      max_restarts: 10,
-    },
-    {
-      name: 'notifications',
-      script: 'apps/notifications/dist/main.js',
-      cwd: '/opt/tx-home',
-      instances: 1,
-      exec_mode: 'fork',
-      env_file: 'apps/notifications/.env',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      error_file: '/var/log/tx-home/notifications-error.log',
-      out_file: '/var/log/tx-home/notifications-out.log',
-      restart_delay: 3000,
-      max_restarts: 10,
-    },
-    {
-      name: 'worker',
-      script: 'apps/worker/dist/main.js',
-      cwd: '/opt/tx-home',
-      instances: 1,
-      exec_mode: 'fork',
-      env_file: 'apps/worker/.env',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      error_file: '/var/log/tx-home/worker-error.log',
-      out_file: '/var/log/tx-home/worker-out.log',
-      restart_delay: 3000,
-      max_restarts: 10,
-    },
-    {
-      name: 'web',
-      script: 'node_modules/.bin/next',
-      args: 'start --port 8080',
-      cwd: '/opt/tx-home/apps/web',
-      instances: 1,
-      exec_mode: 'fork',
-      env_file: '/opt/tx-home/apps/web/.env',
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      error_file: '/var/log/tx-home/web-error.log',
-      out_file: '/var/log/tx-home/web-out.log',
-      restart_delay: 3000,
-      max_restarts: 10,
-    },
-  ],
-};
+### Env files por app
+
+Criar os seguintes ficheiros antes do deploy (copiar do `.env.example` e preencher):
+
+```
+apps/auth/.env.production          apps/auth/.env.qa
+apps/api/.env.production           apps/api/.env.qa
+apps/notifications/.env.production apps/notifications/.env.qa
+apps/worker/.env.production        apps/worker/.env.qa
+apps/web/.env.production           apps/web/.env.qa
 ```
 
-Criar a pasta de logs:
+### Criar pasta de logs
 
 ```bash
-sudo mkdir -p /var/log/tx-home
-sudo chown $USER:$USER /var/log/tx-home
+mkdir -p logs
+```
+
+### Instalar e configurar log rotation (uma vez por servidor)
+
+```bash
+pm2 install pm2-logrotate
+pm2 set pm2-logrotate:max_size 20M
+pm2 set pm2-logrotate:retain 30
+pm2 set pm2-logrotate:compress true
+pm2 set pm2-logrotate:rotateInterval '0 0 * * *'
+pm2 set pm2-logrotate:workerInterval 3600
 ```
 
 ---
@@ -346,7 +295,11 @@ pnpm db:seed
 ```bash
 cd /opt/tx-home
 
-pm2 start ecosystem.config.cjs
+# Produção
+pm2 start ecosystem.config.js --env production
+
+# QA
+# pm2 start ecosystem.config.js --env qa
 
 # Ver estado de todos os processos
 pm2 status
@@ -506,8 +459,9 @@ pm2 reload all
 - [ ] `pnpm build` executado com sucesso
 - [ ] `pnpm db:migrate` executado
 - [ ] `pnpm db:seed` executado
-- [ ] `ecosystem.config.cjs` criado na raiz
-- [ ] `pm2 start ecosystem.config.cjs` executado
+- [ ] Env files criados por app (`.env.production` / `.env.qa`)
+- [ ] `pm2-logrotate` instalado e configurado
+- [ ] `pm2 start ecosystem.config.js --env production` executado
 - [ ] `pm2 startup` + `pm2 save` configurados
 - [ ] Nginx configurado e a servir HTTPS
 - [ ] Portas 3000, 3100, 3200, 3300, 8080 **não expostas** diretamente ao exterior (apenas 80/443 via Nginx)
