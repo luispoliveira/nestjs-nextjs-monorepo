@@ -1,0 +1,3 @@
+{
+  "jest.jestCommandLine": "turbo run test --log-prefix=none --"
+}

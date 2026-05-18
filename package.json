@@ -9,6 +9,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "test": "turbo run test --ui=stream",
+    "test:watch": "turbo run test:watch --ui=stream",
     "test:cov": "turbo run test:cov --ui=stream",
     "db:generate": "turbo db:generate",
     "db:migrate": "turbo db:migrate",
