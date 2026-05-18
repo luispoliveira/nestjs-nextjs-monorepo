@@ -1,101 +1,70 @@
-# ---- Base ----
+# syntax=docker/dockerfile:1.9
+
 FROM node:24-alpine AS base
 RUN apk add --no-cache libc6-compat
 
-# ---- Development ----
-FROM base AS development
-
-ENV CI=true
-ENV NODE_ENV=development
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=8080
-ENV HOSTNAME="0.0.0.0"
-
-WORKDIR /usr/src/app
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-
-COPY packages/database/package.json         ./packages/database/
-COPY packages/eslint-config/package.json    ./packages/eslint-config/
-COPY packages/mail/package.json             ./packages/mail/
-COPY packages/shared/package.json           ./packages/shared/
-COPY packages/shared-types/package.json     ./packages/shared-types/
-COPY packages/trpc/package.json             ./packages/trpc/
-COPY packages/typescript-config/package.json ./packages/typescript-config/
-COPY apps/web/package.json                  ./apps/web/
-
-RUN npm install -g pnpm turbo
-RUN pnpm install --frozen-lockfile
-
-COPY packages ./packages
-COPY apps/web ./apps/web
-
-# ---- Dependencies ----
-FROM base AS deps
-
-WORKDIR /usr/src/app
-
-# Copy manifests only for optimal layer caching
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
-
-COPY packages/database/package.json         ./packages/database/
-COPY packages/eslint-config/package.json    ./packages/eslint-config/
-COPY packages/mail/package.json             ./packages/mail/
-COPY packages/shared/package.json           ./packages/shared/
-COPY packages/shared-types/package.json     ./packages/shared-types/
-COPY packages/trpc/package.json             ./packages/trpc/
-COPY packages/typescript-config/package.json ./packages/typescript-config/
-COPY apps/web/package.json                  ./apps/web/
-
-RUN npm install -g pnpm turbo
-RUN pnpm install --frozen-lockfile
-
-# ---- Builder ----
+# ─── Build stage ────────────────────────────────────────────────────────────────
 FROM base AS builder
 
+ENV CI=true
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+# NEXT_PUBLIC_* vars are baked into the client JS bundle during `next build`.
+# In Dokploy: add these under "Build Arguments" — NOT "Environment Variables".
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_STORAGE_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_STORAGE_URL=${NEXT_PUBLIC_STORAGE_URL}
+
+# AUTH_API_URL and API_URL are read at request time by the route handlers.
+# Set these in Dokploy "Environment Variables" (runtime) — no build arg needed.
+
 WORKDIR /usr/src/app
 
-RUN npm install -g pnpm turbo
-
-COPY --from=deps /usr/src/app/node_modules         ./node_modules
-COPY --from=deps /usr/src/app/packages             ./packages_manifests
+# Corepack picks up the pnpm version from the root package.json "packageManager" field.
+RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+
+COPY packages/database/package.json          ./packages/database/
+COPY packages/eslint-config/package.json     ./packages/eslint-config/
+COPY packages/mail/package.json              ./packages/mail/
+COPY packages/shared/package.json            ./packages/shared/
+COPY packages/shared-types/package.json      ./packages/shared-types/
+COPY packages/trpc/package.json              ./packages/trpc/
+COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY apps/web/package.json                   ./apps/web/
+
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
 COPY packages ./packages
 COPY apps/web ./apps/web
 
-# Supply build-time env (AUTH_API_URL, etc.) via --build-arg or .env.development
-COPY apps/web/.env.development ./apps/web/.env
+RUN pnpm exec turbo build --filter=web
 
-ENV CI=true
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN turbo build --filter=web
-
-# ---- Runner ----
-FROM base AS runner
-
-WORKDIR /usr/src/app
+# ─── Production stage ───────────────────────────────────────────────────────────
+FROM base AS production
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=8080
 ENV HOSTNAME="0.0.0.0"
 
-# Least-privilege: run as non-root
-RUN addgroup --system --gid 1001 nodejs \
-  && adduser  --system --uid 1001 nextjs
+WORKDIR /usr/src/app
 
-# Static assets served directly from the container
+# Least-privilege: run as non-root.
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser  --system --uid 1001 nextjs
+
 COPY --from=builder /usr/src/app/apps/web/public ./apps/web/public
 
-# Standalone bundle (includes only the node_modules actually used)
 COPY --from=builder --chown=nextjs:nodejs \
   /usr/src/app/apps/web/.next/standalone ./
 
-# Static Next.js output (JS chunks, CSS, images)
 COPY --from=builder --chown=nextjs:nodejs \
   /usr/src/app/apps/web/.next/static ./apps/web/.next/static
 
@@ -103,5 +72,4 @@ USER nextjs
 
 EXPOSE 8080
 
-# server.js is produced by Next.js `output: 'standalone'`
 CMD ["node", "apps/web/server.js"]

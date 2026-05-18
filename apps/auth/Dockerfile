@@ -1,53 +1,55 @@
+# syntax=docker/dockerfile:1.9
+
+# ─── Build stage ────────────────────────────────────────────────────────────────
 FROM node:24-alpine AS development
 
 ENV CI=true
 ENV NODE_ENV=development
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY pnpm-lock.yaml ./
-COPY pnpm-workspace.yaml ./
-COPY turbo.json ./
+# Corepack picks up the pnpm version from the root package.json "packageManager" field.
+RUN corepack enable
 
-COPY packages/database/package.json ./packages/database/
-COPY packages/eslint-config/package.json ./packages/eslint-config/
-COPY packages/mail/package.json ./packages/mail/
-COPY packages/shared/package.json ./packages/shared/
-COPY packages/shared-types/package.json ./packages/shared-types/
-COPY packages/trpc/package.json ./packages/trpc/
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+
+COPY packages/database/package.json          ./packages/database/
+COPY packages/eslint-config/package.json     ./packages/eslint-config/
+COPY packages/mail/package.json              ./packages/mail/
+COPY packages/shared/package.json            ./packages/shared/
+COPY packages/shared-types/package.json      ./packages/shared-types/
+COPY packages/trpc/package.json              ./packages/trpc/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
-COPY apps/auth/package.json ./apps/auth/
+COPY apps/auth/package.json                  ./apps/auth/
 
-RUN npm install -g pnpm
-RUN npm install -g turbo
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
 COPY packages ./packages
 COPY apps/auth ./apps/auth
-# Use the Docker-specific env (service hostnames) as the runtime .env file
-COPY apps/auth/.env.development ./apps/auth/.env
 
-RUN turbo db:generate
+RUN pnpm exec turbo db:generate
+RUN pnpm exec turbo build --filter=auth
 
-RUN turbo build --filter=auth
+# Produce a self-contained production node_modules under /prod/auth.
+RUN pnpm --filter=auth deploy --prod --legacy /prod/auth
 
+# ─── Production stage ───────────────────────────────────────────────────────────
 FROM node:24-alpine AS production
 
-ARG NODE_ENV=production
-ENV NODE_ENV=${NODE_ENV}
+ENV NODE_ENV=production
 
 WORKDIR /usr/src/app
 
-COPY package.json ./
-COPY pnpm-lock.yaml ./
-COPY pnpm-workspace.yaml ./
-COPY turbo.json ./
+# Least-privilege: run as non-root.
+RUN addgroup --system --gid 1001 nodejs \
+ && adduser  --system --uid 1001 nestjs
 
-RUN npm install -g pnpm
-RUN npm install -g turbo
-RUN pnpm install --frozen-lockfile --prod
+COPY --from=development --chown=nestjs:nodejs /prod/auth/node_modules ./node_modules
+COPY --from=development --chown=nestjs:nodejs /usr/src/app/apps/auth/dist ./dist
 
-COPY --from=development /usr/src/app/apps/auth/dist ./dist
+USER nestjs
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/main.js"]

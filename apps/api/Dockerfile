@@ -22,19 +22,19 @@ COPY packages/shared/package.json            ./packages/shared/
 COPY packages/shared-types/package.json      ./packages/shared-types/
 COPY packages/trpc/package.json              ./packages/trpc/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
-COPY apps/notifications/package.json         ./apps/notifications/
+COPY apps/api/package.json                   ./apps/api/
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
 
 COPY packages ./packages
-COPY apps/notifications ./apps/notifications
+COPY apps/api ./apps/api
 
 RUN pnpm exec turbo db:generate
-RUN pnpm exec turbo build --filter=notifications
+RUN pnpm exec turbo build --filter=api
 
-# Produce a self-contained production node_modules under /prod/notifications.
-RUN pnpm --filter=notifications deploy --prod --legacy /prod/notifications
+# Produce a self-contained production node_modules under /prod/api.
+RUN pnpm --filter=api deploy --prod --legacy /prod/api
 
 # ─── Production stage ───────────────────────────────────────────────────────────
 FROM node:24-alpine AS production
@@ -47,8 +47,8 @@ WORKDIR /usr/src/app
 RUN addgroup --system --gid 1001 nodejs \
  && adduser  --system --uid 1001 nestjs
 
-COPY --from=development --chown=nestjs:nodejs /prod/notifications/node_modules ./node_modules
-COPY --from=development --chown=nestjs:nodejs /usr/src/app/apps/notifications/dist ./dist
+COPY --from=development --chown=nestjs:nodejs /prod/api/node_modules ./node_modules
+COPY --from=development --chown=nestjs:nodejs /usr/src/app/apps/api/dist ./dist
 
 USER nestjs
 
