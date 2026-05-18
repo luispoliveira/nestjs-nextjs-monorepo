@@ -2,14 +2,41 @@
 
 ## Stack Overview
 
+> **Critical rules (highest priority):**
+>
+> 1. Use `pnpm` exclusively — never npm or yarn.
+> 2. Auth via `better-auth` only — never add Passport or JWT.
+> 3. Queues via `@nestjs/bull` (Bull v4) — never BullMQ.
+> 4. Validation via Zod v4 + `nestjs-zod` — use `z.email()`, not `z.string().email()`.
+> 5. Never hardcode tokens, queue names, or patterns — always import from `@repo/shared`.
+
+### Tooling
+
 - **Monorepo**: Turborepo + pnpm workspaces (`pnpm-workspace.yaml`)
+
+### Application Layer
+
 - **Backend**: NestJS 11 (TypeScript), microservices via Redis transport
 - **Frontend**: Next.js 16 (TypeScript), Tailwind CSS v4, shadcn/ui (Radix UI)
-- **Database**: PostgreSQL via Prisma 7 + PrismaPg adapter (primary), MongoDB via Mongoose (logging/audit), Redis (cache/queues)
-- **Auth**: `better-auth` + `@thallesp/nestjs-better-auth` (NOT Passport/JWT — never add these)
+
+### Persistence
+
+- **Primary DB**: PostgreSQL via Prisma 7 + PrismaPg adapter
+- **Audit/Logging DB**: MongoDB via Mongoose (logs/audit only — no business data)
+- **Cache/Queues**: Redis
+
+### Auth & Security
+
+- **Auth**: `better-auth` + `@thallesp/nestjs-better-auth` — **never** add Passport or JWT
+
+### Validation & API
+
 - **Validation**: Zod v4 + `nestjs-zod` (`createZodDto`, `ZodValidationPipe`, `ZodSerializerInterceptor`)
 - **API contract**: tRPC via `nestjs-trpc-v2` for frontend↔backend type safety
-- **Queue**: `@nestjs/bull` (Bull v4) with Redis — NOT BullMQ
+
+### Infrastructure
+
+- **Queue**: `@nestjs/bull` (Bull v4) with Redis — **not** BullMQ
 - **Logging**: `nestjs-pino` with correlation IDs via `nestjs-cls`
 - **Health**: `@nestjs/terminus` (`HealthController` registered globally by `SharedModule`)
 
