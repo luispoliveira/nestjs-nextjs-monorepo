@@ -32,6 +32,7 @@
   "dependencies": {
     "@repo/database": "workspace:*",
     "@repo/shared-types": "workspace:*",
+    "@trpc/server": "11.16.0",
     "cookie-parser": "^1.4.7",
     "express": "^5.2.1",
     "helmet": "^8.1.0",

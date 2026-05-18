@@ -1,6 +1,7 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { ContextUtil, MESSAGE_PATTERNS, SERVICES } from '@repo/shared';
+import { TRPCError } from '@trpc/server';
 import { Request } from 'express';
 import {
   MiddlewareOptions,
@@ -28,7 +29,11 @@ export class AuthTrpcMiddleware implements TRPCMiddleware {
     const token = ContextUtil.extractToken(ctx.req);
 
     if (!token) {
-      throw new Error('Unauthorized');
+      this.logger.warn('No authentication token provided in tRPC request');
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'Missing authentication token',
+      });
     }
 
     try {
@@ -42,7 +47,10 @@ export class AuthTrpcMiddleware implements TRPCMiddleware {
       return next({ ctx: { ...ctx, user } });
     } catch (error) {
       this.logger.error('tRPC authentication failed', error);
-      throw new Error('Unauthorized');
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'Authentication failed',
+      });
     }
   }
 }

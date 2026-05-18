@@ -14,7 +14,7 @@ export class AuthController {
     try {
       const session = await this.authService.api.getSession({
         headers: new Headers({
-          cookie: `better-auth.session_token=${data.token}`,
+          cookie: `__Secure-better-auth.session_token=${data.token}; better-auth.session_token=${data.token}`,
           authorization: `Bearer ${data.token}`,
         }),
       });

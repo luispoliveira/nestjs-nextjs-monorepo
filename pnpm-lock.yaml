@@ -732,6 +732,9 @@ importers:
       '@repo/shared-types':
         specifier: workspace:*
         version: link:../shared-types
+      '@trpc/server':
+        specifier: 11.16.0
+        version: 11.16.0(typescript@6.0.2)
       bull:
         specifier: ^4.16.5
         version: 4.16.5
