@@ -130,6 +130,66 @@ pnpm docker:down     # Stop infrastructure containers
 
 > Always use `pnpm` — never npm or yarn.
 
+## Testing
+
+Unit tests use **Jest + ts-jest** and run entirely on the host (no Docker required). Each NestJS app has its own test configuration in its `package.json`.
+
+### Run all tests (all apps, via Turborepo)
+
+```bash
+pnpm test
+```
+
+### Run tests for a single app
+
+```bash
+pnpm --filter api          test
+pnpm --filter auth         test
+pnpm --filter notifications test
+pnpm --filter worker       test
+```
+
+### Watch mode (re-runs on file save)
+
+```bash
+pnpm --filter api test -- --watch
+```
+
+### Coverage report
+
+```bash
+# Single app — outputs to apps/<name>/coverage/
+pnpm --filter api          test:cov
+pnpm --filter auth         test:cov
+pnpm --filter notifications test:cov
+pnpm --filter worker       test:cov
+
+# Open the HTML report in the browser
+open apps/api/coverage/lcov-report/index.html
+```
+
+Coverage thresholds are enforced at **80 %** (branches, functions, lines, statements). The build fails if any app falls below the threshold.
+
+### Run a single test file
+
+```bash
+cd apps/api
+pnpm test -- src/app.controller.spec.ts
+```
+
+### Run tests matching a name pattern
+
+```bash
+cd apps/api
+pnpm test -- --testNamePattern="should return"
+```
+
+### Technical notes
+
+- Each app has a `tsconfig.test.json` that overrides `module: "commonjs"` so that ts-jest can process files without ESM issues.
+- ESM-only packages (e.g. `@thallesp/nestjs-better-auth`) are replaced with `jest.mock('pkg', factory)` — do not import `AppModule` in unit tests.
+- Never use `SharedModule` or `AppModule` in unit tests — only import the controller/service under test.
+
 ## Architecture
 
 ### Microservice Communication
