@@ -33,7 +33,7 @@
     "@repo/shared-types": "workspace:*",
     "@repo/trpc": "workspace:*",
     "@thallesp/nestjs-better-auth": "^2.5.4",
-    "better-auth": "^1.6.0",
+    "better-auth": "^1.6.2",
     "ioredis": "^5.10.1",
     "nestjs-pino": "^4.6.1",
     "nestjs-trpc-v2": "^1.4.1",
