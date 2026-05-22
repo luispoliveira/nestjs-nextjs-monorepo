@@ -4,30 +4,30 @@ import { Params } from 'nestjs-pino';
 
 const isProduction = process.env.NODE_ENV === EnvironmentEnum.PRODUCTION;
 
-// Paths that generate too much noise and should be excluded from request logs
 const SILENT_PATHS = ['/health', '/metrics', '/favicon.ico'];
+
+// For TRPC batch requests show only the procedure name; otherwise strip query string
+function cleanUrl(url: string): string {
+  const trpcMatch = url.match(/\/trpc\/([^?]+)/);
+  if (trpcMatch) return `/trpc/${trpcMatch[1]}`;
+  return url.split('?')[0] ?? url;
+}
 
 export const pinoConfig: Params = {
   pinoHttp: {
-    // Use debug in development for richer output, info in production
     level: isProduction ? 'info' : 'debug',
 
-    // pino-pretty for human-readable logs in dev; raw JSON in production
-    transport: !isProduction
-      ? {
-          target: 'pino-pretty',
-          options: {
-            colorize: true,
-            singleLine: true,
-            translateTime: 'SYS:standard',
-            // Keep logs compact by hiding low-value fields
-            ignore: 'pid,hostname',
-            messageFormat: '{context} - {msg}',
-          },
-        }
-      : undefined,
+    transport: {
+      target: 'pino-pretty',
+      options: {
+        colorize: true,
+        singleLine: true,
+        translateTime: 'SYS:HH:MM:ss',
+        ignore: 'pid,hostname,req,res,responseTime,requestId,correlationId',
+        messageFormat: '{context} | {msg}',
+      },
+    },
 
-    // Attach a request-scoped context label to every HTTP log entry
     customProps: (req: IncomingMessage) => ({
       context: 'HTTP',
       requestId: (req as IncomingMessage & { id?: string | number }).id,
@@ -35,26 +35,24 @@ export const pinoConfig: Params = {
         (req as unknown as Record<string, unknown>).correlationId ?? undefined,
     }),
 
-    // Concise one-line message for successful requests
     customSuccessMessage: (
       req: IncomingMessage,
       res: { statusCode: number },
+      responseTime: number,
     ) => {
       const { method, url } = req as IncomingMessage & { url: string };
-      return `${method} ${url} ${res.statusCode}`;
+      return `${method} ${cleanUrl(url ?? '')} ${res.statusCode} +${responseTime}ms`;
     },
 
-    // Include the error message for failed requests
     customErrorMessage: (
       req: IncomingMessage,
       res: { statusCode: number },
       error: Error,
     ) => {
       const { method, url } = req as IncomingMessage & { url: string };
-      return `${method} ${url} ${res.statusCode} - ${error.message}`;
+      return `${method} ${cleanUrl(url ?? '')} ${res.statusCode} - ${error.message}`;
     },
 
-    // Escalate log level based on HTTP status: 4xx → warn, 5xx / errors → error
     customLogLevel: (
       _req: IncomingMessage,
       res: { statusCode: number },
@@ -65,14 +63,11 @@ export const pinoConfig: Params = {
       return 'info';
     },
 
-    // Only log the request fields that are actually useful
     serializers: {
       req(req: {
         id: string;
         method: string;
         url: string;
-        query: unknown;
-        params: unknown;
         remoteAddress: string;
         remotePort: number;
       }) {
@@ -80,8 +75,6 @@ export const pinoConfig: Params = {
           id: req.id,
           method: req.method,
           url: req.url,
-          query: req.query,
-          params: req.params,
           remoteAddress: req.remoteAddress,
           remotePort: req.remotePort,
         };
@@ -91,12 +84,10 @@ export const pinoConfig: Params = {
       },
     },
 
-    // Skip health-check and metrics endpoints to reduce log noise
     autoLogging: {
       ignore: (req: IncomingMessage) => SILENT_PATHS.includes(req.url ?? ''),
     },
 
-    // Redact sensitive values so they never appear in logs
     redact: {
       paths: [
         'req.headers.authorization',

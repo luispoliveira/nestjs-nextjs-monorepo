@@ -15,12 +15,11 @@
  *   pm2 set pm2-logrotate:rotateInterval '0 0 * * *'
  *   pm2 set pm2-logrotate:workerInterval 3600
  *
- * Env files per app (create before deploying):
- *   apps/auth/.env.production        apps/auth/.env.qa
- *   apps/api/.env.production         apps/api/.env.qa
- *   apps/notifications/.env.production  apps/notifications/.env.qa
- *   apps/worker/.env.production      apps/worker/.env.qa
- *   apps/web/.env.production         apps/web/.env.qa
+ * Env file (single, shared across all apps — create before deploying):
+ *   .env.production   (production)
+ *   .env.qa           (qa / staging)
+ *
+ * App-specific vars (PORT, HOSTNAME) are defined directly below.
  */
 
 const fs = require('fs');
@@ -32,21 +31,20 @@ const dotenv = require('dotenv');
 // ---------------------------------------------------------------------------
 
 /**
- * Loads environment variables from <appDir>/.env.<envName>.
- * Falls back to <appDir>/.env if the environment-specific file is missing.
+ * Loads shared environment variables from <root>/.env.<envName>.
+ * Falls back to <root>/.env if the environment-specific file is missing.
  *
- * @param {string} appDir  - Relative path to the app folder (e.g. 'apps/auth')
  * @param {string} envName - Environment name ('production' | 'qa')
  * @returns {Record<string, string>}
  */
-function loadEnv(appDir, envName) {
-  const specificFile = path.resolve(appDir, `.env.${envName}`);
-  const fallbackFile = path.resolve(appDir, '.env');
+function loadSharedEnv(envName) {
+  const specificFile = path.resolve(`.env.${envName}`);
+  const fallbackFile = path.resolve('.env');
 
   const file = fs.existsSync(specificFile) ? specificFile : fallbackFile;
 
   if (!fs.existsSync(file)) {
-    console.warn(`[PM2] WARNING: No env file found for ${appDir} (${envName})`);
+    console.warn(`[PM2] WARNING: No shared env file found (.env.${envName} or .env)`);
     return {};
   }
 
@@ -140,11 +138,13 @@ module.exports = {
       out_file: `${LOG_DIR}/auth-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        ...loadEnv('apps/auth', 'production'),
+        PORT: 3000,
+        ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        ...loadEnv('apps/auth', 'qa'),
+        PORT: 3000,
+        ...loadSharedEnv('qa'),
       },
     },
 
@@ -159,11 +159,13 @@ module.exports = {
       out_file: `${LOG_DIR}/api-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        ...loadEnv('apps/api', 'production'),
+        PORT: 3300,
+        ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        ...loadEnv('apps/api', 'qa'),
+        PORT: 3300,
+        ...loadSharedEnv('qa'),
       },
     },
 
@@ -178,11 +180,13 @@ module.exports = {
       out_file: `${LOG_DIR}/notifications-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        ...loadEnv('apps/notifications', 'production'),
+        PORT: 3100,
+        ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        ...loadEnv('apps/notifications', 'qa'),
+        PORT: 3100,
+        ...loadSharedEnv('qa'),
       },
     },
 
@@ -197,11 +201,13 @@ module.exports = {
       out_file: `${LOG_DIR}/worker-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        ...loadEnv('apps/worker', 'production'),
+        PORT: 3200,
+        ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        ...loadEnv('apps/worker', 'qa'),
+        PORT: 3200,
+        ...loadSharedEnv('qa'),
       },
     },
 
@@ -216,13 +222,15 @@ module.exports = {
       out_file: `${LOG_DIR}/web-out.log`,
       env_production: {
         NODE_ENV: 'production',
+        PORT: 3400,
         HOSTNAME: '0.0.0.0',
-        ...loadEnv('apps/web', 'production'),
+        ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
+        PORT: 3400,
         HOSTNAME: '0.0.0.0',
-        ...loadEnv('apps/web', 'qa'),
+        ...loadSharedEnv('qa'),
       },
     },
   ],
