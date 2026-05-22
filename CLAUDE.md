@@ -285,10 +285,19 @@ Follow **Conventional Commits**. Details in [.github/git-commit-instructions.md]
 
 ---
 
+## Corner Cases Memory
+
+**Read [.claude/CORNER_CASES.md](.claude/CORNER_CASES.md) at the start of every task.**
+
+It is a living log of non-obvious behaviours, gotchas, and edge cases discovered during development — organised by area (Zod, NestJS, Prisma, Next.js, etc.). When you discover a new corner case that is not already there, append it to the relevant section. Keep each entry concise: one heading + a short description of the problem and the fix/workaround.
+
+---
+
 ## Source-of-Truth Files
 
 Detailed conventions referenced above live in the Copilot instruction files — read them when you need more depth than this summary:
 
+- [.claude/CORNER_CASES.md](.claude/CORNER_CASES.md) — accumulated corner cases and gotchas
 - [.github/copilot-instructions.md](.github/copilot-instructions.md) — stack overview
 - [.github/instructions/nestjs-conventions.instructions.md](.github/instructions/nestjs-conventions.instructions.md)
 - [.github/instructions/nextjs-conventions.instructions.md](.github/instructions/nextjs-conventions.instructions.md)
