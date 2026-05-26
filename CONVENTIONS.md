@@ -274,7 +274,16 @@ Refs: #42
 
 ## Git Flow
 
-This monorepo follows the Git Flow branching model for release management. No `git-flow` CLI extension is required — all steps are plain `git` commands.
+This monorepo follows the Git Flow branching model for release management using the `git-flow` CLI.
+
+### Setup
+
+```bash
+# Initialise git-flow in the repo (accept all defaults — branch names match below)
+git flow init -d
+```
+
+The `-d` flag accepts the defaults: `main` as production branch, `develop` as integration branch, and the standard prefixes (`feature/`, `release/`, `hotfix/`).
 
 ### Branch Topology
 
@@ -324,64 +333,55 @@ Rules:
 ### Workflow: Feature
 
 ```bash
-# 1. Start from an up-to-date develop
-git checkout develop && git pull origin develop
-git checkout -b feature/auth-google-oauth
+# Start — creates feature/auth-google-oauth from develop
+git flow feature start auth-google-oauth
 
-# 2. Work, commit using Conventional Commits
+# Work, commit using Conventional Commits
 git commit -m "feat(auth): add google oauth social provider"
 
-# 3. Open a PR targeting develop; squash-merge or rebase-merge
-# 4. Delete the branch after merge
-git branch -d feature/auth-google-oauth
+# Publish to remote (opens PR targeting develop)
+git flow feature publish auth-google-oauth
+
+# Finish — merges into develop, deletes branch (after PR is merged)
+git flow feature finish auth-google-oauth
 ```
 
 ### Workflow: Release
 
 ```bash
-# 1. Branch from develop when the feature set for the release is frozen
-git checkout develop && git pull origin develop
-git checkout -b release/1.2.0
+# Start — branches release/1.2.0 from develop
+git flow release start 1.2.0
 
-# 2. Only bug fixes and version bumps are allowed on this branch
+# Only bug fixes and version bumps on this branch
 git commit -m "chore: bump version to 1.2.0"
 
-# 3. When stable, merge into main and back into develop
-git checkout main && git merge --no-ff release/1.2.0
-git tag v1.2.0
+# Publish for review
+git flow release publish 1.2.0
 
-git checkout develop && git merge --no-ff release/1.2.0
-git branch -d release/1.2.0
-
-# 4. Push tag
-git push origin main develop v1.2.0
+# Finish — merges into main + develop, creates annotated tag v1.2.0, deletes branch
+git flow release finish -m "release: v1.2.0" 1.2.0
+git push origin main develop --tags
 ```
 
 ### Workflow: Hotfix
 
 ```bash
-# 1. Branch from main (not develop)
-git checkout main && git pull origin main
-git checkout -b hotfix/auth-session-cookie-expiry
+# Start — branches hotfix/auth-session-cookie-expiry from main
+git flow hotfix start auth-session-cookie-expiry
 
-# 2. Fix, commit
+# Fix, commit
 git commit -m "fix(auth): correct session cookie expiry calculation"
 
-# 3. Merge into main AND develop (or into the active release branch if one exists)
-git checkout main && git merge --no-ff hotfix/auth-session-cookie-expiry
-git tag v1.2.1
-
-git checkout develop && git merge --no-ff hotfix/auth-session-cookie-expiry
-git branch -d hotfix/auth-session-cookie-expiry
-
-git push origin main develop v1.2.1
+# Finish — merges into main + develop, creates annotated tag, deletes branch
+git flow hotfix finish -m "release: v1.2.1" auth-session-cookie-expiry
+git push origin main develop --tags
 ```
 
 ### Release Tags
 
 - Format: `v<MAJOR>.<MINOR>.<PATCH>` — strict [semver](https://semver.org/)
 - Tags are applied only to commits on `main`
-- Annotated tags preferred: `git tag -a v1.2.0 -m "release: v1.2.0"`
+- `git flow release/hotfix finish` creates annotated tags automatically with the `-m` flag
 - `MAJOR` bumps on breaking API changes (include `BREAKING CHANGE:` footer in commits)
 - `MINOR` bumps on new backwards-compatible features
 - `PATCH` bumps on bug fixes and hotfixes
