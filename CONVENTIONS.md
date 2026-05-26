@@ -52,11 +52,13 @@ import { createZodDto } from 'nestjs-zod';
 import z from 'zod';
 
 // Zod v4 APIs: z.email() not z.string().email()
-const CreateUserSchema = z.object({
-  email: z.email(),
-  name: z.string().min(1),
-  role: z.enum(['admin', 'user']),
-}).meta({ id: 'CreateUser' });  // .meta() for OpenAPI ID
+const CreateUserSchema = z
+  .object({
+    email: z.email(),
+    name: z.string().min(1),
+    role: z.enum(['admin', 'user']),
+  })
+  .meta({ id: 'CreateUser' }); // .meta() for OpenAPI ID
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) {}
 
@@ -191,6 +193,7 @@ model Post {
 ```
 
 Rules:
+
 - PascalCase model names, `snake_case` table via `@@map`
 - Always `id` (cuid), `createdAt`, `updatedAt`
 - Prefer soft deletes with `deletedAt DateTime?`
@@ -236,7 +239,7 @@ const { data: session } = authClient.useSession();
 // React Hook Form + Zod v4 + shared schemas
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CreateUserSchema } from '@repo/shared-types';  // Reuse when possible
+import { CreateUserSchema } from '@repo/shared-types'; // Reuse when possible
 ```
 
 ### shadcn/ui
@@ -269,19 +272,149 @@ Refs: #42
 
 ---
 
+## Git Flow
+
+This monorepo follows the Git Flow branching model for release management. No `git-flow` CLI extension is required — all steps are plain `git` commands.
+
+### Branch Topology
+
+```text
+main ─────────────────────────────────────── (production releases, tagged)
+  └─ develop ────────────────────────────── (integration, always deployable)
+       ├─ feature/<scope>-<description>     (new work, branched from develop)
+       ├─ release/<version>                 (stabilisation, branched from develop)
+       └─ hotfix/<scope>-<description>      (urgent prod fix, branched from main)
+```
+
+### Branch Types
+
+| Branch      | Branches from | Merges into        | Purpose                                                 |
+| ----------- | ------------- | ------------------ | ------------------------------------------------------- |
+| `main`      | —             | —                  | Production-ready code; every commit is a release tag    |
+| `develop`   | `main`        | —                  | Integration branch; reflects next release state         |
+| `feature/*` | `develop`     | `develop`          | Isolated work for a single feature or change            |
+| `release/*` | `develop`     | `main` + `develop` | Release stabilisation; only bug fixes and version bumps |
+| `hotfix/*`  | `main`        | `main` + `develop` | Urgent patches to production                            |
+
+### Branch Naming
+
+Scope tokens must match the commit scopes already defined in this project: `auth`, `notifications`, `worker`, `web`, `api`, `database`, `shared`, `shared-types`, `mail`, `trpc`, `ci`, `docker`.
+
+```text
+feature/<scope>-<short-description>
+release/<semver>
+hotfix/<scope>-<short-description>
+```
+
+| Branch type | Example                                 |
+| ----------- | --------------------------------------- |
+| `feature/*` | `feature/auth-google-oauth`             |
+| `feature/*` | `feature/web-user-profile-page`         |
+| `feature/*` | `feature/database-add-post-soft-delete` |
+| `release/*` | `release/1.2.0`                         |
+| `hotfix/*`  | `hotfix/auth-session-cookie-expiry`     |
+| `hotfix/*`  | `hotfix/web-csp-header`                 |
+
+Rules:
+
+- Use `kebab-case` throughout — no underscores, no uppercase
+- Description should be short (2–4 words), imperative where possible
+- Omit the scope token only when the change is truly cross-cutting (rare)
+
+### Workflow: Feature
+
+```bash
+# 1. Start from an up-to-date develop
+git checkout develop && git pull origin develop
+git checkout -b feature/auth-google-oauth
+
+# 2. Work, commit using Conventional Commits
+git commit -m "feat(auth): add google oauth social provider"
+
+# 3. Open a PR targeting develop; squash-merge or rebase-merge
+# 4. Delete the branch after merge
+git branch -d feature/auth-google-oauth
+```
+
+### Workflow: Release
+
+```bash
+# 1. Branch from develop when the feature set for the release is frozen
+git checkout develop && git pull origin develop
+git checkout -b release/1.2.0
+
+# 2. Only bug fixes and version bumps are allowed on this branch
+git commit -m "chore: bump version to 1.2.0"
+
+# 3. When stable, merge into main and back into develop
+git checkout main && git merge --no-ff release/1.2.0
+git tag v1.2.0
+
+git checkout develop && git merge --no-ff release/1.2.0
+git branch -d release/1.2.0
+
+# 4. Push tag
+git push origin main develop v1.2.0
+```
+
+### Workflow: Hotfix
+
+```bash
+# 1. Branch from main (not develop)
+git checkout main && git pull origin main
+git checkout -b hotfix/auth-session-cookie-expiry
+
+# 2. Fix, commit
+git commit -m "fix(auth): correct session cookie expiry calculation"
+
+# 3. Merge into main AND develop (or into the active release branch if one exists)
+git checkout main && git merge --no-ff hotfix/auth-session-cookie-expiry
+git tag v1.2.1
+
+git checkout develop && git merge --no-ff hotfix/auth-session-cookie-expiry
+git branch -d hotfix/auth-session-cookie-expiry
+
+git push origin main develop v1.2.1
+```
+
+### Release Tags
+
+- Format: `v<MAJOR>.<MINOR>.<PATCH>` — strict [semver](https://semver.org/)
+- Tags are applied only to commits on `main`
+- Annotated tags preferred: `git tag -a v1.2.0 -m "release: v1.2.0"`
+- `MAJOR` bumps on breaking API changes (include `BREAKING CHANGE:` footer in commits)
+- `MINOR` bumps on new backwards-compatible features
+- `PATCH` bumps on bug fixes and hotfixes
+
+### Protected Branch Rules
+
+| Branch                               | Direct push               | Force push        | Delete      |
+| ------------------------------------ | ------------------------- | ----------------- | ----------- |
+| `main`                               | Blocked — PR only         | Never             | Never       |
+| `develop`                            | Blocked — PR only         | Never             | Never       |
+| `feature/*`, `release/*`, `hotfix/*` | Allowed for branch author | Allowed before PR | After merge |
+
+PR requirements for `main` and `develop`:
+
+- At least 1 approving review
+- All CI checks passing (`pnpm build`, `pnpm lint`, `pnpm check-types`)
+- No unresolved comments
+
+---
+
 ## File and Naming Conventions
 
-| Item | Convention | Example |
-|------|-----------|---------|
-| Files | `kebab-case.ts` | `email-producer.ts` |
-| Classes | `PascalCase` | `EmailProducer` |
-| Interfaces | `PascalCase` | `AppContext` |
-| Constants | `UPPER_SNAKE_CASE` | `QUEUES.EMAIL` |
-| Env vars | `UPPER_SNAKE_CASE` | `DATABASE_URL` |
-| Prisma models | `PascalCase` | `User`, `Post` |
-| DB tables | `snake_case` | `@@map("user")` |
-| tRPC procedures | `camelCase` | `getUsers`, `createUser` |
-| Files per module | Max 500 lines | Split into sub-files if larger |
+| Item             | Convention         | Example                        |
+| ---------------- | ------------------ | ------------------------------ |
+| Files            | `kebab-case.ts`    | `email-producer.ts`            |
+| Classes          | `PascalCase`       | `EmailProducer`                |
+| Interfaces       | `PascalCase`       | `AppContext`                   |
+| Constants        | `UPPER_SNAKE_CASE` | `QUEUES.EMAIL`                 |
+| Env vars         | `UPPER_SNAKE_CASE` | `DATABASE_URL`                 |
+| Prisma models    | `PascalCase`       | `User`, `Post`                 |
+| DB tables        | `snake_case`       | `@@map("user")`                |
+| tRPC procedures  | `camelCase`        | `getUsers`, `createUser`       |
+| Files per module | Max 500 lines      | Split into sub-files if larger |
 
 ---
 
