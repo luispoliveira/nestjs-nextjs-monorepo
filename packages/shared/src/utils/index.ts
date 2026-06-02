@@ -4,3 +4,4 @@ export * from './logger.util';
 export * from './microservice.util';
 export * from './paginated.util';
 export * from './sanitize.util';
+export * from './sentry.util';
