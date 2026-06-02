@@ -18,7 +18,7 @@ export class MongoService {
 
   async updateLog(id: string, updateData: Partial<Log>): Promise<Log | null> {
     return this.logModel
-      .findByIdAndUpdate(id, updateData, { new: true })
+      .findByIdAndUpdate(id, updateData, { returnDocument: 'after' })
       .exec();
   }
 
@@ -32,7 +32,7 @@ export class MongoService {
     updateData: Partial<EmailLog>,
   ): Promise<EmailLog | null> {
     return this.emailLogModel
-      .findByIdAndUpdate(id, updateData, { new: true })
+      .findByIdAndUpdate(id, updateData, { returnDocument: 'after' })
       .exec();
   }
 }

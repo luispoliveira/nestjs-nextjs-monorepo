@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 import { Request, Response } from 'express';
 import { ClsService } from 'nestjs-cls';
 import { ZodValidationException } from 'nestjs-zod';
@@ -18,6 +19,15 @@ export class AllExceptionFilter implements ExceptionFilter {
   constructor(private readonly clsService: ClsService) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
+    if (host.getType() === 'rpc') {
+      this.logger.error(
+        'Microservice error',
+        exception instanceof Error ? exception.stack : String(exception),
+      );
+      Sentry.captureException(exception);
+      throw exception;
+    }
+
     const context = host.switchToHttp();
     const response = context.getResponse<Response>();
     const request = context.getRequest<Request>();
@@ -46,6 +56,10 @@ export class AllExceptionFilter implements ExceptionFilter {
       `${request.method} ${request.url}`,
       exception instanceof Error ? exception.stack : '',
     );
+
+    if (status >= 500) {
+      Sentry.captureException(exception);
+    }
 
     response.status(status).json({
       statusCode: status,
