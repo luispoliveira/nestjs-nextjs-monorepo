@@ -1,4 +1,4 @@
-import { Process, Processor } from '@nestjs/bull';
+import { OnQueueFailed, Process, Processor } from '@nestjs/bull';
 import { Logger } from '@nestjs/common';
 import { MailService } from '@repo/mail';
 import {
@@ -16,6 +16,7 @@ import {
   sendUserTwoFactorEnabledInputSchema,
   SendWelcomeEmailInput,
   sendWelcomeEmailInputSchema,
+  SentryUtil,
 } from '@repo/shared';
 import bull from 'bull';
 import z from 'zod';
@@ -107,6 +108,14 @@ export class EmailConsumer {
       to: [{ email: validated.email }],
       subject: 'Two-factor authentication disabled',
       text: 'Two-factor authentication has been successfully disabled on your account.',
+    });
+  }
+
+  @OnQueueFailed()
+  onFailed(job: bull.Job, error: Error) {
+    SentryUtil.captureException(error, {
+      extra: { jobId: job.id, jobName: job.name, data: job.data },
+      tags: { queue: QUEUES.EMAIL, app: 'worker' },
     });
   }
 }
