@@ -187,6 +187,122 @@ model Post {
 
 ---
 
+## Testing
+
+### Test Database Setup
+
+Integration and E2E tests run against a dedicated `nestjs_test` PostgreSQL database. Run once before the first test suite (or whenever migrations change):
+
+```bash
+pnpm test:db:setup   # creates nestjs_test DB + runs prisma migrate deploy
+```
+
+Prerequisites: Docker stack must be running (`pnpm docker:up`).
+
+### Running Tests
+
+| Command | Scope | Config |
+|---|---|---|
+| `pnpm test` | Unit tests (`.spec.ts`) | Default Jest config per app |
+| `pnpm test:integration` | Integration tests (`*.integration.ts`) | `test/jest-integration.json` |
+| `pnpm test:e2e` | End-to-end tests (`*.e2e-spec.ts`) | `test/jest-e2e.json` |
+
+All Turbo test tasks have `"cache": false` — tests are never skipped from cache.
+
+### ESM Requirement for E2E
+
+`better-auth` and `@thallesp/nestjs-better-auth` are ESM packages. E2E tests **must** use:
+
+```bash
+NODE_OPTIONS='--experimental-vm-modules' jest --config ./test/jest-e2e.json
+```
+
+This is already wired into `apps/auth/package.json`'s `test:e2e` script and `turbo.json`. Do not run E2E tests without this flag.
+
+Integration tests use `ts-jest` with a `transformIgnorePatterns` override to handle the same ESM packages in CJS mode.
+
+### `jest.setup.ts`
+
+Every test suite in `apps/auth` loads `apps/auth/test/jest.setup.ts` via `setupFiles`. It:
+1. Loads `apps/auth/.env.test` (overrides any pre-set vars).
+2. Provides fallback values for `DATABASE_URL`, `BETTER_AUTH_SECRET`, `MONGO_URI`, `REDIS_HOST`, `REDIS_PORT` so tests run without a full `.env.test` on CI.
+
+### `@repo/testing-utils` — Factories and Helpers
+
+Import from `@repo/testing-utils` in test files only:
+
+```typescript
+import {
+  TEST_PASSWORD,
+  createUser,
+  createSession,
+  truncateDatabase,
+} from '@repo/testing-utils';
+```
+
+#### `createUser(db, overrides?)`
+
+Inserts a `User` row and a linked `Account` row (credential provider with a scrypt-hashed password).
+
+| Override | Type | Default |
+|---|---|---|
+| `id` | `string` | `randomUUID()` |
+| `email` | `string` | `faker.internet.email()` |
+| `name` | `string` | `faker.person.fullName()` |
+| `role` | `string` | `'user'` |
+| `emailVerified` | `boolean` | `false` |
+| `hashedPassword` | `string` | scrypt hash of `TEST_PASSWORD` |
+
+`TEST_PASSWORD` is exported as the constant `'Test1234!'`. Use it when calling `better-auth` sign-in endpoints in E2E tests.
+
+#### `createSession(db, userId, overrides?)`
+
+Inserts a `Session` row linked to the given user. Default `expiresAt` is 24 hours from call time.
+
+#### `truncateDatabase(db)`
+
+Deletes all rows from `verification` and `user`. The Prisma cascade rules on `user` remove dependent `session`, `account`, and `twoFactor` rows automatically.
+
+Call in `afterEach` (factories integration tests) or `afterAll` (E2E tests) to isolate test runs.
+
+### Integration Test Pattern
+
+```typescript
+import { Test } from '@nestjs/testing';
+import { DatabaseModule, DatabaseService } from '@repo/database';
+import { createUser, truncateDatabase } from '@repo/testing-utils';
+
+describe('my-feature integration', () => {
+  let db: DatabaseService;
+
+  beforeAll(async () => {
+    const module = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env.test' }), DatabaseModule],
+    }).compile();
+    db = module.get(DatabaseService);
+    await module.init();
+  });
+
+  afterEach(() => truncateDatabase(db));
+  afterAll(() => module.close());
+
+  it('...', async () => {
+    const user = await createUser(db, { role: 'admin' });
+    // ...
+  });
+});
+```
+
+File suffix: `*.integration.ts` (picked up by `jest-integration.json`).
+
+### E2E Test Pattern
+
+E2E tests bootstrap the full `AppModule`. Mirror production bootstrap in `beforeAll` (global prefix, versioning, prefix exclusions). Use `supertest` to drive HTTP.
+
+File suffix: `*.e2e-spec.ts` (picked up by `jest-e2e.json`).
+
+---
+
 ## Next.js Conventions
 
 ### Server vs Client Components
@@ -252,7 +368,7 @@ Format: `<type>(<scope>): <imperative summary>` — ≤50 chars subject (hard ca
 | `style` | Formatting only |
 | `revert` | Revert a previous commit |
 
-Scopes: `auth`, `notifications`, `worker`, `web`, `api`, `database`, `shared`, `shared-types`, `mail`, `trpc`, `ci`, `docker`.
+Scopes: `auth`, `notifications`, `worker`, `web`, `api`, `database`, `shared`, `shared-types`, `mail`, `trpc`, `testing-utils`, `ci`, `docker`.
 
 Breaking changes: append `!` to the type+scope and add a `BREAKING CHANGE:` footer.
 
@@ -269,6 +385,9 @@ import { DatabaseService } from '@repo/database';
 import { SharedModule, QUEUES, SERVICES, EVENT_PATTERNS, JOB_PATTERNS } from '@repo/shared';
 import { RoleEnum, paginationSchema } from '@repo/shared-types';
 import type { AppRouter } from '@repo/trpc';
+
+// Test files only:
+import { createUser, createSession, truncateDatabase, TEST_PASSWORD } from '@repo/testing-utils';
 ```
 
 Next.js uses `@/` for app-local imports:

@@ -18,6 +18,7 @@ apps/api ──────────────► @repo/database       (via
 apps/auth ─────────────► @repo/shared
 apps/auth ─────────────► @repo/shared-types
 apps/auth ─────────────► @repo/database
+apps/auth (test only) ─► @repo/testing-utils
 
 apps/notifications ────► @repo/shared
 apps/notifications ────► @repo/shared-types
@@ -32,10 +33,13 @@ apps/web ──────────────► @repo/trpc
 
 @repo/shared ──────────► @repo/database
 @repo/mail ────────────► @repo/shared         (MongoModule for EmailLog)
+@repo/testing-utils ───► @repo/database       (PrismaClient for factories/helpers)
 @repo/trpc ────────────► (generated type, no runtime dep)
 ```
 
 **Rule:** `@repo/shared-types` and `@repo/trpc` have no runtime NestJS dependencies — they are safe to import in Next.js.
+
+**Rule:** `@repo/testing-utils` is `private: true` and must only be imported in test files — never in application source code.
 
 ---
 
@@ -206,6 +210,22 @@ apps/web ──[HTTP /api/auth/trpc/**]─────────────�
     ├── SanitizeUtil         ← redacts sensitive keys (password, token, etc.)
     └── SentryUtil           ← init(appName), captureException(error, context)
 ```
+
+---
+
+## `packages/testing-utils` Structure
+
+```
+@repo/testing-utils  (private — test files only)
+├── factories/
+│   ├── createUser(db, overrides?)   ← inserts User + Account (credential); exports TEST_PASSWORD
+│   └── createSession(db, userId, overrides?) ← inserts Session (expires +24 h)
+└── helpers/
+    └── truncateDatabase(db)         ← DELETE verification, user (cascade: session, account, twoFactor)
+```
+
+Runtime dependencies: `@repo/database` (PrismaClient types).
+Dev/peer dependencies: `@faker-js/faker ^9`, `@prisma/client ^7`.
 
 ---
 

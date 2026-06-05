@@ -227,6 +227,9 @@ Generated client output: `packages/database/generated/prisma/` (CJS format).
 
 ```
 db:generate ──► build ──► dev / test / lint / check-types
+                      └──► test:integration / test:e2e   (cache: false — never skipped)
 ```
 
 Build caches `dist/**` and `.next/**`. Environment variables `AUTH_API_URL`, `API_URL`, `BACKEND_HOST`, `BACKEND_PROTOCOL` are declared as Turbo `env` inputs for the `build` task (cache-busting).
+
+`test:integration` and `test:e2e` depend on `^build` (all package dependencies must be built first) and are never cached. Run `pnpm test:db:setup` once before executing either task to ensure the `nestjs_test` database exists and is migrated.

@@ -13,7 +13,7 @@ See also: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) | [ENTRYPOINTS.md
 | `package.json`        | Root workspace; pnpm scripts (`dev`, `build`, `lint`, `db:*`, `docker:*`) |
 | `pnpm-workspace.yaml` | Declares `apps/*` and `packages/*`; pins `zod ~4.3.6` globally            |
 | `turbo.json`          | Turborepo pipeline: build, dev, lint, test, check-types, db:\* tasks      |
-| `docker-compose.yml`  | Local infra: PostgreSQL, MongoDB, Redis                                   |
+| `docker-compose.yaml` | Local infra: PostgreSQL, MongoDB, Redis                                   |
 | `.nvmrc`              | Node `>=22`                                                               |
 | `CLAUDE.md`           | AI assistant instructions                                                 |
 | `.github/`            | Copilot instructions, git commit rules, PR templates                      |
@@ -46,10 +46,16 @@ Authentication service backed by `better-auth`.
 
 | Path                        | Role                                                                                                                                  |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/main.ts`               | Bootstrap: `globalPrefix='api/auth'`, Redis microservice transport, Swagger on `/api/auth/docs`                                       |
-| `src/app.module.ts`         | Imports `SharedModule`, `ClientsModule` (NOTIFICATIONS service), `AuthModule.forRootAsync`                                            |
-| `src/auth.controller.ts`    | `@MessagePattern('auth:authenticate')` — validates session token, returns user                                                        |
-| `src/local-auth.service.ts` | Hooks into `better-auth` lifecycle (user created, password reset, email verification, 2FA); emits events via `NotificationsPublisher` |
+| `src/main.ts`               | Bootstrap: `globalPrefix='api/auth'`, `globalPrefixExclude: ['health', 'health/*path']`, Redis microservice, Swagger on `/api/auth/docs` |
+| `src/app.module.ts`         | Imports `SharedModule`, `ClientsModule` (NOTIFICATIONS service), `AuthModule.forRootAsync`                                               |
+| `src/auth.controller.ts`    | `@MessagePattern('auth:authenticate')` — validates session token, returns user                                                           |
+| `src/local-auth.service.ts` | Hooks into `better-auth` lifecycle (user created, password reset, email verification, 2FA); emits events via `NotificationsPublisher`    |
+| `.env.test`                 | Test environment — `DATABASE_URL` pointing to `nestjs_test` DB, test secrets                                                            |
+| `test/jest.setup.ts`        | Loads `.env.test`; sets fallback env vars for all test suites                                                                            |
+| `test/jest-integration.json`| Jest config for `*.integration.ts` files; transforms `@thallesp/nestjs-better-auth`                                                     |
+| `test/jest-e2e.json`        | Jest config for `*.e2e-spec.ts`; `useESM: true`, requires `NODE_OPTIONS=--experimental-vm-modules`                                      |
+| `test/users.integration.ts` | 7 integration tests for `@repo/testing-utils` factories and `truncateDatabase`                                                          |
+| `test/auth.e2e-spec.ts`     | 3 E2E tests: health liveness, 401 on unauthenticated route, 200 with valid session cookie                                               |
 
 Global guard: `AuthGuard` from `@thallesp/nestjs-better-auth`. Social provider: Google OAuth.
 better-auth plugins: `twoFactor()`, `admin()`.
@@ -184,6 +190,21 @@ Email delivery abstraction. Currently supports Brevo only.
 | `src/mail.service.ts`             | `send()` with 3-attempt exponential retry; dev-mode email redirect; logs via `MongoService` |
 | `src/providers/brevo.provider.ts` | Brevo (Sendinblue) API integration                                                          |
 | `src/interfaces/`                 | `MailModuleOptions`, `MailProvider` interfaces                                              |
+
+### `packages/testing-utils/`
+
+Test-only utilities shared by all backend apps. **Never import in production code.**
+
+| Path                              | Role                                                                                                                     |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `src/index.ts`                    | Barrel export                                                                                                            |
+| `src/factories/user.factory.ts`   | `createUser(db, overrides?)` — inserts `User` + `Account` (credential provider); exports `TEST_PASSWORD = 'Test1234!'` |
+| `src/factories/session.factory.ts`| `createSession(db, userId, overrides?)` — inserts a `Session` expiring 24 h from now                                    |
+| `src/factories/index.ts`          | Re-exports factories and their override interfaces                                                                       |
+| `src/helpers/truncate.ts`         | `truncateDatabase(db)` — `DELETE` from `verification`, `user` (cascade removes sessions, accounts, 2FA)                 |
+| `src/helpers/index.ts`            | Re-exports helpers                                                                                                       |
+
+Password hashing in `createUser` matches better-auth's scrypt format exactly (`${salt}:${hex(key)}`, N=16384, r=16, p=1, keylen=64). The hash is cached per process to avoid paying the cost on every test.
 
 ### `packages/eslint-config/`
 

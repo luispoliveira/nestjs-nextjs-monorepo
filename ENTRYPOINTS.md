@@ -26,11 +26,12 @@ Swagger: `/api/docs` (non-production only).
 | Method | Path | Handler | Auth | Notes |
 |---|---|---|---|---|
 | `*` | `/api/auth/**` | `better-auth` handler | Managed by better-auth | Session, sign-in, sign-up, OAuth, 2FA, admin |
-| `GET` | `/api/auth/health/live` | `HealthController.isAlive` | Public | |
-| `GET` | `/api/auth/health/ready` | `HealthController.check` | Public | |
+| `GET` | `/health/live` | `HealthController.isAlive` | Public | Excluded from global prefix — better-auth intercepts all `/api/auth/*` |
+| `GET` | `/health/ready` | `HealthController.check` | Public | Excluded from global prefix |
 | `GET` | `/api/auth/metrics` | `MetricsController` | `MetricsAuthGuard` | |
 
 Global guard: `AuthGuard` from `@thallesp/nestjs-better-auth`.
+`globalPrefixExclude: ['health', 'health/*path']` in `main.ts` keeps health endpoints reachable outside the prefix that better-auth intercepts.
 Swagger: `/api/auth/docs` (non-production only).
 
 ### `apps/notifications` — prefix `/api/notifications`, port `3100`
