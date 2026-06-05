@@ -79,7 +79,7 @@ AppModule
 │   ├── TerminusModule        (health checks)
 │   ├── MongoModule           (audit logs)
 │   ├── LoggerModule          (pino)
-│   ├── ThrottlerModule       (10 req/60s per IP)
+│   ├── ThrottlerModule       (Redis-backed when throttlerRedisUrl set; default 10 req/60s)
 │   ├── ClsModule             (correlation IDs)
 │   ├── AllExceptionFilter    (APP_FILTER)
 │   ├── LoggingInterceptor    (APP_INTERCEPTOR, logs to MongoDB)
@@ -241,7 +241,7 @@ packages/trpc
 | Error handling | `AllExceptionFilter` | Global, returns standardized JSON |
 | Logging | `nestjs-pino` (JSON prod, pretty dev) | Global `LoggingInterceptor` |
 | Correlation IDs | `nestjs-cls` | Auto-threaded through `ClsModule` |
-| Rate limiting | `nestjs-throttler` | 10 req/60s per IP (configurable) |
+| Rate limiting | `@nestjs/throttler` + `CustomThrottlerGuard` | Per-user (`user:{id}`) when authenticated, falls back to `ip:{ip}`; tiers via `THROTTLE_TIERS`; Redis-backed storage optional |
 | Health checks | `@nestjs/terminus` | `GET /health/live`, `/health/ready` |
 | Secrets sanitization | `SanitizeUtil` | Applied in logging interceptor |
 

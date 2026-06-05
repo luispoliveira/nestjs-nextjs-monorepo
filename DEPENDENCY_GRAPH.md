@@ -88,8 +88,9 @@ AppModule
 
 ```text
 AppModule
-├─ SharedModule.register()
-│   └─ (same as above)
+├─ SharedModule.register({ throttlerRedisUrl: REDIS_URL })
+│   ├─ (same as auth above)
+│   └─ ThrottlerModule (Redis-backed via ThrottlerStorageRedisService)
 │
 ├─ ClientsModule (AUTH_SERVICE client)
 │
@@ -164,6 +165,7 @@ apps/api ◄─── Redis ──── apps/auth
 | `nestjs-trpc-v2` | api | tRPC integration for NestJS |
 | `@nestjs/terminus` | all NestJS | Health check endpoints |
 | `@nestjs/throttler` | all NestJS | Rate limiting |
+| `@nest-lab/throttler-storage-redis` | shared | Redis-backed throttler storage (distributed rate limiting) |
 | `prisma` | database | ORM + migration tool |
 | `@prisma/adapter-pg` | database | PrismaPg driver adapter |
 | `mongoose` | shared | MongoDB ODM (logs/audit only) |

@@ -92,15 +92,16 @@ nestjs-nextjs-monorepo/
 **Role**: Global NestJS infrastructure shared across all backend apps.
 - `@Global()` — provided everywhere via `SharedModule.register()`.
 - Key subdirectories:
-  - `src/constants/` — `SERVICES`, `QUEUES`, `EVENT_PATTERNS`, `MESSAGE_PATTERNS`, `JOB_PATTERNS`
+  - `src/constants/` — `SERVICES`, `QUEUES`, `EVENT_PATTERNS`, `MESSAGE_PATTERNS`, `JOB_PATTERNS`, `THROTTLE_TIERS`
   - `src/abstracts/` — `BasePublisher`, `BaseProducer`, `BaseRouter`
-  - `src/guards/` — `AuthGuard`, `MicroserviceAuthGuard`
+  - `src/guards/` — `AuthGuard`, `MicroserviceAuthGuard`, `CustomThrottlerGuard`
   - `src/interceptors/` — `LoggingInterceptor`, `CorrelationInterceptor`
   - `src/filters/` — `AllExceptionFilter`
   - `src/publishers/` — `NotificationsPublisher`
   - `src/queue/` — `QueueModule` (`@nestjs/bullmq`), `EmailProducer`, producer base classes
   - `src/modules/` — `SharedModule`, `MongoModule`
-  - `src/utils/` — `BootstrapUtil`, `MicroserviceUtil`, `PaginatedUtil`, `SanitizeUtil`, `ContextUtil`
+  - `src/decorators/` — `@Public()`, `@CurrentUser()`, `@RateLimit(tier)`
+  - `src/utils/` — `BootstrapUtil` (incl. `trustProxy` option), `MicroserviceUtil`, `PaginatedUtil`, `SanitizeUtil`, `ContextUtil`
   - `src/health/` — `HealthController` (GET `/health/live`, `/health/ready`)
   - `src/mongo/` — `MongoModule`, `Log` + `EmailLog` schemas (30-day TTL)
   - `src/trpc/` — `TrpcModule`, `BaseRouter`, auth middlewares

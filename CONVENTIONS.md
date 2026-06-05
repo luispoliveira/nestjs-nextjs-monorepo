@@ -35,7 +35,7 @@ export class AppModule {}
 
 ```typescript
 // Always import from @repo/shared — never inline strings
-import { SERVICES, QUEUES, EVENT_PATTERNS, MESSAGE_PATTERNS, JOB_PATTERNS } from '@repo/shared';
+import { SERVICES, QUEUES, EVENT_PATTERNS, MESSAGE_PATTERNS, JOB_PATTERNS, THROTTLE_TIERS } from '@repo/shared';
 
 // Use as injection tokens
 @InjectQueue(QUEUES.EMAIL) private emailQueue: Queue
@@ -161,7 +161,11 @@ export class EmailConsumer extends WorkerHost {
 @Public()              // Bypass AuthGuard
 @CurrentUser()         // Extract request.user
 @Roles(RoleEnum.ADMIN) // Role-based access (if implemented)
+@RateLimit('default')  // Per-user throttle: 60 req/60s; apply at class or method level
+@RateLimit('strict')   // Per-user throttle: 10 req/60s
 ```
+
+`@RateLimit(tier)` is a composite decorator that applies `CustomThrottlerGuard` (keys on `user:{id}` when authenticated, falls back to `ip:{ip}`) and `@Throttle` with the matching tier from `THROTTLE_TIERS`. Import from `@repo/shared`.
 
 ### Error Handling
 
@@ -443,7 +447,7 @@ PR requirements for `main` and `develop`:
 - **Never commit** `.env` files, secrets, or credentials
 - **Validate at system boundaries** only (HTTP layer, external API responses)
 - **Sanitize** sensitive fields in logs via `SanitizeUtil` (auto-applied by `LoggingInterceptor`)
-- **Throttle** all public endpoints (ThrottlerModule, 10 req/60s default)
+- **Throttle** endpoints with `@RateLimit(tier)` — `'default'` (60 req/60s) or `'strict'` (10 req/60s); keys on authenticated user ID, falls back to IP; pass `throttlerRedisUrl` to `SharedModule.register()` for distributed state
 - **Helmet** enabled on all HTTP apps via `BootstrapUtil.setup({ useHelmet: true })`
 - **CORS** configured per app via `BootstrapUtil.setup({ cors: { origin: ... } })`
 - Cookie names: `better-auth.session_token` (HTTP) + `__Secure-better-auth.session_token` (HTTPS)
