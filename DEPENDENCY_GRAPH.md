@@ -1,188 +1,238 @@
 # DEPENDENCY_GRAPH.md — NestJS + Next.js Monorepo
 
-Module and package dependency map. Arrows indicate "depends on" direction.
+Package dependencies, module imports, and cross-service communication map.
+Arrows indicate "depends on" direction.
+
+See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) | [ENTRYPOINTS.md](ENTRYPOINTS.md)
 
 ---
 
-## Package Dependency Graph
+## Internal Package Dependency Graph
 
-```text
-apps/auth ──────────────────────────────────────────────────────────┐
-  │                                                                  │
-  ├─→ @repo/shared         (SharedModule, utils, guards, constants)  │
-  ├─→ @repo/database       (DatabaseService, Prisma models)          │
-  ├─→ @repo/shared-types   (RoleEnum, EnvironmentEnum)              │
-  └─→ better-auth          (auth engine)                             │
-       └─→ @better-auth/prisma-adapter                              │
-                                                                      │
-apps/api ────────────────────────────────────────────────────────────┤
-  │                                                                  │
-  ├─→ @repo/shared         (SharedModule, TrpcModule, MicroserviceUtil)
-  ├─→ @repo/database       (DatabaseService)                         │
-  └─→ @repo/shared-types   (schemas, RoleEnum)                      │
-                                                                      │
-apps/notifications ──────────────────────────────────────────────────┤
-  │                                                                  │
-  ├─→ @repo/shared         (SharedModule, QueueModule, EmailProducer)│
-  └─→ @repo/shared-types   (schemas)                                 │
-                                                                      │
-apps/worker ─────────────────────────────────────────────────────────┤
-  │                                                                  │
-  ├─→ @repo/shared         (SharedModule, QueueModule, JOB_PATTERNS) │
-  └─→ @repo/mail           (MailModule, email sending)               │
-                                                                      │
-apps/web ────────────────────────────────────────────────────────────┘
-  │
-  ├─→ @repo/trpc           (AppRouter type for type safety)
-  ├─→ @repo/shared-types   (Zod schemas for forms, RoleEnum)
-  └─→ better-auth/client   (authClient, session hooks)
+```
+apps/api ──────────────► @repo/shared
+apps/api ──────────────► @repo/shared-types
+apps/api ──────────────► @repo/trpc
+apps/api ──────────────► @repo/database       (via SharedModule → DatabaseModule)
+
+apps/auth ─────────────► @repo/shared
+apps/auth ─────────────► @repo/shared-types
+apps/auth ─────────────► @repo/database
+
+apps/notifications ────► @repo/shared
+apps/notifications ────► @repo/shared-types
+
+apps/worker ───────────► @repo/shared
+apps/worker ───────────► @repo/shared-types
+apps/worker ───────────► @repo/database       (via SharedModule → DatabaseModule)
+apps/worker ───────────► @repo/mail
+
+apps/web ──────────────► @repo/shared-types
+apps/web ──────────────► @repo/trpc
+
+@repo/shared ──────────► @repo/database
+@repo/mail ────────────► @repo/shared         (MongoModule for EmailLog)
+@repo/trpc ────────────► (generated type, no runtime dep)
+```
+
+**Rule:** `@repo/shared-types` and `@repo/trpc` have no runtime NestJS dependencies — they are safe to import in Next.js.
+
+---
+
+## Cross-Service Communication
+
+```
+apps/api ──[Redis send: auth:authenticate]──────────────────► apps/auth
+apps/api ──[Redis send: dlq:list|replay|purge]──────────────► apps/worker
+
+apps/auth ──[Redis emit: user:*]────────────────────────────► apps/notifications
+apps/notifications ──[BullMQ: email-queue]──────────────────► apps/worker
+apps/worker ──[BullMQ: email-queue-dlq]────────────────────── (self — DLQ)
+
+apps/web ──[HTTP proxy /api/auth/**]────────────────────────► apps/auth
+apps/web ──[HTTP tRPC /api/trpc/**]─────────────────────────► apps/api
+apps/web ──[HTTP /api/auth/trpc/**]─────────────────────────► apps/auth
 ```
 
 ---
 
-## Internal Package Dependencies
+## NestJS Module Imports per App
 
-```text
+### `apps/api`
+
+| Module                                                                      | Source                            |
+| --------------------------------------------------------------------------- | --------------------------------- |
+| `SharedModule.register({ metrics: { appName: 'api' }, throttlerRedisUrl })` | `@repo/shared`                    |
+| `ClientsModule` with `registerAuthService()`                                | `@repo/shared` (MicroserviceUtil) |
+| `TRPCModule.forRoot({ basePath: '/api/trpc', context: AppContext })`        | `nestjs-trpc-v2`                  |
+
+### `apps/auth`
+
+| Module                                                | Source                                       |
+| ----------------------------------------------------- | -------------------------------------------- |
+| `SharedModule.register({})`                           | `@repo/shared`                               |
+| `ClientsModule` with `registerNotificationsService()` | `@repo/shared` (MicroserviceUtil)            |
+| `AuthModule.forRootAsync(...)`                        | `@thallesp/nestjs-better-auth`               |
+| `DatabaseModule`                                      | `@repo/database` (within AuthModule factory) |
+| `ConfigModule`                                        | `@nestjs/config` (within AuthModule factory) |
+
+### `apps/notifications`
+
+| Module                                                             | Source         |
+| ------------------------------------------------------------------ | -------------- |
+| `SharedModule.register({ metrics: { appName: 'notifications' } })` | `@repo/shared` |
+| `QueueModule.registerQueues([QUEUES.EMAIL])`                       | `@repo/shared` |
+
+### `apps/worker`
+
+| Module                                                      | Source                       |
+| ----------------------------------------------------------- | ---------------------------- |
+| `SharedModule.register({ metrics: { appName: 'worker' } })` | `@repo/shared`               |
+| `QueueModule.registerQueues([QUEUES.EMAIL])`                | `@repo/shared`               |
+| `MailModule.forRootAsync({ provider: 'brevo', ... })`       | `@repo/mail`                 |
+| `DlqModule`                                                 | local `apps/worker/src/dlq/` |
+
+#### `DlqModule`
+
+| Module                                       | Source         |
+| -------------------------------------------- | -------------- |
+| `QueueModule.registerQueues([QUEUES.EMAIL])` | `@repo/shared` |
+
+---
+
+## Key Third-Party Dependencies
+
+### Backend (NestJS apps + shared/mail packages)
+
+| Package                             | Version                    | Role                             |
+| ----------------------------------- | -------------------------- | -------------------------------- |
+| `@nestjs/common`                    | `^11`                      | Core NestJS                      |
+| `@nestjs/microservices`             | `^11`                      | Redis transport                  |
+| `@nestjs/bullmq`                    | `^11`                      | BullMQ integration               |
+| `@nestjs/terminus`                  | `^11`                      | Health checks                    |
+| `@nestjs/throttler`                 | via shared                 | Rate limiting                    |
+| `@nest-lab/throttler-storage-redis` | via shared                 | Redis throttler storage          |
+| `@willsoto/nestjs-prometheus`       | via shared                 | Prometheus metrics               |
+| `better-auth`                       | `^1.6`                     | Auth framework                   |
+| `@thallesp/nestjs-better-auth`      | via auth                   | NestJS adapter for better-auth   |
+| `@better-auth/prisma-adapter`       | `^1.6`                     | Prisma adapter for better-auth   |
+| `nestjs-trpc-v2`                    | via api/shared             | tRPC server integration          |
+| `nestjs-zod`                        | via shared                 | Zod validation pipe + serializer |
+| `nestjs-pino`                       | via shared                 | Structured logging               |
+| `nestjs-cls`                        | via shared                 | Continuation-local storage       |
+| `@prisma/client`                    | `^7`                       | Database ORM                     |
+| `@prisma/adapter-pg`                | `^7`                       | PrismaPg driver adapter          |
+| `@nestjs/mongoose`                  | via shared                 | MongoDB / Mongoose               |
+| `bullmq`                            | via `@nestjs/bullmq`       | BullMQ client                    |
+| `@sentry/nestjs`                    | via shared                 | Error tracking                   |
+| `zod`                               | `~4.3.6` (pinned globally) | Validation schemas               |
+
+### Frontend (`apps/web`)
+
+| Package                    | Version       | Role                                           |
+| -------------------------- | ------------- | ---------------------------------------------- |
+| `next`                     | `16.x`        | Next.js App Router                             |
+| `react`                    | `^19`         | React                                          |
+| `better-auth`              | `^1.6`        | Auth client (`twoFactorClient`, `adminClient`) |
+| `@trpc/react-query`        | `^11`         | tRPC client                                    |
+| `@tanstack/react-query`    | `^5`          | Query cache                                    |
+| `@hookform/resolvers`      | `^5`          | Zod resolver for React Hook Form               |
+| `react-hook-form`          | via resolvers | Form state management                          |
+| `tailwindcss`              | `^4`          | CSS framework                                  |
+| `class-variance-authority` | `^0.7`        | Component variants                             |
+| `clsx` + `tailwind-merge`  | via utils     | Conditional class merging                      |
+| `next-themes`              | via layout    | Theme provider                                 |
+| `sonner`                   | via layout    | Toast notifications                            |
+| `lucide-react`             | via nav       | Icons                                          |
+| `zod`                      | `~4.3.6`      | Client-side validation                         |
+
+---
+
+## `packages/shared` Internal Structure
+
+```
 @repo/shared
-  ├─→ @repo/database       (DatabaseModule imported in SharedModule)
-  └─→ (no other internal deps)
+├── abstracts/
+│   ├── BaseProducer         ← extend for new BullMQ producers
+│   ├── BasePublisher        ← extend for new Redis event publishers
+│   └── BaseDlqService       ← extend for new DLQ service implementations
+├── constants/               ← SERVICES, QUEUES, EVENT_PATTERNS, MESSAGE_PATTERNS,
+│                               JOB_PATTERNS, CLS_CORRELATION_ID, THROTTLE_TIERS
+├── decorators/
+│   ├── @Public()            ← bypasses APP_GUARD
+│   ├── @CurrentUser()       ← extracts request.user
+│   └── @RateLimit(tier)     ← CustomThrottlerGuard + Throttle config
+├── filters/
+│   └── AllExceptionFilter   ← @Catch() — normalised errors, Sentry capture
+├── guards/
+│   ├── CustomThrottlerGuard ← user.id > IP key strategy
+│   └── MicroserviceAuthGuard← validates token via AUTH_SERVICE Redis call
+├── health/
+│   └── HealthController     ← GET /health/live, GET /health/ready
+├── interceptors/
+│   ├── LoggingInterceptor   ← HTTP req/res → MongoDB Log
+│   └── CorrelationInterceptor← propagates correlationId into CLS for RPC
+├── metrics/
+│   ├── MetricsModule        ← Prometheus with per-app labels
+│   ├── MetricsController    ← GET /metrics (MetricsAuthGuard protected)
+│   └── HttpMetricsInterceptor← duration histogram per route
+├── modules/
+│   └── SharedModule         ← @Global() dynamic module
+├── mongo/
+│   ├── MongoModule          ← @Global() Mongoose module
+│   ├── MongoService         ← createLog, updateLog, createEmailLog, updateEmailLog
+│   ├── schema/log.schema.ts ← HTTP request/response log
+│   └── schema/email-log.schema.ts ← sent email record
+├── publishers/
+│   └── NotificationsPublisher← emit all USER_* events to notifications service
+├── queue/
+│   ├── QueueModule          ← BullMQ root + registerQueues (main + DLQ)
+│   ├── producers/EmailProducer← send all email job types
+│   └── input/               ← Zod DTOs for each job type
+├── trpc/
+│   ├── TrpcModule           ← wraps nestjs-trpc-v2 + MongoModule
+│   ├── AppContext            ← TRPCContext factory
+│   ├── BaseRouter           ← abstract; applies LoggingTrpcMiddleware
+│   ├── LoggingTrpcMiddleware ← logs tRPC req/res to MongoDB
+│   └── AuthTrpcMiddleware   ← validates token via AUTH_SERVICE
+├── types/
+│   ├── PaginatedType        ← generic paginated response shape
+│   └── PagedMetaType        ← pagination metadata
+└── utils/
+    ├── BootstrapUtil        ← app setup (helmet, versioning, swagger, cors, cookie-parser)
+    ├── MicroserviceUtil     ← registerAuthService, registerNotificationsService
+    ├── PaginatedUtil        ← getPaginatedResponse(items, total, skip, take)
+    ├── ContextUtil          ← extractToken from header/cookie
+    ├── SanitizeUtil         ← redacts sensitive keys (password, token, etc.)
+    └── SentryUtil           ← init(appName), captureException(error, context)
+```
 
-@repo/database
-  └─→ (no internal deps — only Prisma + PrismaPg)
+---
 
+## `packages/shared-types` Structure
+
+```
 @repo/shared-types
-  └─→ (no internal deps — only zod)
-
-@repo/trpc
-  └─→ (type-only, auto-generated — no runtime deps)
-
-@repo/mail
-  └─→ (no internal deps — only Brevo SDK)
+├── enums/
+│   ├── RoleEnum             ← 'admin' | 'user'
+│   └── EnvironmentEnum      ← 'development' | 'production' | ...
+└── schemas/
+    ├── baseEntitySchema     ← id, createdAt, updatedAt, deletedAt, audit fields
+    ├── paginationSchema     ← skip, take (max 100), sortBy, sortOrder
+    ├── createUserSchema     ← name, email, role
+    └── editRoleSchema       ← role
 ```
 
 ---
 
-## NestJS Module Dependencies (per app)
+## Database Schema Dependencies
 
-### `apps/auth` Module Graph
-
-```text
-AppModule
-├─ SharedModule.register()
-│   ├─ ConfigModule
-│   ├─ DatabaseModule ──→ @repo/database
-│   ├─ TerminusModule
-│   ├─ MongoModule
-│   ├─ LoggerModule (pino)
-│   ├─ ThrottlerModule
-│   └─ ClsModule
-│
-├─ ClientsModule (NOTIFICATIONS_SERVICE client)
-│
-└─ AuthModule (@thallesp/nestjs-better-auth)
-    ├─ DatabaseModule (Prisma adapter)
-    └─ ConfigModule
+```
+packages/database/prisma/auth.prisma
+  User ─── Session (1:N, cascade delete)
+  User ─── Account (1:N, cascade delete)
+  User ─── TwoFactor (1:N, cascade delete)
+  Verification (standalone — identifier + value + expiresAt)
 ```
 
-### `apps/api` Module Graph
-
-```text
-AppModule
-├─ SharedModule.register({ throttlerRedisUrl: REDIS_URL })
-│   ├─ (same as auth above)
-│   └─ ThrottlerModule (Redis-backed via ThrottlerStorageRedisService)
-│
-├─ ClientsModule (AUTH_SERVICE client)
-│
-└─ TrpcModule.register()
-    └─ AppRouter
-        ├─ UsersRouter extends BaseRouter
-        └─ AdminRouter extends BaseRouter
-```
-
-### `apps/notifications` Module Graph
-
-```text
-AppModule
-├─ SharedModule.register()
-│   └─ (same as above)
-│
-└─ QueueModule.registerQueues([QUEUES.EMAIL])
-    └─ BullModule (@nestjs/bullmq) — email-queue → Redis
-```
-
-### `apps/worker` Module Graph
-
-```text
-AppModule
-├─ SharedModule.register()
-│   └─ (same as above)
-│
-├─ QueueModule.registerQueues([QUEUES.EMAIL])
-│   └─ BullModule (@nestjs/bullmq) — email-queue → Redis
-│       EmailConsumer extends WorkerHost (@Processor)
-│
-└─ MailModule.forRootAsync({ provider: 'brevo', ... })
-    └─ Brevo SDK (HTTP → external)
-```
-
----
-
-## Runtime Communication Dependencies
-
-```text
-apps/web
-  │  HTTP / Cookie
-  ▼
-apps/auth   ◄──── Redis ────► apps/notifications
-    │                               │
-    │ Redis                         │ BullMQ (Redis)
-    ▼                               ▼
-(broadcasts events)           apps/worker
-                                    │
-                                    │ HTTP (Brevo API)
-                                    ▼
-                               Email Delivery
-
-apps/api ◄─── Redis ──── apps/auth
-  (AUTH_AUTHENTICATE message pattern)
-```
-
----
-
-## External Dependencies
-
-| Package | Used By | Purpose |
-| --- | --- | --- |
-| `better-auth` | auth | Auth engine (sessions, OAuth, 2FA, admin) |
-| `@better-auth/prisma-adapter` | auth | Prisma database adapter for better-auth |
-| `@thallesp/nestjs-better-auth` | auth | NestJS integration for better-auth |
-| `@nestjs/bullmq` | shared (QueueModule), worker | BullMQ queue management |
-| `bullmq` | shared (QueueModule), worker | Redis-based job queue (v5) |
-| `nestjs-pino` | all NestJS | Structured logging |
-| `nestjs-cls` | all NestJS | Continuation-local storage (correlation IDs) |
-| `nestjs-zod` | all NestJS | Zod validation + serialization pipes |
-| `nestjs-trpc-v2` | api | tRPC integration for NestJS |
-| `@nestjs/terminus` | all NestJS | Health check endpoints |
-| `@nestjs/throttler` | all NestJS | Rate limiting |
-| `@nest-lab/throttler-storage-redis` | shared | Redis-backed throttler storage (distributed rate limiting) |
-| `prisma` | database | ORM + migration tool |
-| `@prisma/adapter-pg` | database | PrismaPg driver adapter |
-| `mongoose` | shared | MongoDB ODM (logs/audit only) |
-| `zod` | all | Schema validation (v4) |
-| `next` | web | React framework (v16, App Router) |
-| `next-themes` | web | Theme switching |
-| `sonner` | web | Toast notifications |
-| `react-hook-form` | web | Form state management |
-
----
-
-## Dependency Rules
-
-1. Apps MUST NOT import from other apps — communicate only via Redis events/messages
-2. Apps CAN import from any `packages/` library
-3. `@repo/shared` CAN import from `@repo/database` (it provides `DatabaseModule`)
-4. `@repo/shared-types` MUST have zero internal dependencies (shared with frontend)
-5. `@repo/trpc` is type-only — no runtime code imported by apps
-6. `apps/worker` is the ONLY consumer of `@repo/mail`
-7. MongoDB is ONLY used via `@repo/shared/mongo` — never imported in feature code
+`packages/database/prisma/schema.prisma` contains only the generator and datasource. Application-domain models are added here as the app grows.
