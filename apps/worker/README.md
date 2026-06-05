@@ -83,6 +83,44 @@ Check out a few resources that may come in handy when working with NestJS:
 - To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
 - Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
 
+## Observability
+
+### Prometheus Metrics
+
+The worker exposes metrics at `GET /api/worker/metrics` (scraped by Prometheus).
+
+Key metrics:
+
+| Metric | Labels | Description |
+|---|---|---|
+| `bullmq_queue_depth` | `queue`, `state` | Job counts by queue and state |
+| `bullmq_job_duration_seconds` | `queue`, `job_name` | Processing duration histogram |
+| `bullmq_job_failures_total` | `queue`, `job_name` | Permanent failure counter |
+
+### Dead Letter Queue (DLQ) Alert
+
+Add the following alert rule to your Prometheus/Alertmanager configuration:
+
+```yaml
+groups:
+  - name: worker
+    rules:
+      - alert: BullMQDLQNonEmpty
+        expr: bullmq_queue_depth{queue=~".*:dlq", state="waiting"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "BullMQ DLQ has stranded jobs"
+          description: "Queue {{ $labels.queue }} has {{ $value }} job(s) in the DLQ for over 5 minutes. Inspect via Bull Board at /admin/queues."
+```
+
+The `queue=~".*:dlq"` wildcard covers all present and future DLQ queues.
+
+### Bull Board
+
+Admin queue dashboard available at `/admin/queues`. Requires an authenticated session with `ADMIN` role.
+
 ## Support
 
 Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).

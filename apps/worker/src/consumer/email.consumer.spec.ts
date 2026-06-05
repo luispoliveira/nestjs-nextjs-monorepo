@@ -1,40 +1,37 @@
+import { getQueueToken } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailService } from '@repo/mail';
-import type bull from 'bull';
+import { QUEUES } from '@repo/shared';
+import { Job } from 'bullmq';
+import { QueueMetricsService } from '../metrics/queue-metrics.service';
 import { EmailConsumer } from './email.consumer';
 
-/**
- * Unit tests for EmailConsumer (Bull worker)
- *
- * Tests cover:
- * - sendWelcomeEmail() — valid job data triggers MailService.send
- * - sendWelcomeEmail() — invalid job data throws a validation error
- *
- * This file serves as a boilerplate for NestJS Bull consumer unit tests.
- * The @Processor decorator is metadata-only — the class can be tested directly.
- *
- * @see EmailConsumer
- */
+const mockDlqQueue = { add: jest.fn().mockResolvedValue(undefined) };
+const mockQueueMetrics: Partial<QueueMetricsService> = {
+  recordDuration: jest.fn(),
+  recordFailure: jest.fn(),
+};
+
 describe('EmailConsumer', () => {
   let consumer: EmailConsumer;
   let mailService: jest.Mocked<MailService>;
 
   beforeEach(async () => {
-    // Mock MailService — we only care that .send() is called correctly
     mailService = {
       send: jest.fn().mockResolvedValue(undefined),
     } as unknown as jest.Mocked<MailService>;
 
-    // Silence logger output during tests
     jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         EmailConsumer,
+        { provide: MailService, useValue: mailService },
+        { provide: QueueMetricsService, useValue: mockQueueMetrics },
         {
-          provide: MailService,
-          useValue: mailService,
+          provide: getQueueToken(QUEUES.EMAIL_DLQ),
+          useValue: mockDlqQueue,
         },
       ],
     }).compile();
@@ -44,54 +41,74 @@ describe('EmailConsumer', () => {
 
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
-  // ===========================================================================
-  // sendWelcomeEmail() Tests
-  // ===========================================================================
-
   describe('sendWelcomeEmail()', () => {
-    /**
-     * Test: Sends welcome email when job data is valid
-     *
-     * Scenario: Bull delivers a job with a valid email address
-     * Expected: MailService.send is called once with the correct payload
-     */
     it('should call mailService.send with the correct payload', async () => {
-      // Arrange — create a mock Bull job
-      const job = {
-        id: 'job-1',
-        data: { email: 'welcome@example.com' },
-      } as bull.Job;
-
-      // Act
-      await consumer.sendWelcomeEmail(job);
-
-      // Assert
+      const job = { id: 'job-1', data: { email: 'welcome@example.com' } } as Job;
+      await consumer['sendWelcomeEmail'](job as Job<{ email: string }>);
       expect(mailService.send).toHaveBeenCalledTimes(1);
       expect(mailService.send).toHaveBeenCalledWith(
-        expect.objectContaining({
-          to: [{ email: 'welcome@example.com' }],
-        }),
+        expect.objectContaining({ to: [{ email: 'welcome@example.com' }] }),
       );
     });
 
-    /**
-     * Test: Throws when job data is invalid
-     *
-     * Scenario: Job payload is missing the required email field
-     * Expected: Zod validation throws before MailService is called
-     */
     it('should throw when job data is missing email', async () => {
-      // Arrange
-      const job = {
-        id: 'job-2',
-        data: {},
-      } as bull.Job;
-
-      // Act & Assert
-      await expect(consumer.sendWelcomeEmail(job)).rejects.toThrow();
+      const job = { id: 'job-2', data: {} } as Job;
+      await expect(consumer['sendWelcomeEmail'](job as Job<{ email: string }>)).rejects.toThrow();
       expect(mailService.send).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('onFailed()', () => {
+    it('should call recordFailure and captureException on any failure', () => {
+      const job = {
+        id: 'job-3',
+        name: 'send-welcome-email',
+        data: { email: 'test@example.com' },
+        attemptsMade: 1,
+        opts: { attempts: 3 },
+      } as unknown as Job;
+      const error = new Error('SMTP error');
+
+      consumer.onFailed(job, error);
+
+      expect(mockQueueMetrics.recordFailure).toHaveBeenCalledWith(job.name);
+    });
+
+    it('should route to DLQ when all attempts are exhausted', () => {
+      const job = {
+        id: 'job-4',
+        name: 'send-welcome-email',
+        data: { email: 'test@example.com' },
+        attemptsMade: 3,
+        opts: { attempts: 3 },
+      } as unknown as Job;
+      const error = new Error('SMTP error');
+
+      consumer.onFailed(job, error);
+
+      expect(mockDlqQueue.add).toHaveBeenCalledWith(
+        job.name,
+        job.data,
+        expect.objectContaining({ removeOnFail: expect.anything() }),
+      );
+    });
+
+    it('should not route to DLQ when retries remain', () => {
+      const job = {
+        id: 'job-5',
+        name: 'send-welcome-email',
+        data: { email: 'test@example.com' },
+        attemptsMade: 1,
+        opts: { attempts: 3 },
+      } as unknown as Job;
+      const error = new Error('SMTP error');
+
+      consumer.onFailed(job, error);
+
+      expect(mockDlqQueue.add).not.toHaveBeenCalled();
     });
   });
 });

@@ -1,5 +1,6 @@
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
+import { Transport } from '@nestjs/microservices';
 import { BootstrapUtil, SentryUtil } from '@repo/shared';
 import { EnvironmentEnum } from '@repo/shared-types';
 import { Logger } from 'nestjs-pino';
@@ -11,6 +12,17 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   const configService = app.get(ConfigService);
+  app.connectMicroservice({
+    transport: Transport.REDIS,
+    options: {
+      host: configService.getOrThrow<string>('REDIS_HOST'),
+      port: configService.getOrThrow<number>('REDIS_PORT'),
+      password: configService.get<string>('REDIS_PASSWORD') || undefined,
+      retryAttempts: 5,
+      retryDelay: 3000,
+    },
+  });
+
   const port = configService.get<number>('PORT') || 3200;
   const environment = configService.get<EnvironmentEnum>(
     'NODE_ENV',
@@ -39,6 +51,7 @@ async function bootstrap() {
   });
 
   app.enableShutdownHooks();
+  await app.startAllMicroservices();
   await app.listen(port);
   console.log(`Worker application is running on port ${port}`);
 }

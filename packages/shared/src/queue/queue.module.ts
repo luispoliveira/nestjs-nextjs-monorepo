@@ -30,13 +30,23 @@ import { EmailProducer } from './producers';
 })
 export class QueueModule {
   static registerQueues(queues: string[]): DynamicModule {
-    const bullQueues = queues.map((queue) =>
+    const mainQueues = queues.map((queue) =>
       BullModule.registerQueue({ name: queue }),
     );
+    const dlqQueues = queues.map((queue) =>
+      BullModule.registerQueue({
+        name: `${queue}:dlq`,
+        defaultJobOptions: {
+          removeOnFail: { count: 1000, age: 2592000 },
+          removeOnComplete: true,
+        },
+      }),
+    );
+    const allQueues = [...mainQueues, ...dlqQueues];
     return {
-      imports: bullQueues,
+      imports: allQueues,
       providers: [EmailProducer],
-      exports: [EmailProducer, ...bullQueues],
+      exports: [EmailProducer, ...allQueues],
       module: QueueModule,
     };
   }

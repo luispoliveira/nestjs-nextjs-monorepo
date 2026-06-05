@@ -1,14 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ClientsModule } from '@nestjs/microservices';
 import { MailModule } from '@repo/mail';
-import { QueueModule, QUEUES, SharedModule } from '@repo/shared';
+import { MicroserviceUtil, QueueModule, QUEUES, SharedModule } from '@repo/shared';
 import { EmailConsumer } from './consumer/email.consumer';
+import { BullBoardNestModule } from './bull-board/bull-board.module';
+import { DlqModule } from './dlq/dlq.module';
 import { QueueMetricsService } from './metrics/queue-metrics.service';
 
 @Module({
   imports: [
     SharedModule.register({ metrics: { appName: 'worker' } }),
     QueueModule.registerQueues([QUEUES.EMAIL]),
+    ClientsModule.registerAsync([MicroserviceUtil.registerAuthService()]),
     MailModule.forRootAsync({
       provider: 'brevo',
       imports: [ConfigModule],
@@ -20,6 +24,8 @@ import { QueueMetricsService } from './metrics/queue-metrics.service';
       }),
       inject: [ConfigService],
     }),
+    DlqModule,
+    BullBoardNestModule,
   ],
   controllers: [],
   providers: [EmailConsumer, QueueMetricsService],

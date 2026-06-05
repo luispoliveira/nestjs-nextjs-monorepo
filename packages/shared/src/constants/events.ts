@@ -1,5 +1,8 @@
 export const MESSAGE_PATTERNS = {
   AUTH_AUTHENTICATE: 'auth:authenticate',
+  DLQ_LIST: 'dlq:list',
+  DLQ_REPLAY: 'dlq:replay',
+  DLQ_PURGE: 'dlq:purge',
 } as const;
 
 export const EVENT_PATTERNS = {
