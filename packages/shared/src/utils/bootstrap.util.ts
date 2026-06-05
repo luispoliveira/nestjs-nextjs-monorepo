@@ -36,6 +36,7 @@ const bootstrapUtilConfigSchema = z.object({
     origin: z.union([z.string().min(1), z.array(z.string().min(1))]),
     credentials: z.boolean(),
   }),
+  trustProxy: z.boolean().optional(),
 });
 
 type BootstrapUtilConfig = z.infer<typeof bootstrapUtilConfigSchema>;
@@ -51,6 +52,7 @@ export class BootstrapUtil {
     this.setupSwagger(app, validated.swagger);
     this.enableCookieParser(app, validated);
     this.enableCors(app, validated);
+    this.setTrustProxy(app, validated);
   }
 
   private static setGlobalPrefix(
@@ -141,5 +143,14 @@ export class BootstrapUtil {
       origin: config.cors.origin,
       credentials: config.cors.credentials,
     });
+  }
+
+  private static setTrustProxy(
+    app: INestApplication,
+    config: BootstrapUtilConfig,
+  ) {
+    if (!config.trustProxy) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (app.getHttpAdapter().getInstance() as any).set('trust proxy', 1);
   }
 }

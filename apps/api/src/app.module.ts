@@ -16,7 +16,10 @@ import { AppRouter } from './app.router';
 
 @Module({
   imports: [
-    SharedModule.register({ metrics: { appName: 'api' } }),
+    SharedModule.register({
+      metrics: { appName: 'api' },
+      throttlerRedisUrl: process.env.REDIS_URL,
+    }),
     ClientsModule.registerAsync([MicroserviceUtil.registerAuthService()]),
     TRPCModule.forRoot({
       autoSchemaFile:

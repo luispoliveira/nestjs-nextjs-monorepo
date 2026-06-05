@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { TerminusModule } from '@nestjs/terminus';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { DatabaseModule } from '@repo/database';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
@@ -24,6 +25,7 @@ const sharedModuleRegisterParamsSchema = z.object({
       limit: z.number(),
     })
     .optional(),
+  throttlerRedisUrl: z.string().optional(),
   metrics: z
     .object({
       appName: z.string(),
@@ -59,14 +61,27 @@ export class SharedModule {
         }),
         MongoModule,
         LoggerModule.forRoot(pinoConfig),
-        ThrottlerModule.forRoot([
-          params.throttlerOptions || defaultParams.throttlerOptions!,
-        ]),
+        ThrottlerModule.forRootAsync({
+          useFactory: () => {
+            const throttlerOptions =
+              params.throttlerOptions ?? defaultParams.throttlerOptions!;
+            return {
+              throttlers: [{ name: 'default', ...throttlerOptions }],
+              ...(params.throttlerRedisUrl
+                ? {
+                    storage: new ThrottlerStorageRedisService(
+                      params.throttlerRedisUrl,
+                    ),
+                  }
+                : {}),
+            };
+          },
+        }),
         ClsModule.forRoot({
           global: true,
           middleware: {
             mount: true,
-            setup(cls, req: Request, res: Response) {
+            setup(cls, req: Request, _res: Response) {
               const correlationId = `${Date.now()}-${randomUUID()}`;
               cls.set(CLS_CORRELATION_ID, correlationId);
               (req as unknown as Record<string, unknown>)[CLS_CORRELATION_ID] =

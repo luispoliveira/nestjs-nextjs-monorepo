@@ -35,6 +35,7 @@ async function bootstrap() {
       credentials: true,
     },
     enableCookieParser: true,
+    trustProxy: true,
   });
 
   const port = configService.getOrThrow<number>('PORT');
