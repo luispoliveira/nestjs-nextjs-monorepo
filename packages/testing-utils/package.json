@@ -1,0 +1,29 @@
+{
+  "name": "@repo/testing-utils",
+  "private": true,
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js",
+      "import": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "dependencies": {
+    "@repo/database": "workspace:*"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "^9.8.0",
+    "@types/node": "^25.9.1",
+    "typescript": "^6.0.3"
+  },
+  "peerDependencies": {
+    "@prisma/client": "^7.8.0"
+  }
+}

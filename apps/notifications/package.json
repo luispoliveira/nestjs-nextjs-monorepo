@@ -36,6 +36,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@repo/testing-utils": "workspace:*",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@nestjs/cli": "^11.0.21",

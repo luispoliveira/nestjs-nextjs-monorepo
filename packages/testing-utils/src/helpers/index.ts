@@ -1,0 +1,1 @@
+export { truncateDatabase } from './truncate';

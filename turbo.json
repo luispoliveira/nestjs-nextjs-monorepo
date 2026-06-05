@@ -24,6 +24,14 @@
       "cache": false,
       "persistent": true
     },
+    "test:integration": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "cache": false
+    },
     "test:cov": {
       "dependsOn": ["^build"]
     },
