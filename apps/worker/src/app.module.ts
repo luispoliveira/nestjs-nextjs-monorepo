@@ -3,10 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailModule } from '@repo/mail';
 import { QueueModule, QUEUES, SharedModule } from '@repo/shared';
 import { EmailConsumer } from './consumer/email.consumer';
+import { QueueMetricsService } from './metrics/queue-metrics.service';
 
 @Module({
   imports: [
-    SharedModule.register(),
+    SharedModule.register({ metrics: { appName: 'worker' } }),
     QueueModule.registerQueues([QUEUES.EMAIL]),
     MailModule.forRootAsync({
       provider: 'brevo',
@@ -21,6 +22,6 @@ import { EmailConsumer } from './consumer/email.consumer';
     }),
   ],
   controllers: [],
-  providers: [EmailConsumer],
+  providers: [EmailConsumer, QueueMetricsService],
 })
 export class AppModule {}

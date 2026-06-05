@@ -5,7 +5,7 @@ import { AppService } from './app.service';
 
 @Module({
   imports: [
-    SharedModule.register(),
+    SharedModule.register({ metrics: { appName: 'notifications' } }),
     QueueModule.registerQueues([QUEUES.EMAIL]),
   ],
   controllers: [AppController],

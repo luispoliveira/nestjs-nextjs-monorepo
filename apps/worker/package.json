@@ -30,6 +30,7 @@
     "@repo/shared": "workspace:*",
     "@repo/shared-types": "workspace:*",
     "bullmq": "^5.66.5",
+    "prom-client": "^15.0.0",
     "nestjs-pino": "^4.6.1",
     "pino-http": "^11.0.0",
     "pino-pretty": "^13.1.3",

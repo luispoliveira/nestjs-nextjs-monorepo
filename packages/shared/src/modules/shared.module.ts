@@ -14,6 +14,7 @@ import { AllExceptionFilter } from '../filters';
 import { HealthController } from '../health/health.controller';
 import { CorrelationInterceptor, LoggingInterceptor } from '../interceptors';
 import { pinoConfig } from '../logging';
+import { HttpMetricsInterceptor, MetricsModule } from '../metrics';
 import { MongoModule } from '../mongo/mongo.module';
 
 const sharedModuleRegisterParamsSchema = z.object({
@@ -21,6 +22,11 @@ const sharedModuleRegisterParamsSchema = z.object({
     .object({
       ttl: z.number(),
       limit: z.number(),
+    })
+    .optional(),
+  metrics: z
+    .object({
+      appName: z.string(),
     })
     .optional(),
 });
@@ -71,6 +77,7 @@ export class SharedModule {
             mount: true,
           },
         }),
+        MetricsModule.register(params.metrics ?? {}),
       ],
       providers: [
         {
@@ -92,6 +99,10 @@ export class SharedModule {
         {
           provide: APP_INTERCEPTOR,
           useClass: ZodSerializerInterceptor,
+        },
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: HttpMetricsInterceptor,
         },
       ],
       controllers: [HealthController],

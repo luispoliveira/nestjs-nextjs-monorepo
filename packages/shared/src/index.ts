@@ -4,6 +4,7 @@ export * from './enums';
 export * from './filters';
 export * from './guards';
 export * from './interceptors';
+export * from './metrics';
 export * from './modules';
 export * from './mongo';
 export * from './publishers';

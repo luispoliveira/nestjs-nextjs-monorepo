@@ -20,11 +20,16 @@ import {
 } from '@repo/shared';
 import { Job } from 'bullmq';
 import z from 'zod';
+import { QueueMetricsService } from '../metrics/queue-metrics.service';
+
 @Processor(QUEUES.EMAIL)
 export class EmailConsumer extends WorkerHost {
   private readonly logger = new Logger(EmailConsumer.name);
 
-  constructor(private readonly mailService: MailService) {
+  constructor(
+    private readonly mailService: MailService,
+    private readonly queueMetrics: QueueMetricsService,
+  ) {
     super();
   }
 
@@ -128,8 +133,16 @@ export class EmailConsumer extends WorkerHost {
     });
   }
 
+  @OnWorkerEvent('completed')
+  onCompleted(job: Job): void {
+    const durationMs =
+      (job.finishedOn ?? Date.now()) - (job.processedOn ?? Date.now());
+    this.queueMetrics.recordDuration(job.name, durationMs);
+  }
+
   @OnWorkerEvent('failed')
   onFailed(job: Job, error: Error): void {
+    this.queueMetrics.recordFailure(job.name);
     SentryUtil.captureException(error, {
       extra: { jobId: job.id, jobName: job.name, data: job.data },
       tags: { queue: QUEUES.EMAIL, app: 'worker' },

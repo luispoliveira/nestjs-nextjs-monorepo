@@ -16,7 +16,7 @@ import { AppRouter } from './app.router';
 
 @Module({
   imports: [
-    SharedModule.register(),
+    SharedModule.register({ metrics: { appName: 'api' } }),
     ClientsModule.registerAsync([MicroserviceUtil.registerAuthService()]),
     TRPCModule.forRoot({
       autoSchemaFile:

@@ -30,12 +30,13 @@ import { EmailProducer } from './producers';
 })
 export class QueueModule {
   static registerQueues(queues: string[]): DynamicModule {
+    const bullQueues = queues.map((queue) =>
+      BullModule.registerQueue({ name: queue }),
+    );
     return {
-      imports: [
-        ...queues.map((queue) => BullModule.registerQueue({ name: queue })),
-      ],
+      imports: bullQueues,
       providers: [EmailProducer],
-      exports: [EmailProducer],
+      exports: [EmailProducer, ...bullQueues],
       module: QueueModule,
     };
   }
