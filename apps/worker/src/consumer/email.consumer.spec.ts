@@ -61,6 +61,107 @@ describe('EmailConsumer', () => {
     });
   });
 
+  describe('sendPasswordResetEmail()', () => {
+    it('should call mailService.send with the password-reset payload', async () => {
+      const job = { id: 'job-10', data: { email: 'user@example.com', resetLink: 'https://example.com/reset' } } as Job;
+      await consumer['sendPasswordResetEmail'](job as Job<{ email: string; resetLink: string }>);
+      expect(mailService.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: [{ email: 'user@example.com' }],
+          subject: expect.stringContaining('Password Reset'),
+        }),
+      );
+    });
+  });
+
+  describe('sendEmailVerificationEmail()', () => {
+    it('should call mailService.send with the verification payload', async () => {
+      const job = {
+        id: 'job-11',
+        data: { email: 'user@example.com', verificationLink: 'https://example.com/verify' },
+      } as Job;
+      await consumer['sendEmailVerificationEmail'](job as Job<{ email: string; verificationLink: string }>);
+      expect(mailService.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: [{ email: 'user@example.com' }],
+          subject: expect.stringContaining('Verify'),
+        }),
+      );
+    });
+  });
+
+  describe('sendPasswordChangedEmail()', () => {
+    it('should call mailService.send with the password-changed payload', async () => {
+      const job = { id: 'job-12', data: { email: 'user@example.com' } } as Job;
+      await consumer['sendPasswordChangedEmail'](job as Job<{ email: string }>);
+      expect(mailService.send).toHaveBeenCalledWith(
+        expect.objectContaining({ to: [{ email: 'user@example.com' }] }),
+      );
+    });
+  });
+
+  describe('sendTwoFactorEnabledEmail()', () => {
+    it('should call mailService.send with the 2FA-enabled payload', async () => {
+      const job = { id: 'job-13', data: { email: 'user@example.com' } } as Job;
+      await consumer['sendTwoFactorEnabledEmail'](job as Job<{ email: string }>);
+      expect(mailService.send).toHaveBeenCalledWith(
+        expect.objectContaining({ to: [{ email: 'user@example.com' }] }),
+      );
+    });
+  });
+
+  describe('sendTwoFactorDisabledEmail()', () => {
+    it('should call mailService.send with the 2FA-disabled payload', async () => {
+      const job = { id: 'job-14', data: { email: 'user@example.com' } } as Job;
+      await consumer['sendTwoFactorDisabledEmail'](job as Job<{ email: string }>);
+      expect(mailService.send).toHaveBeenCalledWith(
+        expect.objectContaining({ to: [{ email: 'user@example.com' }] }),
+      );
+    });
+  });
+
+  describe('process()', () => {
+    const makeJob = (name: string, data: Record<string, unknown> = {}) =>
+      ({ name, data }) as Job;
+
+    it.each([
+      ['job:send_welcome_email', 'sendWelcomeEmail', { email: 'a@b.com' }],
+      ['job:send_email_verification_email', 'sendEmailVerificationEmail', { email: 'a@b.com', verificationLink: 'https://x.com' }],
+      ['job:send_password_reset_email', 'sendPasswordResetEmail', { email: 'a@b.com', resetLink: 'https://x.com' }],
+      ['job:send_password_changed_email', 'sendPasswordChangedEmail', { email: 'a@b.com' }],
+      ['job:send_two_factor_enabled_email', 'sendTwoFactorEnabledEmail', { email: 'a@b.com' }],
+      ['job:send_two_factor_disabled_email', 'sendTwoFactorDisabledEmail', { email: 'a@b.com' }],
+    ] as const)(
+      'should dispatch job "%s" to %s',
+      async (jobName, methodName, data) => {
+        const spy = jest.spyOn(consumer as never, methodName).mockResolvedValue(undefined as never);
+        await consumer.process(makeJob(jobName, data));
+        expect(spy).toHaveBeenCalled();
+      },
+    );
+
+    it('should log a warning for unknown job names', async () => {
+      const warnSpy = jest.spyOn(consumer['logger'], 'warn').mockImplementation(() => undefined);
+      const job = { id: 'job-x', name: 'unknown-job', data: {} } as Job;
+      await consumer.process(job);
+      expect(warnSpy).toHaveBeenCalled();
+    });
+  });
+
+  describe('onCompleted()', () => {
+    it('should record duration when job completes', () => {
+      const job = {
+        name: 'send-welcome-email',
+        finishedOn: 2000,
+        processedOn: 1000,
+      } as unknown as Job;
+
+      consumer.onCompleted(job);
+
+      expect(mockQueueMetrics.recordDuration).toHaveBeenCalledWith('send-welcome-email', 1000);
+    });
+  });
+
   describe('onFailed()', () => {
     it('should call recordFailure and captureException on any failure', () => {
       const job = {

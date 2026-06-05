@@ -5,7 +5,9 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "jest --passWithNoTests",
+    "test:cov": "jest --coverage --passWithNoTests"
   },
   "exports": {
     ".": {
@@ -47,10 +49,57 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@nestjs/testing": "^11.1.24",
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
+    "@types/jest": "^29.5.14",
     "@types/node": "^25.9.1",
+    "jest": "^29.7.0",
     "pino-pretty": "^13.1.3",
+    "ts-jest": "^29.4.11",
     "typescript": "^6.0.3"
+  },
+  "jest": {
+    "moduleFileExtensions": ["js", "json", "ts"],
+    "rootDir": "src",
+    "testRegex": ".*\\.spec\\.ts$",
+    "transform": {
+      "^.+\\.(t|j)s$": [
+        "ts-jest",
+        {
+          "tsconfig": "<rootDir>/../tsconfig.test.json"
+        }
+      ]
+    },
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!**/*.module.ts",
+      "!**/*.spec.ts",
+      "!**/index.ts",
+      "!**/*.schema.ts",
+      "!**/constants/**",
+      "!**/types/**",
+      "!**/decorators/**",
+      "!**/enums/**",
+      "!**/logging/**",
+      "!**/trpc/**",
+      "!**/health/**",
+      "!**/publishers/input/**",
+      "!**/queue/input/**",
+      "!**/utils/bootstrap.util.ts",
+      "!**/utils/logger.util.ts",
+      "!**/utils/microservice.util.ts",
+      "!**/metrics/metrics.controller.ts"
+    ],
+    "coverageDirectory": "../coverage",
+    "testEnvironment": "node",
+    "coverageThreshold": {
+      "global": {
+        "branches": 70,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
   }
 }

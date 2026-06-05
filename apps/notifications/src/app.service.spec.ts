@@ -99,26 +99,62 @@ describe('AppService', () => {
   // ===========================================================================
 
   describe('sendPasswordResetNotification()', () => {
-    /**
-     * Test: Delegates to EmailProducer with email and reset link
-     *
-     * Scenario: A user requested a password reset
-     * Expected: EmailProducer.sendPasswordResetEmail is called with both args
-     */
     it('should call producer.sendPasswordResetEmail with email and link', async () => {
-      // Arrange
       const email = 'user@example.com';
       const resetLink = 'https://example.com/reset?token=xyz';
 
-      // Act
       await service.sendPasswordResetNotification(email, resetLink);
 
-      // Assert
       expect(producer.sendPasswordResetEmail).toHaveBeenCalledTimes(1);
       expect(producer.sendPasswordResetEmail).toHaveBeenCalledWith({
         email,
         resetLink,
       });
+    });
+  });
+
+  // ===========================================================================
+  // sendPasswordChangeConfirmation() Tests
+  // ===========================================================================
+
+  describe('sendPasswordChangeConfirmation()', () => {
+    it('should call producer.sendPasswordChangedEmail with the correct email', async () => {
+      const email = 'user@example.com';
+
+      await service.sendPasswordChangeConfirmation(email);
+
+      expect(producer.sendPasswordChangedEmail).toHaveBeenCalledTimes(1);
+      expect(producer.sendPasswordChangedEmail).toHaveBeenCalledWith({ email });
+    });
+  });
+
+  // ===========================================================================
+  // sendTwoFactorEnabledNotification() Tests
+  // ===========================================================================
+
+  describe('sendTwoFactorEnabledNotification()', () => {
+    it('should call producer.sendTwoFactorEnabledEmail with the correct email', async () => {
+      const email = 'user@example.com';
+
+      await service.sendTwoFactorEnabledNotification(email);
+
+      expect(producer.sendTwoFactorEnabledEmail).toHaveBeenCalledTimes(1);
+      expect(producer.sendTwoFactorEnabledEmail).toHaveBeenCalledWith({ email });
+    });
+  });
+
+  // ===========================================================================
+  // sendTwoFactorDisabledNotification() Tests
+  // ===========================================================================
+
+  describe('sendTwoFactorDisabledNotification()', () => {
+    it('should call producer.sendTwoFactorDisabledEmail with the correct email', async () => {
+      const email = 'user@example.com';
+
+      await service.sendTwoFactorDisabledNotification(email);
+
+      expect(producer.sendTwoFactorDisabledEmail).toHaveBeenCalledTimes(1);
+      expect(producer.sendTwoFactorDisabledEmail).toHaveBeenCalledWith({ email });
     });
   });
 });
