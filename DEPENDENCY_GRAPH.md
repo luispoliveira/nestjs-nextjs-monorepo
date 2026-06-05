@@ -6,7 +6,7 @@ Module and package dependency map. Arrows indicate "depends on" direction.
 
 ## Package Dependency Graph
 
-```
+```text
 apps/auth ──────────────────────────────────────────────────────────┐
   │                                                                  │
   ├─→ @repo/shared         (SharedModule, utils, guards, constants)  │
@@ -42,7 +42,7 @@ apps/web ───────────────────────�
 
 ## Internal Package Dependencies
 
-```
+```text
 @repo/shared
   ├─→ @repo/database       (DatabaseModule imported in SharedModule)
   └─→ (no other internal deps)
@@ -66,7 +66,7 @@ apps/web ───────────────────────�
 
 ### `apps/auth` Module Graph
 
-```
+```text
 AppModule
 ├─ SharedModule.register()
 │   ├─ ConfigModule
@@ -86,7 +86,7 @@ AppModule
 
 ### `apps/api` Module Graph
 
-```
+```text
 AppModule
 ├─ SharedModule.register()
 │   └─ (same as above)
@@ -101,24 +101,25 @@ AppModule
 
 ### `apps/notifications` Module Graph
 
-```
+```text
 AppModule
 ├─ SharedModule.register()
 │   └─ (same as above)
 │
 └─ QueueModule.registerQueues([QUEUES.EMAIL])
-    └─ BullModule (email-queue → Redis)
+    └─ BullModule (@nestjs/bullmq) — email-queue → Redis
 ```
 
 ### `apps/worker` Module Graph
 
-```
+```text
 AppModule
 ├─ SharedModule.register()
 │   └─ (same as above)
 │
 ├─ QueueModule.registerQueues([QUEUES.EMAIL])
-│   └─ BullModule (email-queue → Redis)
+│   └─ BullModule (@nestjs/bullmq) — email-queue → Redis
+│       EmailConsumer extends WorkerHost (@Processor)
 │
 └─ MailModule.forRootAsync({ provider: 'brevo', ... })
     └─ Brevo SDK (HTTP → external)
@@ -128,13 +129,13 @@ AppModule
 
 ## Runtime Communication Dependencies
 
-```
+```text
 apps/web
   │  HTTP / Cookie
   ▼
 apps/auth   ◄──── Redis ────► apps/notifications
     │                               │
-    │ Redis                         │ Bull (Redis)
+    │ Redis                         │ BullMQ (Redis)
     ▼                               ▼
 (broadcasts events)           apps/worker
                                     │
@@ -151,12 +152,12 @@ apps/api ◄─── Redis ──── apps/auth
 ## External Dependencies
 
 | Package | Used By | Purpose |
-|---------|---------|---------|
+| --- | --- | --- |
 | `better-auth` | auth | Auth engine (sessions, OAuth, 2FA, admin) |
 | `@better-auth/prisma-adapter` | auth | Prisma database adapter for better-auth |
 | `@thallesp/nestjs-better-auth` | auth | NestJS integration for better-auth |
-| `@nestjs/bull` | notifications, worker | Bull v4 queue management |
-| `bull` | notifications, worker | Redis-based job queue (v4) |
+| `@nestjs/bullmq` | shared (QueueModule), worker | BullMQ queue management |
+| `bullmq` | shared (QueueModule), worker | Redis-based job queue (v5) |
 | `nestjs-pino` | all NestJS | Structured logging |
 | `nestjs-cls` | all NestJS | Continuation-local storage (correlation IDs) |
 | `nestjs-zod` | all NestJS | Zod validation + serialization pipes |

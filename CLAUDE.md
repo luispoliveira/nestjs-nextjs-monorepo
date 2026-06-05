@@ -13,7 +13,7 @@ Guidance for Claude Code when working in this NestJS + Next.js monorepo template
 - **Auth**: `better-auth` + `@thallesp/nestjs-better-auth` — **never** add Passport/JWT
 - **Validation**: Zod **v4** + `nestjs-zod` (`createZodDto`, `ZodValidationPipe`, `ZodSerializerInterceptor`)
 - **API contract**: tRPC via `nestjs-trpc-v2` for end-to-end type safety
-- **Queue**: `@nestjs/bull` (Bull **v4**) with Redis — **not** BullMQ
+- **Queue**: `@nestjs/bullmq` (BullMQ) with Redis — **not** legacy Bull v4
 - **Logging**: `nestjs-pino` + `nestjs-cls` for correlation IDs
 - **Health**: `@nestjs/terminus` (`HealthController` registered globally by `SharedModule`)
 
@@ -27,7 +27,7 @@ Node `>=22`, pnpm `10.33.0` (see [package.json](package.json), [.nvmrc](.nvmrc))
 apps/
   auth/          # NestJS — authentication + session (better-auth)
   notifications/ # NestJS — notification delivery (email via Redis events)
-  worker/        # NestJS — Bull worker processing email jobs
+  worker/        # NestJS — BullMQ worker processing email jobs
   web/           # Next.js — admin dashboard (App Router)
 packages/
   database/      # Prisma client (PrismaPg adapter), DatabaseModule, seeders
@@ -153,13 +153,14 @@ Extend `BasePublisher` from `@repo/shared/abstracts` — correlation IDs propaga
 
 Prefer the pre-built `NotificationsPublisher` from `@repo/shared/publishers` instead of writing a custom one.
 
-### Queues (Bull v4, `@nestjs/bull`)
+### Queues (BullMQ, `@nestjs/bullmq`)
 
-> **Do not** install or import from `bullmq`. This project pins Bull v4.
+> **Do not** install or import from legacy `bull` / `@nestjs/bull`. This project uses BullMQ.
 
 - Register in feature modules: `QueueModule.registerQueues([QUEUES.EMAIL])`.
 - Producers: extend `BaseProducer` (injects correlation ID into job data). Use the pre-built `EmailProducer` from `@repo/shared/queue` for email jobs.
-- Consumers: `@Processor(QUEUES.EMAIL)` + `@Process(JOB_PATTERNS.*)`.
+- Consumers: `@Processor(QUEUES.EMAIL)` extending `WorkerHost`, with a single `process(job)` method that dispatches on `job.name` (`JOB_PATTERNS.*`) via `switch`.
+- Failure handling: `@OnWorkerEvent('failed')` (reports to Sentry in `EmailConsumer`).
 - Default job options: `attempts: 3`, exponential back-off from 2000 ms, `removeOnComplete: true`, `removeOnFail: 500`.
 
 ### Authentication

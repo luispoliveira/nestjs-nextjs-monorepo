@@ -1,4 +1,4 @@
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EmailProducer } from './producers';
@@ -9,7 +9,7 @@ import { EmailProducer } from './producers';
     }),
     BullModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
-        redis: {
+        connection: {
           host: configService.getOrThrow<string>('REDIS_HOST'),
           port: configService.getOrThrow<number>('REDIS_PORT'),
           password: configService.get<string>('REDIS_PASSWORD') || undefined,

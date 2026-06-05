@@ -6,7 +6,7 @@ Detailed architectural description covering service topology, module structure, 
 
 ## High-Level Topology
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                         CLIENT LAYER                            │
 │                                                                 │
@@ -38,7 +38,7 @@ Detailed architectural description covering service topology, module structure, 
 │    ┌──────▼──┐  ┌▼──────────────────┐                         │
 │    │  apps/  │  │  apps/worker      │                         │
 │    │  notif- │  │  :3003            │                         │
-│    │  ications│  │  Bull consumer   │                         │
+│    │  ications│  │  BullMQ consumer  │                         │
 │    │  :3004  │  │  @Processor(EMAIL)│                         │
 │    └─────────┘  └──────────────────┘                          │
 └────────────────────────────────────────────────────────────────┘
@@ -58,11 +58,11 @@ Detailed architectural description covering service topology, module structure, 
 ## Service Responsibilities
 
 | Service | Port | Role | Transport |
-|---------|------|------|-----------|
+| --- | --- | --- | --- |
 | `apps/auth` | 3001 | Auth, session, user lifecycle | REST + Redis µsvc |
 | `apps/api` | 3002 | tRPC API gateway | REST + Redis µsvc client |
 | `apps/notifications` | 3004 | Event → queue bridge | Redis µsvc listener |
-| `apps/worker` | 3003 | Email job processor | Bull consumer (Redis) |
+| `apps/worker` | 3003 | Email job processor | BullMQ consumer (Redis) |
 | `apps/web` | 3000 | Next.js frontend | HTTP client |
 
 ---
@@ -71,7 +71,7 @@ Detailed architectural description covering service topology, module structure, 
 
 Every NestJS app follows this module composition:
 
-```
+```text
 AppModule
 ├── SharedModule.register()   ← @Global(), must be first
 │   ├── ConfigModule          (env vars, isGlobal)
@@ -90,7 +90,7 @@ AppModule
 │
 └── Feature Modules           (app-specific)
     ├── ClientsModule          (Redis microservice clients)
-    ├── QueueModule            (Bull queues, app-specific)
+    ├── QueueModule            (BullMQ queues, app-specific)
     └── ...
 ```
 
@@ -98,7 +98,7 @@ AppModule
 
 ## Authentication Flow
 
-```
+```text
 Client Request
      │
      ▼
@@ -121,7 +121,7 @@ Session validated → request.user populated
 
 ### Cross-service auth (microservices)
 
-```
+```text
 Microservice Request (e.g. api → auth)
      │
      ▼
@@ -145,7 +145,7 @@ auth/AuthController.authenticate()
 
 ### User Created → Welcome Email
 
-```
+```text
 1. auth app
    better-auth fires user.created hook
          │
@@ -165,8 +165,8 @@ auth/AuthController.authenticate()
 
 3. worker app
    @Processor(QUEUES.EMAIL)
-   @Process(JOB_PATTERNS.SEND_WELCOME_EMAIL)
-   EmailConsumer.sendWelcomeEmail()
+   EmailConsumer.process(job) — switch on job.name
+     → case JOB_PATTERNS.SEND_WELCOME_EMAIL
          │
          ▼
    MailModule → Brevo API → Email delivered
@@ -175,7 +175,7 @@ auth/AuthController.authenticate()
 ### Supported Events
 
 | Event Pattern | Trigger | Job Enqueued |
-|--------------|---------|--------------|
+| --- | --- | --- |
 | `user:created` | New registration | `SEND_WELCOME_EMAIL` |
 | `user:password_reset_requested` | Password reset flow | `SEND_PASSWORD_RESET_EMAIL` |
 | `user:password_changed` | Password changed | `SEND_PASSWORD_CHANGED_EMAIL` |
@@ -187,7 +187,7 @@ auth/AuthController.authenticate()
 
 ## tRPC Architecture
 
-```
+```text
 apps/web (Next.js)
   TrpcProvider (root layout)
     └─ httpBatchLink → /api/auth/trpc
@@ -227,7 +227,7 @@ packages/trpc
 ### Redis
 
 - **Microservice transport**: Redis Pub/Sub for event and message patterns
-- **Bull queue**: `email-queue` with retry (3 attempts, exponential backoff from 2s)
+- **BullMQ queue**: `email-queue` with retry (3 attempts, exponential backoff from 2s)
 - **Cache**: available for feature use
 
 ---
@@ -235,7 +235,7 @@ packages/trpc
 ## Cross-Cutting Concerns
 
 | Concern | Implementation | Location |
-|---------|---------------|----------|
+| --- | --- | --- |
 | Validation | Zod v4 + `nestjs-zod` | Global `ZodValidationPipe` |
 | Serialization | `ZodSerializerInterceptor` | Global |
 | Error handling | `AllExceptionFilter` | Global, returns standardized JSON |

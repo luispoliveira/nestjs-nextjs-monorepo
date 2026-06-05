@@ -1,4 +1,4 @@
-import { OnQueueFailed, Process, Processor } from '@nestjs/bull';
+import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { MailService } from '@repo/mail';
 import {
@@ -18,16 +18,36 @@ import {
   sendWelcomeEmailInputSchema,
   SentryUtil,
 } from '@repo/shared';
-import bull from 'bull';
+import { Job } from 'bullmq';
 import z from 'zod';
 @Processor(QUEUES.EMAIL)
-export class EmailConsumer {
+export class EmailConsumer extends WorkerHost {
   private readonly logger = new Logger(EmailConsumer.name);
 
-  constructor(private readonly mailService: MailService) {}
+  constructor(private readonly mailService: MailService) {
+    super();
+  }
 
-  @Process(JOB_PATTERNS.SEND_WELCOME_EMAIL)
-  async sendWelcomeEmail(job: bull.Job<SendWelcomeEmailInput>) {
+  async process(job: Job): Promise<void> {
+    switch (job.name) {
+      case JOB_PATTERNS.SEND_WELCOME_EMAIL:
+        return this.sendWelcomeEmail(job);
+      case JOB_PATTERNS.SEND_EMAIL_VERIFICATION_EMAIL:
+        return this.sendEmailVerificationEmail(job);
+      case JOB_PATTERNS.SEND_PASSWORD_RESET_EMAIL:
+        return this.sendPasswordResetEmail(job);
+      case JOB_PATTERNS.SEND_PASSWORD_CHANGED_EMAIL:
+        return this.sendPasswordChangedEmail(job);
+      case JOB_PATTERNS.SEND_TWO_FACTOR_ENABLED_EMAIL:
+        return this.sendTwoFactorEnabledEmail(job);
+      case JOB_PATTERNS.SEND_TWO_FACTOR_DISABLED_EMAIL:
+        return this.sendTwoFactorDisabledEmail(job);
+      default:
+        this.logger.warn(`No handler for job ${job.id} with name ${job.name}`);
+    }
+  }
+
+  private async sendWelcomeEmail(job: Job<SendWelcomeEmailInput>) {
     this.logger.log(
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
     );
@@ -40,9 +60,8 @@ export class EmailConsumer {
     });
   }
 
-  @Process(JOB_PATTERNS.SEND_EMAIL_VERIFICATION_EMAIL)
-  async sendEmailVerificationEmail(
-    job: bull.Job<SendEmailVerificationEmailInput>,
+  private async sendEmailVerificationEmail(
+    job: Job<SendEmailVerificationEmailInput>,
   ) {
     this.logger.log(
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
@@ -55,8 +74,7 @@ export class EmailConsumer {
     });
   }
 
-  @Process(JOB_PATTERNS.SEND_PASSWORD_RESET_EMAIL)
-  async sendPasswordResetEmail(job: bull.Job<SendPasswordResetEmailInput>) {
+  private async sendPasswordResetEmail(job: Job<SendPasswordResetEmailInput>) {
     this.logger.log(
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
     );
@@ -68,8 +86,9 @@ export class EmailConsumer {
     });
   }
 
-  @Process(JOB_PATTERNS.SEND_PASSWORD_CHANGED_EMAIL)
-  async sendPasswordChangedEmail(job: bull.Job<SendPasswordChangedEmailInput>) {
+  private async sendPasswordChangedEmail(
+    job: Job<SendPasswordChangedEmailInput>,
+  ) {
     this.logger.log(
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
     );
@@ -81,9 +100,8 @@ export class EmailConsumer {
     });
   }
 
-  @Process(JOB_PATTERNS.SEND_TWO_FACTOR_ENABLED_EMAIL)
-  async sendTwoFactorEnabledEmail(
-    job: bull.Job<SendTwoFactorEnabledEmailInput>,
+  private async sendTwoFactorEnabledEmail(
+    job: Job<SendTwoFactorEnabledEmailInput>,
   ) {
     this.logger.log(
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
@@ -96,9 +114,8 @@ export class EmailConsumer {
     });
   }
 
-  @Process(JOB_PATTERNS.SEND_TWO_FACTOR_DISABLED_EMAIL)
-  async sendTwoFactorDisabledEmail(
-    job: bull.Job<SendTwoFactorDisabledEmailInput>,
+  private async sendTwoFactorDisabledEmail(
+    job: Job<SendTwoFactorDisabledEmailInput>,
   ) {
     this.logger.log(
       `Processing job ${job.id} with data: ${JSON.stringify(job.data)}`,
@@ -111,8 +128,8 @@ export class EmailConsumer {
     });
   }
 
-  @OnQueueFailed()
-  onFailed(job: bull.Job, error: Error) {
+  @OnWorkerEvent('failed')
+  onFailed(job: Job, error: Error): void {
     SentryUtil.captureException(error, {
       extra: { jobId: job.id, jobName: job.name, data: job.data },
       tags: { queue: QUEUES.EMAIL, app: 'worker' },

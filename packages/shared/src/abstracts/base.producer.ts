@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { Queue } from 'bull';
+import { Queue } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 
 export abstract class BaseProducer {
