@@ -6,7 +6,7 @@ Codebase map for rapid orientation. Every top-level directory described with its
 
 ## Root
 
-```
+```text
 nestjs-nextjs-monorepo/
 ├── apps/                  # Deployable applications
 ├── packages/              # Shared internal libraries
@@ -48,19 +48,21 @@ nestjs-nextjs-monorepo/
 ### `apps/notifications/`
 **Role**: NestJS notification delivery service.
 - Listens for Redis events from the auth service.
-- Enqueues email jobs into the Bull `email-queue`.
+- Enqueues email jobs into the BullMQ `email-queue`.
 - Key files:
   - `src/app.module.ts` — Imports `QueueModule.registerQueues([QUEUES.EMAIL])`
   - `src/app.controller.ts` — `@EventPattern` handlers
   - `src/app.service.ts` — Job enqueueing via `EmailProducer`
 
 ### `apps/worker/`
-**Role**: NestJS Bull worker — processes email jobs from the queue.
-- Consumes `email-queue` jobs using `@Processor` + `@Process`.
+**Role**: NestJS BullMQ worker — processes email jobs from the queue.
+- Consumes `email-queue` jobs using `@Processor` + `WorkerHost.process()`.
+- Single `process(job)` method dispatches via `switch(job.name)`.
+- Failed jobs reported via `@OnWorkerEvent('failed')`.
 - Sends emails via Brevo through `@repo/mail`.
 - Key files:
   - `src/app.module.ts` — Imports `QueueModule` + `MailModule`
-  - `src/consumer/email.consumer.ts` — `@Processor(QUEUES.EMAIL)` class
+  - `src/consumer/email.consumer.ts` — `@Processor(QUEUES.EMAIL)`, extends `WorkerHost`
 
 ### `apps/web/`
 **Role**: Next.js 16 frontend (App Router).
@@ -96,7 +98,7 @@ nestjs-nextjs-monorepo/
   - `src/interceptors/` — `LoggingInterceptor`, `CorrelationInterceptor`
   - `src/filters/` — `AllExceptionFilter`
   - `src/publishers/` — `NotificationsPublisher`
-  - `src/queue/` — `QueueModule`, `EmailProducer`, producer base classes
+  - `src/queue/` — `QueueModule` (`@nestjs/bullmq`), `EmailProducer`, producer base classes
   - `src/modules/` — `SharedModule`, `MongoModule`
   - `src/utils/` — `BootstrapUtil`, `MicroserviceUtil`, `PaginatedUtil`, `SanitizeUtil`, `ContextUtil`
   - `src/health/` — `HealthController` (GET `/health/live`, `/health/ready`)
@@ -125,7 +127,7 @@ nestjs-nextjs-monorepo/
 
 ## openspec/
 
-```
+```text
 openspec/
 ├── config.yaml      # OpenSpec configuration
 ├── changes/         # In-progress change artifacts (proposals, specs, designs, tasks)
@@ -136,7 +138,7 @@ openspec/
 
 ## .claude/
 
-```
+```text
 .claude/
 ├── skills/          # Reusable skill definitions (SKILL.md per skill)
 ├── agents/          # Agent persona definitions
