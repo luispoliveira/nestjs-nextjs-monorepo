@@ -65,7 +65,7 @@ describe('AuthController', () => {
     it('should return user when session is valid', async () => {
       // Arrange
       const mockUser = { id: 'user-id', email: 'test@example.com' };
-      (authService.api.getSession as jest.Mock).mockResolvedValue({
+      (authService.api.getSession as unknown as jest.Mock).mockResolvedValue({
         user: mockUser,
       });
 
@@ -84,7 +84,9 @@ describe('AuthController', () => {
      */
     it('should throw RpcException(401) when session is null', async () => {
       // Arrange
-      (authService.api.getSession as jest.Mock).mockResolvedValue(null);
+      (authService.api.getSession as unknown as jest.Mock).mockResolvedValue(
+        null,
+      );
 
       // Act & Assert
       await expect(
@@ -100,7 +102,7 @@ describe('AuthController', () => {
      */
     it('should throw RpcException(401) on unexpected errors', async () => {
       // Arrange
-      (authService.api.getSession as jest.Mock).mockRejectedValue(
+      (authService.api.getSession as unknown as jest.Mock).mockRejectedValue(
         new Error('Network error'),
       );
 
