@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync, writeFileSync } from 'fs';
+import { randomBytes } from 'crypto';
 import { dirname, resolve } from 'path';
 import { createInterface } from 'readline/promises';
 import { fileURLToPath } from 'url';
@@ -28,8 +29,8 @@ async function prompt(rl, question, defaultValue) {
   return answer.trim() || defaultValue || '';
 }
 
-// ─── Replace DB credentials in an .env file content ──────────────────────────
-function applyCredentials(content, pg, mongo) {
+// ─── Replace DB credentials + auth secret in an .env file content ────────────
+function applyCredentials(content, pg, mongo, secret) {
   // postgres://USER:PASS@HOST:PORT/DB?query
   content = content.replace(
     /(postgres:\/\/)[^:@]+:[^@]*@([^/]+)\/[^?'"\s]*/g,
@@ -42,6 +43,13 @@ function applyCredentials(content, pg, mongo) {
     (_, proto, host, _db, qs) =>
       `${proto}${encodeURIComponent(mongo.user)}:${encodeURIComponent(mongo.password)}@${host}/${mongo.db}${qs ?? ''}`,
   );
+  // BETTER_AUTH_SECRET — replace any placeholder with the generated secret
+  if (secret) {
+    content = content.replace(
+      /^BETTER_AUTH_SECRET=.*/m,
+      `BETTER_AUTH_SECRET="${secret}"`,
+    );
+  }
   return content;
 }
 
@@ -86,6 +94,7 @@ async function main() {
 
   const pg = { db: pgDb, user: pgUser, password: pgPassword };
   const mongo = { db: mongoDb, user: mongoUser, password: mongoPassword };
+  const betterAuthSecret = randomBytes(32).toString('base64');
 
   // ── Apply ────────────────────────────────────────────────────────────────
   step('Applying changes');
@@ -109,7 +118,7 @@ async function main() {
       skip(`${dest} already exists, skipping`);
       continue;
     }
-    const content = applyCredentials(readFileSync(srcPath, 'utf8'), pg, mongo);
+    const content = applyCredentials(readFileSync(srcPath, 'utf8'), pg, mongo, betterAuthSecret);
     writeFileSync(destPath, content);
     ok(`${src} → ${dest}`);
   }
