@@ -1,4 +1,6 @@
 import { INestApplication, VersioningType } from '@nestjs/common';
+import { ApplicationConfig } from '@nestjs/core';
+import { mapToExcludeRoute } from '@nestjs/core/middleware/utils.js';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -16,6 +18,7 @@ const LogLevelEnum = z.enum([
 
 const bootstrapUtilConfigSchema = z.object({
   globalPrefix: z.string(),
+  globalPrefixExclude: z.array(z.string()).optional(),
   logger: z.array(LogLevelEnum).optional(),
   useHelmet: z.boolean(),
   enableVersioning: z.boolean(),
@@ -55,6 +58,18 @@ export class BootstrapUtil {
     config: BootstrapUtilConfig,
   ) {
     app.setGlobalPrefix(config.globalPrefix);
+
+    if (config.globalPrefixExclude?.length) {
+      const appConfig = app.get(ApplicationConfig);
+      const current = appConfig.getGlobalPrefixOptions();
+      appConfig.setGlobalPrefixOptions({
+        ...current,
+        exclude: [
+          ...(current.exclude ?? []),
+          ...mapToExcludeRoute(config.globalPrefixExclude),
+        ],
+      });
+    }
   }
 
   private static setLogger(

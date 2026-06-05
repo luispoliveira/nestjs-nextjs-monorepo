@@ -17,7 +17,7 @@ import { AuthController } from './auth.controller';
 import { LocalAuthService, publisherProxy } from './local-auth.service';
 @Module({
   imports: [
-    SharedModule.register({ metrics: { appName: 'auth' } }),
+    SharedModule.register({}),
     ClientsModule.registerAsync([
       MicroserviceUtil.registerNotificationsService(),
     ]),
