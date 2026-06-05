@@ -22,7 +22,7 @@ See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ARCHITECTURE_OVERVIEW.md](ARCHITEC
 All injection tokens, queue names, and message patterns live in `packages/shared/src/constants/` as `as const` objects.
 
 | Export | File | Examples |
-|---|---|---|
+| --- | --- | --- |
 | `SERVICES` | `constants/services.ts` | `AUTH = 'AUTH_SERVICE'`, `NOTIFICATIONS = 'NOTIFICATIONS_SERVICE'` |
 | `QUEUES` | `constants/queues.ts` | `EMAIL = 'email-queue'`, `EMAIL_DLQ = 'email-queue-dlq'` |
 | `EVENT_PATTERNS` | `constants/events.ts` | `USER_CREATED`, `USER_PASSWORD_RESET_REQUESTED`, … |
@@ -52,7 +52,7 @@ export class AppModule {}
 `SharedModule.register` parameters:
 
 | Param | Type | Default | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `throttlerOptions.ttl` | `number` | `60000` | Milliseconds |
 | `throttlerOptions.limit` | `number` | `10` | Requests per TTL |
 | `throttlerRedisUrl` | `string?` | — | Enables Redis throttler storage |
@@ -120,6 +120,7 @@ Use the pre-built `NotificationsPublisher` from `@repo/shared/publishers` for al
 - Report failures with `SentryUtil.captureException()` and metrics.
 
 Default job options (set in `QueueModule`):
+
 - `attempts: 3`
 - `backoff: { type: 'exponential', delay: 2000 }`
 - `removeOnComplete: true`
@@ -189,6 +190,47 @@ model Post {
 
 ## Testing
 
+### Unit Tests (`.spec.ts`)
+
+Every backend app and the `packages/shared`, `packages/mail`, and `packages/database` packages carry in-source unit tests. The Jest configuration lives in each package's `package.json` under the `"jest"` key.
+
+**tsconfig split** — packages use two TypeScript configs:
+
+| File | Extends | Purpose |
+| --- | --- | --- |
+| `tsconfig.build.json` | `tsconfig.json` | Production build and `dev` watch — excludes `**/*.spec.ts` so test files are never emitted to `dist/` |
+| `tsconfig.test.json` | `tsconfig.json` | ts-jest compilation only — overrides `module: "commonjs"`, `moduleResolution: "node"`, `resolvePackageJsonExports: false`, `ignoreDeprecations: "6.0"` |
+
+Apps (`apps/auth`, `apps/notifications`, `apps/worker`) have `tsconfig.test.json` for the same reason; their `build` and `dev` scripts use `nest build` / `nest start --watch` which honour the NestJS CLI's own exclude list, so they do not need a separate `tsconfig.build.json`.
+
+**Jest config** (identical shape across all three packages):
+
+- `rootDir`: `src`
+- `testRegex`: `.*\.spec\.ts$`
+- `transform`: `ts-jest` referencing `tsconfig.test.json`
+- `testEnvironment`: `node`
+- `coverageDirectory`: `../coverage`
+- `--passWithNoTests` flag on both `test` and `test:cov` scripts
+
+**Coverage thresholds:**
+
+| Package / App | branches | functions | lines | statements |
+| --- | --- | --- | --- | --- |
+| `apps/auth` | 80 % | 80 % | 80 % | 80 % |
+| `apps/notifications` | 70 % | 80 % | 80 % | 80 % |
+| `apps/worker` | 70 % | 80 % | 80 % | 80 % |
+| `packages/shared` | 70 % | 80 % | 80 % | 80 % |
+| `packages/mail` | 70 % | 80 % | 80 % | 80 % |
+| `packages/database` | 70 % | 80 % | 80 % | 80 % |
+
+**`collectCoverageFrom` exclusions** (common across packages):
+- `**/*.module.ts`, `**/*.spec.ts`, `**/index.ts`
+- `packages/shared` also excludes: constants, types, decorators, enums, logging, trpc, health, publisher/queue input DTOs, and the bootstrap/logger/microservice utils
+- `packages/database` also excludes: `**/seeders/**`
+- `packages/mail` also excludes: `**/interfaces/**`
+
+**prom-client isolation** — `packages/shared/src/metrics/http-metrics.interceptor.spec.ts` mocks the entire `prom-client` module via `jest.mock('prom-client', ...)` and uses a module-scope `beforeAll` to set up mock counter/histogram instances. Do the same in any spec that imports Prometheus metrics — creating real `Counter`/`Histogram` instances in multiple test files in the same Jest worker causes duplicate-metric registration errors.
+
 ### Test Database Setup
 
 Integration and E2E tests run against a dedicated `nestjs_test` PostgreSQL database. Run once before the first test suite (or whenever migrations change):
@@ -202,12 +244,13 @@ Prerequisites: Docker stack must be running (`pnpm docker:up`).
 ### Running Tests
 
 | Command | Scope | Config |
-|---|---|---|
-| `pnpm test` | Unit tests (`.spec.ts`) | Default Jest config per app |
-| `pnpm test:integration` | Integration tests (`*.integration.ts`) | `test/jest-integration.json` |
-| `pnpm test:e2e` | End-to-end tests (`*.e2e-spec.ts`) | `test/jest-e2e.json` |
+| --- | --- | --- |
+| `pnpm test` | Unit tests (`.spec.ts`) across all apps + packages | Jest config in each `package.json` |
+| `pnpm test:cov` | Unit tests with coverage report | Same Jest config; adds `--coverage` flag |
+| `pnpm test:integration` | Integration tests (`*.integration.ts`) | `test/jest-integration.json` (apps only) |
+| `pnpm test:e2e` | End-to-end tests (`*.e2e-spec.ts`) | `test/jest-e2e.json` (apps only) |
 
-All Turbo test tasks have `"cache": false` — tests are never skipped from cache.
+`pnpm test` and `pnpm test:cov` run across every workspace (Turbo pipeline: `"dependsOn": ["^build"]`). Packages use `--passWithNoTests` so the pipeline never fails on an empty test directory. All Turbo test tasks except `test` have `"cache": false` — coverage and integration/E2E results are never read from cache.
 
 ### ESM Requirement for E2E
 
@@ -245,7 +288,7 @@ import {
 Inserts a `User` row and a linked `Account` row (credential provider with a scrypt-hashed password).
 
 | Override | Type | Default |
-|---|---|---|
+| --- | --- | --- |
 | `id` | `string` | `randomUUID()` |
 | `email` | `string` | `faker.internet.email()` |
 | `name` | `string` | `faker.person.fullName()` |
@@ -355,7 +398,7 @@ await authClient.signIn.email({ email, password });
 Format: `<type>(<scope>): <imperative summary>` — ≤50 chars subject (hard cap 72), lowercase after colon, no trailing period.
 
 | Type | When |
-|---|---|
+| --- | --- |
 | `feat` | New feature |
 | `fix` | Bug fix |
 | `refactor` | Code restructuring (no behaviour change) |

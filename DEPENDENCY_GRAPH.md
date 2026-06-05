@@ -22,11 +22,13 @@ apps/auth (test only) ─► @repo/testing-utils
 
 apps/notifications ────► @repo/shared
 apps/notifications ────► @repo/shared-types
+apps/notifications (test only) ─► @repo/testing-utils
 
 apps/worker ───────────► @repo/shared
 apps/worker ───────────► @repo/shared-types
 apps/worker ───────────► @repo/database       (via SharedModule → DatabaseModule)
 apps/worker ───────────► @repo/mail
+apps/worker (test only) ──────► @repo/testing-utils
 
 apps/web ──────────────► @repo/shared-types
 apps/web ──────────────► @repo/trpc
@@ -130,6 +132,15 @@ apps/web ──[HTTP /api/auth/trpc/**]─────────────�
 | `bullmq`                            | via `@nestjs/bullmq`       | BullMQ client                    |
 | `@sentry/nestjs`                    | via shared                 | Error tracking                   |
 | `zod`                               | `~4.3.6` (pinned globally) | Validation schemas               |
+
+**Dev / test dependencies** (apps + `packages/shared`, `packages/mail`, `packages/database`):
+
+| Package              | Role                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| `jest`               | Test runner                                                  |
+| `ts-jest`            | TypeScript transform for Jest — uses `tsconfig.test.json`   |
+| `@nestjs/testing`    | `Test.createTestingModule` for unit and integration tests    |
+| `@types/jest`        | TypeScript types for Jest globals                            |
 
 ### Frontend (`apps/web`)
 
