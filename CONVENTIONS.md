@@ -8,7 +8,7 @@ Coding standards, patterns, and rules enforced across this monorepo. Follow thes
 
 1. **Use `pnpm` exclusively** — never `npm` or `yarn`
 2. **Auth via `better-auth` only** — never add Passport strategies or custom JWT logic
-3. **Queues via `@nestjs/bull` (Bull v4)** — never import from `bullmq`
+3. **Queues via `@nestjs/bullmq` + `bullmq`** — never import from `@nestjs/bull` or `bull`
 4. **Validation via Zod v4** — use `z.email()`, not `z.string().email()`
 5. **Never hardcode tokens, queue names, or patterns** — always import from `@repo/shared`
 6. **`process.env` only in `main.ts`** — everywhere else use `ConfigService.getOrThrow()`
@@ -116,24 +116,44 @@ class MyPublisher extends BasePublisher {
 
 ```typescript
 // Producer — extend BaseProducer (injects correlation ID into job data)
+// Queue and @InjectQueue come from 'bullmq' / '@nestjs/bullmq'
 class EmailProducer extends BaseProducer {
+  constructor(
+    @InjectQueue(QUEUES.EMAIL) queue: Queue, // Queue from 'bullmq'
+    protected clsService: ClsService,
+  ) {
+    super(queue, clsService);
+  }
+
   async sendWelcome(data: WelcomeEmailData) {
-    return this.add(JOB_PATTERNS.SEND_WELCOME_EMAIL, data, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 2000 },
-      removeOnComplete: true,
-      removeOnFail: 500,
-    });
+    return this.addJob(JOB_PATTERNS.SEND_WELCOME_EMAIL, data);
+    // Default job options set globally in QueueModule:
+    //   attempts: 3, backoff: exponential 2000ms,
+    //   removeOnComplete: true, removeOnFail: 500
   }
 }
 
-// Consumer — @Processor + @Process
+// Consumer — extends WorkerHost, single process() with switch dispatch
 @Processor(QUEUES.EMAIL)
-export class EmailConsumer {
-  @Process(JOB_PATTERNS.SEND_WELCOME_EMAIL)
-  async sendWelcomeEmail(job: Job<WelcomeEmailData>) { ... }
+export class EmailConsumer extends WorkerHost {
+  async process(job: Job): Promise<void> {
+    switch (job.name) {
+      case JOB_PATTERNS.SEND_WELCOME_EMAIL:
+        return this.sendWelcomeEmail(job);
+      default:
+        this.logger.warn(`No handler for job ${job.name}`);
+    }
+  }
+
+  @OnWorkerEvent('failed')
+  onFailed(job: Job, error: Error): void {
+    // Error handling (e.g. Sentry capture)
+  }
 }
 ```
+
+`QueueModule` registers queues with `BullModule.forRootAsync({ connection: { host, port, password } })` — `connection:` not `redis:`.
+`QueueModule.registerQueues([QUEUES.EMAIL])` is called in each app that needs to produce or consume from the queue.
 
 ### Authentication Decorators
 
@@ -261,7 +281,7 @@ Format: `<type>(<scope>): <imperative summary>`
 - Body explains **why**, not what; wrap at 72 chars
 - No AI attribution lines, no first-person pronouns
 
-```
+```text
 feat(auth): add google oauth social provider
 
 Enables users to sign in with Google credentials via better-auth's

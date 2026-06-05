@@ -1,6 +1,6 @@
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-import bull from 'bull';
+import { Queue } from 'bullmq';
 import { ClsService } from 'nestjs-cls';
 import { BaseProducer } from '../../abstracts';
 import { JOB_PATTERNS, QUEUES } from '../../constants';
@@ -16,7 +16,7 @@ import {
 @Injectable()
 export class EmailProducer extends BaseProducer {
   constructor(
-    @InjectQueue(QUEUES.EMAIL) private readonly emailQueue: bull.Queue,
+    @InjectQueue(QUEUES.EMAIL) emailQueue: Queue,
     protected clsService: ClsService,
   ) {
     super(emailQueue, clsService);
