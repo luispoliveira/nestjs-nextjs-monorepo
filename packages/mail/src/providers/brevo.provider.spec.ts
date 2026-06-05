@@ -24,8 +24,8 @@ describe('BrevoProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     provider = new BrevoProvider(mailOptions);
-    const brevoInstance = (BrevoClient as jest.Mock).mock.results[0].value as { transactionalEmails: { sendTransacEmail: jest.Mock } };
-    mockSendTransacEmail = brevoInstance.transactionalEmails.sendTransacEmail;
+    const brevoInstance = (BrevoClient as jest.Mock).mock.results[0]?.value as { transactionalEmails: { sendTransacEmail: jest.Mock } };
+    mockSendTransacEmail = brevoInstance?.transactionalEmails.sendTransacEmail;
   });
 
   it('should call sendTransacEmail with correct sender and recipient', async () => {
