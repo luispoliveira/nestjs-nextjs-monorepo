@@ -106,20 +106,16 @@ groups:
   - name: worker
     rules:
       - alert: BullMQDLQNonEmpty
-        expr: bullmq_queue_depth{queue=~".*:dlq", state="waiting"} > 0
+        expr: bullmq_queue_depth{queue=~".*-dlq", state="waiting"} > 0
         for: 5m
         labels:
           severity: warning
         annotations:
           summary: "BullMQ DLQ has stranded jobs"
-          description: "Queue {{ $labels.queue }} has {{ $value }} job(s) in the DLQ for over 5 minutes. Inspect via Bull Board at /admin/queues."
+          description: "Queue {{ $labels.queue }} has {{ $value }} job(s) in the DLQ for over 5 minutes."
 ```
 
-The `queue=~".*:dlq"` wildcard covers all present and future DLQ queues.
-
-### Bull Board
-
-Admin queue dashboard available at `/admin/queues`. Requires an authenticated session with `ADMIN` role.
+The `queue=~".*-dlq"` wildcard covers all present and future DLQ queues.
 
 ## Support
 

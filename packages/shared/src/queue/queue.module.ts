@@ -35,7 +35,7 @@ export class QueueModule {
     );
     const dlqQueues = queues.map((queue) =>
       BullModule.registerQueue({
-        name: `${queue}:dlq`,
+        name: `${queue}-dlq`,
         defaultJobOptions: {
           removeOnFail: { count: 1000, age: 2592000 },
           removeOnComplete: true,
