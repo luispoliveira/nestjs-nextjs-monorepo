@@ -37,11 +37,11 @@ The `BaseProducer` class wraps correlation ID injection. The only change needed 
 
 **Rationale**: Zero configuration changes needed.
 
-### 4. Error handling: `onFailed` hook
+### 4. Error handling: `@OnWorkerEvent('failed')`
 
-Bull v4 uses `@OnQueueFailed()` class decorator. BullMQ exposes `onFailed(job, error)` as a `WorkerHost` lifecycle method — override it directly.
+Bull v4 uses `@OnQueueFailed()` method decorator. In `@nestjs/bullmq` the equivalent is `@OnWorkerEvent('failed')` — `WorkerHost` does not expose an overridable `onFailed` lifecycle method (verified during implementation; TS4113).
 
-**Rationale**: Functionally equivalent, simpler than decorators.
+**Rationale**: Functionally equivalent — same hook point, same signature `(job, error)`.
 
 ## Risks / Trade-offs
 
