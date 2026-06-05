@@ -28,7 +28,7 @@
 - [x] 5.2 Create `apps/worker/src/bull-board/bull-board.module.ts` that registers both `email-queue` and `email-queue:dlq` with the Bull Board adapter
 - [x] 5.3 Mount Bull Board at `/admin/queues` via `BullBoardNestModule` imported in `AppModule`
 - [x] 5.4 Protect `/admin/queues` with `BullBoardAuthMiddleware` (validates session via `MESSAGE_PATTERNS.AUTH_AUTHENTICATE`, requires `RoleEnum.ADMIN`)
-- [ ] 5.5 Verify both queues are visible in Bull Board UI when worker is running
+- [x] 5.5 Verify both queues are visible in Bull Board UI when worker is running (N/A — Bull Board removed per user request)
 
 ## 6. DLQ Observability
 
