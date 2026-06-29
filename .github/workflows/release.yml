@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   release:
@@ -35,7 +35,7 @@ jobs:
 
           {
             printf "## %s (%s)\n\n%s\n\n" "$TAG" "$DATE" "$NOTES"
-            [ -f CHANGELOG.md ] && cat CHANGELOG.md
+            if [ -f CHANGELOG.md ]; then cat CHANGELOG.md; fi
           } > CHANGELOG.tmp && mv CHANGELOG.tmp CHANGELOG.md
 
       - name: Commit and push CHANGELOG.md
