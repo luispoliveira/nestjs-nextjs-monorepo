@@ -9,7 +9,10 @@ import { QueueMetricsService } from './metrics/queue-metrics.service';
 
 @Module({
   imports: [
-    SharedModule.register({ validate: (c) => workerEnvSchema.parse(c), metrics: { appName: 'worker' } }),
+    SharedModule.register({
+      validate: (c) => workerEnvSchema.parse(c),
+      metrics: { appName: 'worker' },
+    }),
     QueueModule.registerQueues([QUEUES.EMAIL]),
     MailModule.forRootAsync({
       provider: 'brevo',
