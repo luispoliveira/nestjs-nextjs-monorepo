@@ -1,7 +1,8 @@
 import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailService } from '@repo/mail';
-import type bull from 'bull';
+import { SendWelcomeEmailInput } from '@repo/shared';
+import { Job } from 'bullmq';
 import { EmailConsumer } from './email.consumer';
 
 /**
@@ -62,10 +63,10 @@ describe('EmailConsumer', () => {
       const job = {
         id: 'job-1',
         data: { email: 'welcome@example.com' },
-      } as bull.Job;
+      } as unknown as Job<SendWelcomeEmailInput>;
 
       // Act
-      await consumer.sendWelcomeEmail(job);
+      await (consumer as any).sendWelcomeEmail(job);
 
       // Assert
       expect(mailService.send).toHaveBeenCalledTimes(1);
@@ -87,10 +88,12 @@ describe('EmailConsumer', () => {
       const job = {
         id: 'job-2',
         data: {},
-      } as bull.Job;
+      } as unknown as Job<SendWelcomeEmailInput>;
 
       // Act & Assert
-      await expect(consumer.sendWelcomeEmail(job)).rejects.toThrow();
+      await expect(
+        (consumer as any).sendWelcomeEmail(job),
+      ).rejects.toThrow();
       expect(mailService.send).not.toHaveBeenCalled();
     });
   });
