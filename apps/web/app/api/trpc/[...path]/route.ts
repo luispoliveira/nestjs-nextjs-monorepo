@@ -1,8 +1,9 @@
+import { env } from '../../../../env';
 import { type NextRequest } from 'next/server';
 
 async function proxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
-  const apiUrl = process.env.API_URL ?? 'http://localhost:3300';
+  const apiUrl = env.API_URL;
   const search = req.nextUrl.searchParams.toString();
   const target = `${apiUrl}/api/trpc/${path.join('/')}${search ? `?${search}` : ''}`;
 

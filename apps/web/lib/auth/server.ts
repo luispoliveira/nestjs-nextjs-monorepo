@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import { env } from '../../env';
 
 type SessionUser = {
   id: string;
@@ -17,16 +18,11 @@ export async function getServerSession(): Promise<AuthSession> {
   const requestHeaders = await headers();
   const cookie = requestHeaders.get('cookie') ?? '';
 
-  const authApiUrl = process.env.AUTH_API_URL;
-  if (!authApiUrl) {
-    throw new Error('AUTH_API_URL environment variable is not set');
-  }
-
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
 
   try {
-    const response = await fetch(`${authApiUrl}/api/auth/get-session`, {
+    const response = await fetch(`${env.AUTH_API_URL}/api/auth/get-session`, {
       method: 'GET',
       headers: { cookie },
       cache: 'no-store',
