@@ -36,4 +36,4 @@
 
 - [x] 7.1 Run `pnpm build` — all NestJS apps build without errors
 - [x] 7.2 Run `pnpm check-types` — no new type errors
-- [ ] 7.3 Manually test fail-fast: rename `DATABASE_URL` in one app's `.env` and confirm the app crashes at boot with a readable error, not a runtime exception
+- [x] 7.3 Manually test fail-fast: rename `DATABASE_URL` in one app's `.env` and confirm the app crashes at boot with a readable error, not a runtime exception
