@@ -2,7 +2,8 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { MailService } from '@repo/mail';
-import { QUEUES } from '@repo/shared';
+
+import { QUEUES, SendWelcomeEmailInput } from '@repo/shared';
 import { Job } from 'bullmq';
 import { QueueMetricsService } from '../metrics/queue-metrics.service';
 import { EmailConsumer } from './email.consumer';
@@ -46,8 +47,16 @@ describe('EmailConsumer', () => {
 
   describe('sendWelcomeEmail()', () => {
     it('should call mailService.send with the correct payload', async () => {
-      const job = { id: 'job-1', data: { email: 'welcome@example.com' } } as Job;
-      await consumer['sendWelcomeEmail'](job as Job<{ email: string }>);
+      // Arrange — create a mock Bull job
+      const job = {
+        id: 'job-1',
+        data: { email: 'welcome@example.com' },
+      } as unknown as Job<SendWelcomeEmailInput>;
+
+      // Act
+      await (consumer as any).sendWelcomeEmail(job);
+
+      // Assert
       expect(mailService.send).toHaveBeenCalledTimes(1);
       expect(mailService.send).toHaveBeenCalledWith(
         expect.objectContaining({ to: [{ email: 'welcome@example.com' }] }),
@@ -55,16 +64,30 @@ describe('EmailConsumer', () => {
     });
 
     it('should throw when job data is missing email', async () => {
-      const job = { id: 'job-2', data: {} } as Job;
-      await expect(consumer['sendWelcomeEmail'](job as Job<{ email: string }>)).rejects.toThrow();
+      // Arrange
+      const job = {
+        id: 'job-2',
+        data: {},
+      } as unknown as Job<SendWelcomeEmailInput>;
+
+      // Act & Assert
+      await expect((consumer as any).sendWelcomeEmail(job)).rejects.toThrow();
       expect(mailService.send).not.toHaveBeenCalled();
     });
   });
 
   describe('sendPasswordResetEmail()', () => {
     it('should call mailService.send with the password-reset payload', async () => {
-      const job = { id: 'job-10', data: { email: 'user@example.com', resetLink: 'https://example.com/reset' } } as Job;
-      await consumer['sendPasswordResetEmail'](job as Job<{ email: string; resetLink: string }>);
+      const job = {
+        id: 'job-10',
+        data: {
+          email: 'user@example.com',
+          resetLink: 'https://example.com/reset',
+        },
+      } as Job;
+      await consumer['sendPasswordResetEmail'](
+        job as Job<{ email: string; resetLink: string }>,
+      );
       expect(mailService.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: [{ email: 'user@example.com' }],
@@ -78,9 +101,14 @@ describe('EmailConsumer', () => {
     it('should call mailService.send with the verification payload', async () => {
       const job = {
         id: 'job-11',
-        data: { email: 'user@example.com', verificationLink: 'https://example.com/verify' },
+        data: {
+          email: 'user@example.com',
+          verificationLink: 'https://example.com/verify',
+        },
       } as Job;
-      await consumer['sendEmailVerificationEmail'](job as Job<{ email: string; verificationLink: string }>);
+      await consumer['sendEmailVerificationEmail'](
+        job as Job<{ email: string; verificationLink: string }>,
+      );
       expect(mailService.send).toHaveBeenCalledWith(
         expect.objectContaining({
           to: [{ email: 'user@example.com' }],
@@ -103,7 +131,9 @@ describe('EmailConsumer', () => {
   describe('sendTwoFactorEnabledEmail()', () => {
     it('should call mailService.send with the 2FA-enabled payload', async () => {
       const job = { id: 'job-13', data: { email: 'user@example.com' } } as Job;
-      await consumer['sendTwoFactorEnabledEmail'](job as Job<{ email: string }>);
+      await consumer['sendTwoFactorEnabledEmail'](
+        job as Job<{ email: string }>,
+      );
       expect(mailService.send).toHaveBeenCalledWith(
         expect.objectContaining({ to: [{ email: 'user@example.com' }] }),
       );
@@ -113,7 +143,9 @@ describe('EmailConsumer', () => {
   describe('sendTwoFactorDisabledEmail()', () => {
     it('should call mailService.send with the 2FA-disabled payload', async () => {
       const job = { id: 'job-14', data: { email: 'user@example.com' } } as Job;
-      await consumer['sendTwoFactorDisabledEmail'](job as Job<{ email: string }>);
+      await consumer['sendTwoFactorDisabledEmail'](
+        job as Job<{ email: string }>,
+      );
       expect(mailService.send).toHaveBeenCalledWith(
         expect.objectContaining({ to: [{ email: 'user@example.com' }] }),
       );
@@ -126,22 +158,46 @@ describe('EmailConsumer', () => {
 
     it.each([
       ['job:send_welcome_email', 'sendWelcomeEmail', { email: 'a@b.com' }],
-      ['job:send_email_verification_email', 'sendEmailVerificationEmail', { email: 'a@b.com', verificationLink: 'https://x.com' }],
-      ['job:send_password_reset_email', 'sendPasswordResetEmail', { email: 'a@b.com', resetLink: 'https://x.com' }],
-      ['job:send_password_changed_email', 'sendPasswordChangedEmail', { email: 'a@b.com' }],
-      ['job:send_two_factor_enabled_email', 'sendTwoFactorEnabledEmail', { email: 'a@b.com' }],
-      ['job:send_two_factor_disabled_email', 'sendTwoFactorDisabledEmail', { email: 'a@b.com' }],
+      [
+        'job:send_email_verification_email',
+        'sendEmailVerificationEmail',
+        { email: 'a@b.com', verificationLink: 'https://x.com' },
+      ],
+      [
+        'job:send_password_reset_email',
+        'sendPasswordResetEmail',
+        { email: 'a@b.com', resetLink: 'https://x.com' },
+      ],
+      [
+        'job:send_password_changed_email',
+        'sendPasswordChangedEmail',
+        { email: 'a@b.com' },
+      ],
+      [
+        'job:send_two_factor_enabled_email',
+        'sendTwoFactorEnabledEmail',
+        { email: 'a@b.com' },
+      ],
+      [
+        'job:send_two_factor_disabled_email',
+        'sendTwoFactorDisabledEmail',
+        { email: 'a@b.com' },
+      ],
     ] as const)(
       'should dispatch job "%s" to %s',
       async (jobName, methodName, data) => {
-        const spy = jest.spyOn(consumer as never, methodName).mockResolvedValue(undefined as never);
+        const spy = jest
+          .spyOn(consumer as never, methodName)
+          .mockResolvedValue(undefined as never);
         await consumer.process(makeJob(jobName, data));
         expect(spy).toHaveBeenCalled();
       },
     );
 
     it('should log a warning for unknown job names', async () => {
-      const warnSpy = jest.spyOn(consumer['logger'], 'warn').mockImplementation(() => undefined);
+      const warnSpy = jest
+        .spyOn(consumer['logger'], 'warn')
+        .mockImplementation(() => undefined);
       const job = { id: 'job-x', name: 'unknown-job', data: {} } as Job;
       await consumer.process(job);
       expect(warnSpy).toHaveBeenCalled();
@@ -158,7 +214,10 @@ describe('EmailConsumer', () => {
 
       consumer.onCompleted(job);
 
-      expect(mockQueueMetrics.recordDuration).toHaveBeenCalledWith('send-welcome-email', 1000);
+      expect(mockQueueMetrics.recordDuration).toHaveBeenCalledWith(
+        'send-welcome-email',
+        1000,
+      );
     });
   });
 

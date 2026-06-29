@@ -15,7 +15,7 @@
       "cache": false
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["db:generate", "^build", "^db:generate", "^lint"]
     },
     "test": {
       "dependsOn": ["^build"]
@@ -36,7 +36,7 @@
       "dependsOn": ["^build"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["db:generate", "^build", "^db:generate", "^check-types"]
     },
     "db:generate": {
       "dependsOn": ["^db:generate"]

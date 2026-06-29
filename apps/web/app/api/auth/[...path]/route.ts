@@ -1,8 +1,9 @@
+import { env } from '../../../../env';
 import { type NextRequest } from 'next/server';
 
 async function proxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   const { path } = await params;
-  const authApiUrl = process.env.AUTH_API_URL ?? 'http://localhost:3000';
+  const authApiUrl = env.AUTH_API_URL;
   const search = req.nextUrl.searchParams.toString();
   const target = `${authApiUrl}/api/auth/${path.join('/')}${search ? `?${search}` : ''}`;
 

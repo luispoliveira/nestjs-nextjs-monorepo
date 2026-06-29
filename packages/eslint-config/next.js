@@ -1,6 +1,4 @@
-import js from "@eslint/js";
 import { globalIgnores } from "eslint/config";
-import eslintConfigPrettier from "eslint-config-prettier";
 import tseslint from "typescript-eslint";
 import pluginReactHooks from "eslint-plugin-react-hooks";
 import pluginReact from "eslint-plugin-react";
@@ -15,8 +13,6 @@ import { config as baseConfig } from "./base.js";
  * */
 export const nextJsConfig = [
   ...baseConfig,
-  js.configs.recommended,
-  eslintConfigPrettier,
   ...tseslint.configs.recommended,
   globalIgnores([
     // Default ignores of eslint-config-next:
@@ -33,6 +29,8 @@ export const nextJsConfig = [
         ...globals.serviceworker,
       },
     },
+    // eslint-plugin-react "detect" calls context.getFilename() removed in ESLint v9+ flat config
+    settings: { react: { version: "19" } },
   },
   {
     plugins: {
@@ -47,11 +45,13 @@ export const nextJsConfig = [
     plugins: {
       "react-hooks": pluginReactHooks,
     },
-    settings: { react: { version: "detect" } },
+    settings: { react: { version: "19" } },
     rules: {
       ...pluginReactHooks.configs.recommended.rules,
       // React scope no longer necessary with new JSX transform.
       "react/react-in-jsx-scope": "off",
+      // react-hook-form is intentionally incompatible with React Compiler memoisation
+      "react-hooks/incompatible-library": "off",
     },
   },
 ];

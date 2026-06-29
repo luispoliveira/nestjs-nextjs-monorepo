@@ -13,10 +13,12 @@ import * as path from 'path';
 import { AppContext } from './app.context';
 import { AppController } from './app.controller';
 import { AppRouter } from './app.router';
+import { apiEnvSchema } from './env';
 
 @Module({
   imports: [
     SharedModule.register({
+      validate: (c) => apiEnvSchema.parse(c),
       metrics: { appName: 'api' },
       throttlerRedisUrl: process.env.REDIS_URL,
     }),

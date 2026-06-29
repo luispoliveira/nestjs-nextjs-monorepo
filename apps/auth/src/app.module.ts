@@ -14,137 +14,147 @@ import { betterAuth } from 'better-auth';
 import { admin } from 'better-auth/plugins';
 import { twoFactor } from 'better-auth/plugins/two-factor';
 import { AuthController } from './auth.controller';
+import { authEnvSchema } from './env';
 import { LocalAuthService, publisherProxy } from './local-auth.service';
+
 @Module({
   imports: [
-    SharedModule.register({}),
+    SharedModule.register({ validate: (c) => authEnvSchema.parse(c) }),
     ClientsModule.registerAsync([
       MicroserviceUtil.registerNotificationsService(),
     ]),
     AuthModule.forRootAsync({
       imports: [DatabaseModule, ConfigModule],
-      useFactory: (
-        database: DatabaseService,
-        configService: ConfigService,
-      ) => ({
-        bodyParser: {
-          json: { limit: '10mb' },
-          urlencoded: { limit: '10mb', extended: true },
-          rawBody: true,
-        },
-        auth: betterAuth({
-          appName: 'Nes(x)tJs Template',
-          plugins: [twoFactor(), admin()],
-          baseURL:
-            configService.get<string>('BETTER_AUTH_URL') ||
-            'http://localhost:3000/api/auth',
-          socialProviders: {
-            google: {
-              clientId: process.env.GOOGLE_CLIENT_ID!,
-              clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-            },
+      useFactory: (database: DatabaseService, configService: ConfigService) => {
+        const googleClientId = configService.get<string>('GOOGLE_CLIENT_ID');
+        const googleClientSecret = configService.get<string>(
+          'GOOGLE_CLIENT_SECRET',
+        );
+        return {
+          bodyParser: {
+            json: { limit: '10mb' },
+            urlencoded: { limit: '10mb', extended: true },
+            rawBody: true,
           },
-          database: prismaAdapter(database, {
-            provider: 'postgresql',
-          }),
-          emailAndPassword: {
-            enabled: true,
-            requireEmailVerification: true,
-            sendResetPassword: ({ user, token }): Promise<void> => {
-              if (!publisherProxy.instance) {
-                console.warn(
-                  '[auth] NotificationsPublisher not ready — skipping sendResetPassword hook',
-                );
-                return Promise.resolve();
-              }
-
-              const uiUrl =
-                configService.get<string>('UI_URL') ?? 'http://localhost:8080';
-              const resetUrl = `${uiUrl}/reset-password?token=${token}`;
-              const expiresAt = new Date(
-                Date.now() + 60 * 60 * 1000,
-              ).toISOString();
-
-              publisherProxy.instance.emitUserPasswordResetRequested({
-                userId: user.id,
-                email: user.email,
-                resetToken: resetUrl,
-                expiresAt,
-              });
-
-              return Promise.resolve();
-            },
-            onPasswordReset: ({ user }): Promise<void> => {
-              if (!publisherProxy.instance) {
-                console.warn(
-                  '[auth] NotificationsPublisher not ready — skipping onPasswordReset hook',
-                );
-                return Promise.resolve();
-              }
-
-              publisherProxy.instance.emitUserPasswordChanged({
-                userId: user.id,
-                email: user.email,
-                reason: 'Password reset requested by user',
-              });
-
-              return Promise.resolve();
-            },
-          },
-          emailVerification: {
-            sendVerificationEmail: ({ user, token }): Promise<void> => {
-              if (!publisherProxy.instance) {
-                console.warn(
-                  '[auth] NotificationsPublisher not ready — skipping sendVerificationEmail hook',
-                );
-                return Promise.resolve();
-              }
-
-              const uiUrl =
-                configService.get<string>('UI_URL') ?? 'http://localhost:8080';
-
-              const verificationUrl = `${uiUrl}/verify-email?token=${token}`;
-
-              publisherProxy.instance.emitUserEmailVerificationRequested({
-                userId: user.id,
-                email: user.email,
-                verificationLink: verificationUrl,
-              });
-
-              return Promise.resolve();
-            },
-          },
-          trustedOrigins: configService.get<string>('UI_URL')
-            ? [configService.get<string>('UI_URL')!]
-            : ['http://localhost:8080', 'http://localhost:8090'],
-          hooks: {},
-          databaseHooks: {
-            user: {
-              create: {
-                after: (user): Promise<void> => {
-                  const adminEmail =
-                    configService.getOrThrow<string>('ADMIN_EMAIL');
-                  if (user.email === adminEmail) return Promise.resolve();
-
-                  if (!publisherProxy.instance) {
-                    console.warn(
-                      '[auth] NotificationsPublisher not ready — skipping user.create.after hook',
-                    );
-                    return Promise.resolve();
-                  }
-
-                  publisherProxy.instance.emitUserCreated({
-                    userId: user.id,
-                    email: user.email,
-                  });
-
+          auth: betterAuth({
+            appName: 'Nes(x)tJs Template',
+            plugins: [twoFactor(), admin()],
+            baseURL:
+              configService.get<string>('BETTER_AUTH_URL') ||
+              'http://localhost:30000/api/auth',
+            ...(googleClientId &&
+              googleClientSecret && {
+                socialProviders: {
+                  google: {
+                    clientId: googleClientId,
+                    clientSecret: googleClientSecret,
+                  },
+                },
+              }),
+            database: prismaAdapter(database, {
+              provider: 'postgresql',
+            }),
+            emailAndPassword: {
+              enabled: true,
+              requireEmailVerification: true,
+              sendResetPassword: ({ user, token }): Promise<void> => {
+                if (!publisherProxy.instance) {
+                  console.warn(
+                    '[auth] NotificationsPublisher not ready — skipping sendResetPassword hook',
+                  );
                   return Promise.resolve();
+                }
+
+                const uiUrl =
+                  configService.get<string>('UI_URL') ??
+                  'http://localhost:8080';
+                const resetUrl = `${uiUrl}/reset-password?token=${token}`;
+                const expiresAt = new Date(
+                  Date.now() + 60 * 60 * 1000,
+                ).toISOString();
+
+                publisherProxy.instance.emitUserPasswordResetRequested({
+                  userId: user.id,
+                  email: user.email,
+                  resetToken: resetUrl,
+                  expiresAt,
+                });
+
+                return Promise.resolve();
+              },
+              onPasswordReset: ({ user }): Promise<void> => {
+                if (!publisherProxy.instance) {
+                  console.warn(
+                    '[auth] NotificationsPublisher not ready — skipping onPasswordReset hook',
+                  );
+                  return Promise.resolve();
+                }
+
+                publisherProxy.instance.emitUserPasswordChanged({
+                  userId: user.id,
+                  email: user.email,
+                  reason: 'Password reset requested by user',
+                });
+
+                return Promise.resolve();
+              },
+            },
+            emailVerification: {
+              sendVerificationEmail: ({ user, token }): Promise<void> => {
+                if (!publisherProxy.instance) {
+                  console.warn(
+                    '[auth] NotificationsPublisher not ready — skipping sendVerificationEmail hook',
+                  );
+                  return Promise.resolve();
+                }
+
+                const uiUrl =
+                  configService.get<string>('UI_URL') ??
+                  'http://localhost:8080';
+
+                const verificationUrl = `${uiUrl}/verify-email?token=${token}`;
+
+                publisherProxy.instance.emitUserEmailVerificationRequested({
+                  userId: user.id,
+                  email: user.email,
+                  verificationLink: verificationUrl,
+                });
+
+                return Promise.resolve();
+              },
+            },
+            trustedOrigins: configService.get<string>('UI_URL')
+              ? [configService.get<string>('UI_URL')!]
+              : ['http://localhost:8080', 'http://localhost:8090'],
+            hooks: {},
+            databaseHooks: {
+              user: {
+                create: {
+                  after: (user): Promise<void> => {
+                    const adminEmail =
+                      configService.getOrThrow<string>('ADMIN_EMAIL');
+                    if (user.email === adminEmail) return Promise.resolve();
+
+                    if (!publisherProxy.instance) {
+                      console.warn(
+                        '[auth] NotificationsPublisher not ready — skipping user.create.after hook',
+                      );
+                      return Promise.resolve();
+                    }
+
+                    publisherProxy.instance.emitUserCreated({
+                      userId: user.id,
+                      email: user.email,
+                    });
+
+                    return Promise.resolve();
+                  },
                 },
               },
             },
-          },
-        }),
-      }),
+          }),
+        };
+      },
       inject: [DatabaseService, ConfigService],
     }),
   ],
