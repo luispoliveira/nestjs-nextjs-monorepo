@@ -25,13 +25,11 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
     ]),
     AuthModule.forRootAsync({
       imports: [DatabaseModule, ConfigModule],
-      useFactory: (
-        database: DatabaseService,
-        configService: ConfigService,
-      ) => {
+      useFactory: (database: DatabaseService, configService: ConfigService) => {
         const googleClientId = configService.get<string>('GOOGLE_CLIENT_ID');
-        const googleClientSecret =
-          configService.get<string>('GOOGLE_CLIENT_SECRET');
+        const googleClientSecret = configService.get<string>(
+          'GOOGLE_CLIENT_SECRET',
+        );
         return {
           bodyParser: {
             json: { limit: '10mb' },
