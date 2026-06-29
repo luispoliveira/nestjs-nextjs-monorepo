@@ -1,19 +1,21 @@
 # ENTRYPOINTS.md — NestJS + Next.js Monorepo
 
-All system entry points: HTTP routes, microservice patterns, queue jobs, and health endpoints.
+All system entry points: HTTP routes, microservice message/event patterns, BullMQ jobs, and shared health/metrics endpoints.
+
+See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) | [CONVENTIONS.md](CONVENTIONS.md)
 
 ---
 
-## HTTP Entry Points
+## HTTP Routes
 
-### `apps/auth` — `http://localhost:3001/api/auth`
+### `apps/api` — prefix `/api`, versioning enabled
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `*` | `/api/auth/*` | All better-auth routes (sign-in, sign-up, sign-out, session, OAuth callbacks, 2FA, admin) |
-| `GET` | `/api/auth/health/live` | Liveness probe |
-| `GET` | `/api/auth/health/ready` | Readiness probe (checks DB, Redis) |
-| `GET` | `/api/auth/docs` | Swagger UI (non-production only) |
+| Method | Path                     | Description                                                                               |
+| ------ | ------------------------ | ----------------------------------------------------------------------------------------- |
+| `*`    | `/api/auth/*`            | All better-auth routes (sign-in, sign-up, sign-out, session, OAuth callbacks, 2FA, admin) |
+| `GET`  | `/api/auth/health/live`  | Liveness probe                                                                            |
+| `GET`  | `/api/auth/health/ready` | Readiness probe (checks DB, Redis)                                                        |
+| `GET`  | `/api/auth/docs`         | Swagger UI (non-production only)                                                          |
 
 better-auth exposes these sub-routes automatically:
 
@@ -31,114 +33,152 @@ tRPC HTTP gateway (`TRPCModule.forRoot`, `basePath: '/api/trpc'`, `globalPrefix:
 `MicroserviceAuthGuard` guards routes globally; the router applies
 `LoggingTrpcMiddleware` + `AuthTrpcMiddleware`.
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET/POST` | `/api/trpc/*` | tRPC endpoint (all procedures, batched) |
-| `GET` | `/api/` | Hello/health route (`AppController.getHello`) |
-| `GET` | `/api/health/live` | Liveness probe |
-| `GET` | `/api/health/ready` | Readiness probe |
-| `GET` | `/api/docs` | Swagger UI (non-production only) |
+| Method     | Path                | Description                                   |
+| ---------- | ------------------- | --------------------------------------------- |
+| `GET/POST` | `/api/trpc/*`       | tRPC endpoint (all procedures, batched)       |
+| `GET`      | `/api/`             | Hello/health route (`AppController.getHello`) |
+| `GET`      | `/api/health/live`  | Liveness probe                                |
+| `GET`      | `/api/health/ready` | Readiness probe                               |
+| `GET`      | `/api/docs`         | Swagger UI (non-production only)              |
 
 #### tRPC procedures (`AppRouter`)
 
-| Procedure | Type | Output | Handler |
-| --- | --- | --- | --- |
-| `hello` | query | `string` | `AppRouter.hello()` |
+| Procedure | Type  | Output   | Handler             |
+| --------- | ----- | -------- | ------------------- |
+| `hello`   | query | `string` | `AppRouter.hello()` |
 
-### `apps/notifications` — `http://localhost:3004/api/notifications`
+### `apps/notifications` — prefix `/api/notifications`, port `3100`
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/api/notifications/health/live` | Liveness probe |
-| `GET` | `/api/notifications/health/ready` | Readiness probe |
+| Method | Path                              | Notes              |
+| ------ | --------------------------------- | ------------------ |
+| `GET`  | `/api/notifications/health/live`  |                    |
+| `GET`  | `/api/notifications/health/ready` |                    |
+| `GET`  | `/api/notifications/metrics`      | `MetricsAuthGuard` |
 
-### `apps/worker` — internal only
+Swagger: `/api/notifications/docs` (non-production only).
+No application HTTP routes — all traffic is via Redis event patterns.
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/health/live` | Liveness probe |
-| `GET` | `/health/ready` | Readiness probe |
+### `apps/worker` — prefix `/api/worker`, port `3200`
 
-### `apps/web` — `http://localhost:3000`
+| Method | Path                       | Notes              |
+| ------ | -------------------------- | ------------------ |
+| `GET`  | `/api/worker/health/live`  |                    |
+| `GET`  | `/api/worker/health/ready` |                    |
+| `GET`  | `/api/worker/metrics`      | `MetricsAuthGuard` |
 
-| Method | Path | Description |
-| --- | --- | --- |
-| `GET` | `/` | Root (redirects to dashboard or sign-in) |
-| `GET` | `/sign-in` | Sign-in page |
-| `GET` | `/dashboard` | Admin dashboard (protected) |
-| `GET/POST` | `/api/*` | Next.js API routes (proxied to backend) |
-
----
-
-## Microservice Entry Points (Redis)
-
-### Message Patterns (request/response)
-
-| Pattern | Handler | Service | Description |
-| --- | --- | --- | --- |
-| `auth:authenticate` | `AuthController.authenticate()` | `apps/auth` | Validate bearer token/cookie → returns user |
-
-### Event Patterns (fire-and-forget)
-
-| Pattern | Handler | Service | Description |
-| --- | --- | --- | --- |
-| `user:created` | `AppController.onUserCreated()` | `apps/notifications` | Enqueue welcome email |
-| `user:password_reset_requested` | `AppController.onPasswordResetRequested()` | `apps/notifications` | Enqueue password reset email |
-| `user:password_changed` | `AppController.onPasswordChanged()` | `apps/notifications` | Enqueue password changed email |
-| `user:email_verification_requested` | `AppController.onEmailVerificationRequested()` | `apps/notifications` | Enqueue verification email |
-| `user:two_factor_enabled` | `AppController.onTwoFactorEnabled()` | `apps/notifications` | Enqueue 2FA enabled email |
-| `user:two_factor_disabled` | `AppController.onTwoFactorDisabled()` | `apps/notifications` | Enqueue 2FA disabled email |
+Swagger: `/api/worker/docs` (non-production only).
+No application HTTP routes — all traffic is via Redis message patterns and BullMQ.
 
 ---
 
-## Queue Entry Points (BullMQ)
+## tRPC Procedures
 
-Queue: `email-queue` — processed by `apps/worker`
+Base path: `/api/trpc` (on `apps/api`). Both middlewares apply to all procedures:
 
-| Job Pattern | Handler | Trigger |
-| --- | --- | --- |
-| `job:send_welcome_email` | `EmailConsumer.sendWelcomeEmail()` | `user:created` event |
-| `job:send_password_reset_email` | `EmailConsumer.sendPasswordResetEmail()` | `user:password_reset_requested` event |
-| `job:send_password_changed_email` | `EmailConsumer.sendPasswordChangedEmail()` | `user:password_changed` event |
-| `job:send_email_verification_email` | `EmailConsumer.sendEmailVerificationEmail()` | `user:email_verification_requested` event |
-| `job:send_two_factor_enabled_email` | `EmailConsumer.sendTwoFactorEnabledEmail()` | `user:two_factor_enabled` event |
-| `job:send_two_factor_disabled_email` | `EmailConsumer.sendTwoFactorDisabledEmail()` | `user:two_factor_disabled` event |
+1. `LoggingTrpcMiddleware` — logs to MongoDB, duration, user, input/output.
+2. `AuthTrpcMiddleware` — validates token via `MESSAGE_PATTERNS.AUTH_AUTHENTICATE`.
 
-Job configuration: `attempts: 3`, exponential backoff from 2000ms, `removeOnComplete: true`, `removeOnFail: 500`.
+| Router      | Procedure | Type  | Output   | File                         |
+| ----------- | --------- | ----- | -------- | ---------------------------- |
+| `AppRouter` | `hello`   | Query | `string` | `apps/api/src/app.router.ts` |
 
----
+`BaseRouter` in `packages/shared/src/trpc/router/base.router.ts` applies `LoggingTrpcMiddleware` to all subclasses.
 
-## Bootstrap Entry Points
-
-Each app's `main.ts` is the process entry point:
-
-| File | App | What it does |
-| --- | --- | --- |
-| `apps/auth/src/main.ts` | auth | NestFactory + Redis transport + BootstrapUtil.setup() |
-| `apps/api/src/main.ts` | api | NestFactory + Redis client + BootstrapUtil.setup() |
-| `apps/notifications/src/main.ts` | notifications | NestFactory + Redis transport + BootstrapUtil.setup() |
-| `apps/worker/src/main.ts` | worker | NestFactory + BullMQ consumer setup |
-| `apps/web/src/app/layout.tsx` | web | Next.js root layout |
+Auth tRPC client (web → auth service): `basePath='/api/auth/trpc'` — type source `@repo/trpc/auth`.
+API tRPC client (web → api service): `basePath='/api/trpc'` — type source `@repo/trpc/api`.
 
 ---
 
-## Database Entry Points
+## Redis Message Patterns (`@MessagePattern` — request/response)
 
-| Tool | Command | Entry |
-| --- | --- | --- |
-| Prisma migrations | `pnpm db:migrate` | `packages/database/prisma/schema.prisma` |
-| Prisma generate | `pnpm db:generate` | `packages/database/prisma.config.ts` |
-| Seed | `pnpm db:seed` | `packages/database/src/database-seeder.service.ts` |
-| Auth schema | managed by better-auth | `packages/database/prisma/auth.prisma` |
+Constant source: `packages/shared/src/constants/events.ts`
+
+| Pattern                              | Value                 | Handler App   | Handler                       | Purpose                                     |
+| ------------------------------------ | --------------------- | ------------- | ----------------------------- | ------------------------------------------- |
+| `MESSAGE_PATTERNS.AUTH_AUTHENTICATE` | `'auth:authenticate'` | `apps/auth`   | `AuthController.authenticate` | Validate session token; returns user object |
+| `MESSAGE_PATTERNS.DLQ_LIST`          | `'dlq:list'`          | `apps/worker` | `DlqController.list`          | List jobs in `email-queue-dlq`              |
+| `MESSAGE_PATTERNS.DLQ_REPLAY`        | `'dlq:replay'`        | `apps/worker` | `DlqController.replay`        | Move DLQ job back to `email-queue`          |
+| `MESSAGE_PATTERNS.DLQ_PURGE`         | `'dlq:purge'`         | `apps/worker` | `DlqController.purge`         | Remove a job from the DLQ                   |
+
+Senders: `MicroserviceAuthGuard` and `AuthTrpcMiddleware` send `AUTH_AUTHENTICATE`. DLQ patterns are called from `apps/api` or any service that manages the worker.
 
 ---
 
-## Development Entry Points
+## Redis Event Patterns (`@EventPattern` — fire-and-forget)
 
-| Command | Entry |
-| --- | --- |
-| `pnpm dev` | Turborepo dev task → all apps in watch mode |
-| `pnpm build` | Turborepo build pipeline |
-| `pnpm docker:up` | `docker-compose.yml` → Postgres, MongoDB, Redis |
-| `pnpm lint` | ESLint across all workspaces |
-| `pnpm check-types` | TypeScript across all workspaces |
+Constant source: `packages/shared/src/constants/events.ts`
+
+| Pattern                                            | Value                                 | Emitted by                       | Handled by           | Payload                               |
+| -------------------------------------------------- | ------------------------------------- | -------------------------------- | -------------------- | ------------------------------------- |
+| `EVENT_PATTERNS.USER_CREATED`                      | `'user:created'`                      | `apps/auth` (`LocalAuthService`) | `apps/notifications` | `{ userId, email }`                   |
+| `EVENT_PATTERNS.USER_PASSWORD_RESET_REQUESTED`     | `'user:password_reset_requested'`     | `apps/auth`                      | `apps/notifications` | `{ userId, email, resetToken }`       |
+| `EVENT_PATTERNS.USER_PASSWORD_CHANGED`             | `'user:password_changed'`             | `apps/auth`                      | `apps/notifications` | `{ userId, email }`                   |
+| `EVENT_PATTERNS.USER_EMAIL_VERIFICATION_REQUESTED` | `'user:email_verification_requested'` | `apps/auth`                      | `apps/notifications` | `{ userId, email, verificationLink }` |
+| `EVENT_PATTERNS.USER_TWO_FACTOR_ENABLED`           | `'user:two_factor_enabled'`           | `apps/auth`                      | `apps/notifications` | `{ userId, email }`                   |
+| `EVENT_PATTERNS.USER_TWO_FACTOR_DISABLED`          | `'user:two_factor_disabled'`          | `apps/auth`                      | `apps/notifications` | `{ userId, email }`                   |
+
+Publisher: `NotificationsPublisher` in `packages/shared/src/publishers/` — wraps `BasePublisher.publish()` which adds `correlationId`.
+
+---
+
+## BullMQ Queues and Job Patterns
+
+Constant sources: `packages/shared/src/constants/queues.ts`, `packages/shared/src/constants/jobs.ts`
+
+### Queues
+
+| Constant           | Queue Name          | Purpose                                             |
+| ------------------ | ------------------- | --------------------------------------------------- |
+| `QUEUES.EMAIL`     | `'email-queue'`     | Primary email job queue                             |
+| `QUEUES.EMAIL_DLQ` | `'email-queue-dlq'` | Dead Letter Queue — jobs that exhausted all retries |
+
+Default job options (set in `QueueModule`): `attempts: 3`, exponential backoff from 2000 ms, `removeOnComplete: true`, `removeOnFail: 500`.
+DLQ job options: `removeOnFail: { count: 1000, age: 2592000 }` (30 days), `removeOnComplete: true`.
+
+### Job Patterns
+
+Constant source: `packages/shared/src/constants/jobs.ts`
+
+| Constant                                      | Value                                  | Enqueued by     | Processed by    | Input schema                           |
+| --------------------------------------------- | -------------------------------------- | --------------- | --------------- | -------------------------------------- |
+| `JOB_PATTERNS.SEND_WELCOME_EMAIL`             | `'job:send_welcome_email'`             | `EmailProducer` | `EmailConsumer` | `sendWelcomeEmailInputSchema`          |
+| `JOB_PATTERNS.SEND_EMAIL_VERIFICATION_EMAIL`  | `'job:send_email_verification_email'`  | `EmailProducer` | `EmailConsumer` | `sendEmailVerificationEmailSchema`     |
+| `JOB_PATTERNS.SEND_PASSWORD_RESET_EMAIL`      | `'job:send_password_reset_email'`      | `EmailProducer` | `EmailConsumer` | `sendPasswordResetEmailInputSchema`    |
+| `JOB_PATTERNS.SEND_PASSWORD_CHANGED_EMAIL`    | `'job:send_password_changed_email'`    | `EmailProducer` | `EmailConsumer` | `sendPasswordChangedEmailInputSchema`  |
+| `JOB_PATTERNS.SEND_TWO_FACTOR_ENABLED_EMAIL`  | `'job:send_two_factor_enabled_email'`  | `EmailProducer` | `EmailConsumer` | `sendUserTwoFactorEnabledInputSchema`  |
+| `JOB_PATTERNS.SEND_TWO_FACTOR_DISABLED_EMAIL` | `'job:send_two_factor_disabled_email'` | `EmailProducer` | `EmailConsumer` | `sendUserTwoFactorDisabledInputSchema` |
+
+All input schemas are in `packages/shared/src/queue/input/` and re-exported from `@repo/shared`.
+
+---
+
+## Next.js API Routes (`apps/web`)
+
+| Method | Path                  | File                              | Notes                      |
+| ------ | --------------------- | --------------------------------- | -------------------------- |
+| `*`    | `/api/auth/[...path]` | `app/api/auth/[...path]/route.ts` | Proxies to `AUTH_API_URL`  |
+| `*`    | `/api/trpc/[...path]` | `app/api/trpc/[...path]/route.ts` | tRPC handler (api service) |
+
+---
+
+## Next.js Pages
+
+| Route        | File                                 | Protection                          |
+| ------------ | ------------------------------------ | ----------------------------------- |
+| `/`          | `app/page.tsx`                       | Public (redirects based on session) |
+| `/sign-in`   | `app/(auth)/sign-in/page.tsx`        | Public                              |
+| `/dashboard` | `app/(dashboard)/dashboard/page.tsx` | Session required (layout redirect)  |
+| `/users`     | `app/(dashboard)/users/page.tsx`     | `RoleEnum.ADMIN` only               |
+
+---
+
+## Health Check Details
+
+`HealthController` (registered globally by `SharedModule`) checks:
+
+| Check    | Indicator                               | Threshold                                    |
+| -------- | --------------------------------------- | -------------------------------------------- |
+| Database | `PrismaHealthIndicator.pingCheck`       | Ping `DatabaseService`                       |
+| Redis    | `MicroserviceHealthIndicator.pingCheck` | `Transport.REDIS` at `REDIS_HOST:REDIS_PORT` |
+| Memory   | `MemoryHealthIndicator.checkHeap`       | 250 MB heap limit                            |
+| Disk     | `DiskHealthIndicator.checkStorage`      | 70% threshold on `/`                         |

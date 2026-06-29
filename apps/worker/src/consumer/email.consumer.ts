@@ -1,4 +1,4 @@
-import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
+import { InjectQueue, OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { MailService } from '@repo/mail';
 import {
@@ -18,13 +18,19 @@ import {
   sendWelcomeEmailInputSchema,
   SentryUtil,
 } from '@repo/shared';
-import { Job } from 'bullmq';
+import { Job, Queue } from 'bullmq';
 import z from 'zod';
+import { QueueMetricsService } from '../metrics/queue-metrics.service';
+
 @Processor(QUEUES.EMAIL)
 export class EmailConsumer extends WorkerHost {
   private readonly logger = new Logger(EmailConsumer.name);
 
-  constructor(private readonly mailService: MailService) {
+  constructor(
+    private readonly mailService: MailService,
+    private readonly queueMetrics: QueueMetricsService,
+    @InjectQueue(QUEUES.EMAIL_DLQ) private readonly dlqQueue: Queue,
+  ) {
     super();
   }
 
@@ -128,11 +134,27 @@ export class EmailConsumer extends WorkerHost {
     });
   }
 
+  @OnWorkerEvent('completed')
+  onCompleted(job: Job): void {
+    const durationMs =
+      (job.finishedOn ?? Date.now()) - (job.processedOn ?? Date.now());
+    this.queueMetrics.recordDuration(job.name, durationMs);
+  }
+
   @OnWorkerEvent('failed')
   onFailed(job: Job, error: Error): void {
+    this.queueMetrics.recordFailure(job.name);
     SentryUtil.captureException(error, {
       extra: { jobId: job.id, jobName: job.name, data: job.data },
       tags: { queue: QUEUES.EMAIL, app: 'worker' },
     });
+
+    const maxAttempts = job.opts.attempts ?? 1;
+    if (job.attemptsMade >= maxAttempts) {
+      void this.dlqQueue.add(job.name, job.data, {
+        removeOnFail: { count: 1000, age: 2592000 },
+        removeOnComplete: true,
+      });
+    }
   }
 }

@@ -45,7 +45,13 @@ Internal packages are imported with the `@repo/` prefix:
 
 ```typescript
 import { DatabaseService } from '@repo/database';
-import { SharedModule, QUEUES, SERVICES, EVENT_PATTERNS, JOB_PATTERNS } from '@repo/shared';
+import {
+  SharedModule,
+  QUEUES,
+  SERVICES,
+  EVENT_PATTERNS,
+  JOB_PATTERNS,
+} from '@repo/shared';
 import { RoleEnum, paginationSchema } from '@repo/shared-types';
 import type { AppRouter } from '@repo/trpc';
 ```
@@ -56,17 +62,17 @@ import type { AppRouter } from '@repo/trpc';
 
 Always use **pnpm** (never npm/yarn). Tasks run through Turborepo.
 
-| Command | Purpose |
-| --- | --- |
-| `pnpm dev` | Run all apps in dev mode |
-| `pnpm build` | Build all apps + packages |
-| `pnpm lint` | Lint all workspaces |
-| `pnpm check-types` | Type-check all workspaces |
-| `pnpm format` | Prettier on `**/*.{ts,tsx,md}` |
-| `pnpm db:generate` | `prisma generate` (runs `@repo/database`) |
-| `pnpm db:migrate` | `prisma migrate dev` |
-| `pnpm db:seed` | Run seeders in `packages/database/src/seeders/` |
-| `pnpm docker:up` / `pnpm docker:down` | Local infra (Postgres, Mongo, Redis) |
+| Command                               | Purpose                                         |
+| ------------------------------------- | ----------------------------------------------- |
+| `pnpm dev`                            | Run all apps in dev mode                        |
+| `pnpm build`                          | Build all apps + packages                       |
+| `pnpm lint`                           | Lint all workspaces                             |
+| `pnpm check-types`                    | Type-check all workspaces                       |
+| `pnpm format`                         | Prettier on `**/*.{ts,tsx,md}`                  |
+| `pnpm db:generate`                    | `prisma generate` (runs `@repo/database`)       |
+| `pnpm db:migrate`                     | `prisma migrate dev`                            |
+| `pnpm db:seed`                        | Run seeders in `packages/database/src/seeders/` |
+| `pnpm docker:up` / `pnpm docker:down` | Local infra (Postgres, Mongo, Redis)            |
 
 Always run `pnpm build` and the relevant tests/lint after code changes before claiming a task is done.
 
@@ -76,14 +82,14 @@ Always run `pnpm build` and the relevant tests/lint after code changes before cl
 
 All injection tokens, queue names, and message patterns live in [packages/shared/src/constants/](packages/shared/src/constants/) as `as const` objects. **Always import; never inline.**
 
-| Constant | Location | Examples |
-| --- | --- | --- |
-| `SERVICES` | `constants/services.ts` | `AUTH`, `NOTIFICATIONS` |
-| `QUEUES` | `constants/queues.ts` | `EMAIL: 'email-queue'` |
-| `EVENT_PATTERNS` | `constants/events.ts` | `USER_CREATED`, `USER_PASSWORD_RESET_REQUESTED` |
-| `MESSAGE_PATTERNS` | `constants/events.ts` | `AUTH_AUTHENTICATE` |
-| `JOB_PATTERNS` | `constants/jobs.ts` | `SEND_WELCOME_EMAIL`, `SEND_PASSWORD_RESET_EMAIL` |
-| `CLS_CORRELATION_ID` | `constants/cls.ts` | `'correlationId'` |
+| Constant             | Location                | Examples                                          |
+| -------------------- | ----------------------- | ------------------------------------------------- |
+| `SERVICES`           | `constants/services.ts` | `AUTH`, `NOTIFICATIONS`                           |
+| `QUEUES`             | `constants/queues.ts`   | `EMAIL: 'email-queue'`                            |
+| `EVENT_PATTERNS`     | `constants/events.ts`   | `USER_CREATED`, `USER_PASSWORD_RESET_REQUESTED`   |
+| `MESSAGE_PATTERNS`   | `constants/events.ts`   | `AUTH_AUTHENTICATE`                               |
+| `JOB_PATTERNS`       | `constants/jobs.ts`     | `SEND_WELCOME_EMAIL`, `SEND_PASSWORD_RESET_EMAIL` |
+| `CLS_CORRELATION_ID` | `constants/cls.ts`      | `'correlationId'`                                 |
 
 ---
 
@@ -132,11 +138,13 @@ await app.listen(process.env.PORT ?? 3000);
 - `ZodValidationPipe` + `ZodSerializerInterceptor` are global — do not register them manually.
 
 ```typescript
-const CreateUserSchema = z.object({
-  email: z.email(),
-  name: z.string().min(1),
-  role: z.enum(['admin', 'user']),
-}).meta({ id: 'CreateUser' });
+const CreateUserSchema = z
+  .object({
+    email: z.email(),
+    name: z.string().min(1),
+    role: z.enum(['admin', 'user']),
+  })
+  .meta({ id: 'CreateUser' });
 
 export class CreateUserDto extends createZodDto(CreateUserSchema) {}
 ```
@@ -276,7 +284,25 @@ model Post {
 
 ## Git Commits
 
-Follow **Conventional Commits**. Details in [.github/git-commit-instructions.md](.github/git-commit-instructions.md). Key rules:
+Follow **Gitflow** for branching and **Conventional Commits** for messages. Full rules in [.github/git-commit-instructions.md](.github/git-commit-instructions.md).
+
+### Branching
+
+| Branch              | Base      | Merges into        | Use for                                                |
+| ------------------- | --------- | ------------------ | ------------------------------------------------------ |
+| `main`              | —         | —                  | Production releases — always tagged, always deployable |
+| `develop`           | `main`    | —                  | Integration — latest completed development             |
+| `feature/<name>`    | `develop` | `develop`          | New features (one branch per feature)                  |
+| `release/<version>` | `develop` | `main` + `develop` | Release prep: bugfixes, version bumps only             |
+| `hotfix/<name>`     | `main`    | `main` + `develop` | Urgent production fixes                                |
+| `bugfix/<name>`     | `develop` | `develop`          | Non-urgent bug fixes                                   |
+
+- **Never commit directly to `main` or `develop`** — always via PR.
+- Use `--no-ff` merges to preserve branch topology.
+- Tag every merge to `main` with semver: `v1.0.0`, `v1.2.3`.
+- Delete branches after merge.
+
+### Commit messages
 
 - `<type>(<scope>): <imperative summary>` — subject ≤50 chars (hard cap 72), lowercase after colon, no trailing period.
 - Allowed types: `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `style`, `revert`.

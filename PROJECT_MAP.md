@@ -2,31 +2,48 @@
 
 Codebase map for rapid orientation. Every top-level directory described with its role and key files.
 
----
-
-## Root
-
-```text
-nestjs-nextjs-monorepo/
-├── apps/                  # Deployable applications
-├── packages/              # Shared internal libraries
-├── openspec/              # Spec-driven development artifacts
-├── .claude/               # Claude Code skills, agents, commands
-├── .github/               # CI and Copilot instructions
-├── CLAUDE.md              # Claude Code guide (start here)
-├── DEPLOY.md              # Docker Compose deployment guide
-├── DEPLOY-PM2.md          # PM2 deployment guide
-├── turbo.json             # Turborepo task pipeline
-├── pnpm-workspace.yaml    # pnpm workspace config
-└── package.json           # Root scripts and workspace config
-```
+See also: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) | [ENTRYPOINTS.md](ENTRYPOINTS.md) | [CONVENTIONS.md](CONVENTIONS.md) | [DEPENDENCY_GRAPH.md](DEPENDENCY_GRAPH.md)
 
 ---
 
-## apps/
+## Workspace Root
+
+| File / Dir            | Purpose                                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `package.json`        | Root workspace; pnpm scripts (`dev`, `build`, `lint`, `db:*`, `docker:*`)                                  |
+| `pnpm-workspace.yaml` | Declares `apps/*` and `packages/*`; pins `zod ~4.3.6` globally                                             |
+| `turbo.json`          | Turborepo pipeline: build, dev, lint, test, test:cov, test:integration, test:e2e, check-types, db:\* tasks |
+| `docker-compose.yaml` | Local infra: PostgreSQL, MongoDB, Redis                                                                    |
+| `.nvmrc`              | Node `>=22`                                                                                                |
+| `CLAUDE.md`           | AI assistant instructions                                                                                  |
+| `.github/`            | Copilot instructions, git commit rules, PR templates                                                       |
+| `.claude/`            | Agent definitions, corner-cases log                                                                        |
+
+---
+
+## `apps/`
+
+### `apps/api/`
+
+Main HTTP + tRPC gateway. Sits behind Nginx in production.
+
+| Path                    | Role                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------ |
+| `src/main.ts`           | Bootstrap: `globalPrefix='api'`, Swagger on `/api/docs`, `trustProxy:true`                 |
+| `src/app.module.ts`     | Imports `SharedModule`, `ClientsModule` (AUTH service), `TRPCModule`                       |
+| `src/app.controller.ts` | `GET /api` — health-check stub; decorated `@RateLimit('default')`                          |
+| `src/app.router.ts`     | tRPC `AppRouter`: `hello` query; middlewares `LoggingTrpcMiddleware`, `AuthTrpcMiddleware` |
+| `src/app.context.ts`    | tRPC context factory                                                                       |
+| `test/`                 | Jest unit tests                                                                            |
+
+Global guard: `MicroserviceAuthGuard` (validates bearer token via `AUTH_SERVICE` over Redis).
+
+---
 
 ### `apps/auth/`
+
 **Role**: NestJS authentication service (primary backend).
+
 - Manages user sessions via `better-auth` + Prisma adapter.
 - Exposes REST API at `/api/auth` + microservice listener on Redis.
 - Plugins: `twoFactor()`, `admin()`, Google OAuth.
@@ -38,7 +55,9 @@ nestjs-nextjs-monorepo/
   - `src/local-auth.service.ts` — Event publishing to Notifications service
 
 ### `apps/api/`
+
 **Role**: NestJS tRPC HTTP gateway.
+
 - Hosts the tRPC router for end-to-end type-safe communication with Next.js.
 - Mounts `TRPCModule.forRoot()` from `nestjs-trpc-v2` (`basePath: '/api/trpc'`, `globalPrefix: 'api'`).
 - `MicroserviceAuthGuard` is the global `APP_GUARD`; calls into `apps/auth` over Redis to validate sessions.
@@ -51,103 +70,168 @@ nestjs-nextjs-monorepo/
   - `src/app.controller.ts` — `GET /` health/hello route
 
 ### `apps/notifications/`
-**Role**: NestJS notification delivery service.
-- Listens for Redis events from the auth service.
-- Enqueues email jobs into the BullMQ `email-queue`.
-- Key files:
-  - `src/app.module.ts` — Imports `QueueModule.registerQueues([QUEUES.EMAIL])`
-  - `src/app.controller.ts` — `@EventPattern` handlers
-  - `src/app.service.ts` — Job enqueueing via `EmailProducer`
 
-### `apps/worker/`
-**Role**: NestJS BullMQ worker — processes email jobs from the queue.
-- Consumes `email-queue` jobs using `@Processor` + `WorkerHost.process()`.
-- Single `process(job)` method dispatches via `switch(job.name)`.
-- Failed jobs reported via `@OnWorkerEvent('failed')`.
-- Sends emails via Brevo through `@repo/mail`.
-- Key files:
-  - `src/app.module.ts` — Imports `QueueModule` + `MailModule`
-  - `src/consumer/email.consumer.ts` — `@Processor(QUEUES.EMAIL)`, extends `WorkerHost`
+Redis-event–driven notification dispatcher. Enqueues email jobs into BullMQ.
 
-### `apps/web/`
-**Role**: Next.js 16 frontend (App Router).
-- Admin dashboard consuming auth and tRPC APIs.
-- Auth via `better-auth` client; data via tRPC `httpBatchLink`.
-- Key directories:
-  - `src/app/` — App Router pages and layouts
-  - `src/components/` — Shared UI components (shadcn/ui primitives in `components/ui/`)
-  - `src/lib/` — Auth client/server helpers, tRPC client, utilities
+| Path                         | Role                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------- |
+| `src/main.ts`                | Bootstrap: `globalPrefix='api/notifications'`, Redis microservice transport, port `3100` |
+| `src/app.module.ts`          | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`                     |
+| `src/app.controller.ts`      | Six `@EventPattern` handlers (see [ENTRYPOINTS.md](ENTRYPOINTS.md))                      |
+| `src/app.service.ts`         | Delegates to `EmailProducer` for each event type                                         |
+| `src/app.controller.spec.ts` | Unit tests for `AppController`                                                           |
+| `src/app.service.spec.ts`    | Unit tests for `AppService`                                                              |
 
 ---
 
-## packages/
+### `apps/worker/`
 
-### `packages/database/`
-**Role**: Prisma ORM client, `DatabaseModule`, and seeders.
-- Uses `PrismaPg` adapter (not default TCP driver).
-- `auth.prisma` is managed by better-auth — do not edit manually.
-- Key files:
-  - `prisma/schema.prisma` — Application models
-  - `prisma/auth.prisma` — Auth models (User, Session, Account, TwoFactor, Verification)
-  - `src/database.service.ts` — Wraps `PrismaClient`, injected via `DatabaseModule`
-  - `src/database-seeder.service.ts` — Runs seeders on `onModuleInit`
-  - `src/seeders/` — Individual seeder implementations
+BullMQ consumer. Processes email jobs and handles the Dead Letter Queue.
+
+| Path                                        | Role                                                                                            |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `src/main.ts`                               | Bootstrap: `globalPrefix='api/worker'`, Redis microservice transport, port `3200`               |
+| `src/app.module.ts`                         | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`, `MailModule`, `DlqModule` |
+| `src/consumer/email.consumer.ts`            | `@Processor(QUEUES.EMAIL)` — dispatches on `job.name`; routes exhausted jobs to DLQ             |
+| `src/consumer/email.consumer.spec.ts`       | Unit tests for `EmailConsumer`                                                                  |
+| `src/dlq/dlq.controller.ts`                 | Three `@MessagePattern` handlers: `dlq:list`, `dlq:replay`, `dlq:purge`                         |
+| `src/dlq/dlq.controller.spec.ts`            | Unit tests for `DlqController`                                                                  |
+| `src/dlq/dlq.module.ts`                     | Registers `QueueModule.registerQueues([QUEUES.EMAIL])`, `EmailDlqService`, `DlqController`      |
+| `src/dlq/email.dlq.service.ts`              | Extends `BaseDlqService`; list/replay/purge DLQ jobs                                            |
+| `src/dlq/email.dlq.service.spec.ts`         | Unit tests for `EmailDlqService`                                                                |
+| `src/dlq/base.dlq.service.spec.ts`          | Unit tests for `BaseDlqService` (shared abstract)                                               |
+| `src/metrics/queue-metrics.service.ts`      | Prometheus gauges and histograms for queue depth, job duration, failure count                   |
+| `src/metrics/queue-metrics.service.spec.ts` | Unit tests for `QueueMetricsService`                                                            |
+
+---
+
+### `apps/web/`
+
+Next.js 16 admin dashboard (App Router).
+
+| Path                                     | Role                                                                                |
+| ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| `app/layout.tsx`                         | Root layout: `TrpcProvider`, `ThemeProvider`, `Toaster`                             |
+| `app/page.tsx`                           | Public root — redirects to `/sign-in` or `/dashboard`                               |
+| `app/(auth)/layout.tsx`                  | Unauthenticated layout (centered card)                                              |
+| `app/(auth)/sign-in/page.tsx`            | Email/password sign-in form (`authClient.signIn.email`)                             |
+| `app/(dashboard)/layout.tsx`             | Protected layout: calls `getServerSession()`, redirects to `/sign-in` if no session |
+| `app/(dashboard)/dashboard/page.tsx`     | Dashboard home                                                                      |
+| `app/(dashboard)/users/page.tsx`         | Admin-only users list; redirects non-admins to `/dashboard`                         |
+| `app/(dashboard)/users/users-client.tsx` | Client component: user management table                                             |
+| `app/api/auth/[...path]/route.ts`        | Proxies all `better-auth` requests to `AUTH_API_URL`                                |
+| `app/api/trpc/[...path]/route.ts`        | tRPC handler (proxies to API service)                                               |
+| `lib/auth/client.ts`                     | `authClient` — `better-auth/react`, plugins: `twoFactorClient`, `adminClient`       |
+| `lib/auth/server.ts`                     | `getServerSession()` — fetches `AUTH_API_URL/api/auth/get-session` (5 s timeout)    |
+| `lib/auth/schema.ts`                     | Zod `loginSchema`                                                                   |
+| `lib/trpc/`                              | tRPC client (`apiTrpc`, `trpcApiClient`) and auth tRPC client                       |
+| `lib/nav.ts`                             | `navItems` — sidebar navigation (Dashboard, Users)                                  |
+| `lib/image.ts`                           | `getImageUrl()` helper                                                              |
+| `lib/utils.ts`                           | `cn()`, `generatePassword()`                                                        |
+| `components/ui/`                         | shadcn/ui primitives (do not modify)                                                |
+| `components/layout/`                     | `AppSidebar`, `TopBar`                                                              |
+| `components/theme/`                      | `ThemeProvider`, `ThemeToggle`                                                      |
+| `components/trpc/`                       | `ApiTrpcProvider` (wraps `TanStack Query` + tRPC)                                   |
+
+---
+
+## `packages/`
 
 ### `packages/shared/`
-**Role**: Global NestJS infrastructure shared across all backend apps.
-- `@Global()` — provided everywhere via `SharedModule.register()`.
-- Key subdirectories:
-  - `src/constants/` — `SERVICES`, `QUEUES`, `EVENT_PATTERNS`, `MESSAGE_PATTERNS`, `JOB_PATTERNS`
-  - `src/abstracts/` — `BasePublisher`, `BaseProducer`, `BaseRouter`
-  - `src/guards/` — `AuthGuard`, `MicroserviceAuthGuard`
-  - `src/interceptors/` — `LoggingInterceptor`, `CorrelationInterceptor`
-  - `src/filters/` — `AllExceptionFilter`
-  - `src/publishers/` — `NotificationsPublisher`
-  - `src/queue/` — `QueueModule` (`@nestjs/bullmq`), `EmailProducer`, producer base classes
-  - `src/modules/` — `SharedModule`, `MongoModule`
-  - `src/utils/` — `BootstrapUtil`, `MicroserviceUtil`, `PaginatedUtil`, `SanitizeUtil`, `ContextUtil`
-  - `src/health/` — `HealthController` (GET `/health/live`, `/health/ready`)
-  - `src/mongo/` — `MongoModule`, `Log` + `EmailLog` schemas (30-day TTL)
-  - `src/trpc/` — `TrpcModule`, `BaseRouter`, auth middlewares
+
+Global NestJS infrastructure. Imported by every backend app.
+
+| Sub-path              | Contents                                                                                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `src/abstracts/`      | `BaseProducer`, `BasePublisher`, `BaseDlqService`; spec files for each                                                                                       |
+| `src/constants/`      | `SERVICES`, `QUEUES`, `EVENT_PATTERNS`, `MESSAGE_PATTERNS`, `JOB_PATTERNS`, `CLS_CORRELATION_ID`, `THROTTLE_TIERS`                                           |
+| `src/decorators/`     | `@Public()`, `@CurrentUser()`, `@RateLimit(tier)`                                                                                                            |
+| `src/filters/`        | `AllExceptionFilter` — HTTP + RPC exception handler, Sentry capture; `http-exception.filter.spec.ts`                                                         |
+| `src/guards/`         | `CustomThrottlerGuard`, `MicroserviceAuthGuard`; spec files for each                                                                                         |
+| `src/health/`         | `HealthController` — `GET /health/live`, `GET /health/ready`                                                                                                 |
+| `src/interceptors/`   | `LoggingInterceptor` (MongoDB), `CorrelationInterceptor`; spec files for each                                                                                |
+| `src/metrics/`        | `MetricsModule`, `MetricsController` (`GET /metrics`), `HttpMetricsInterceptor`, `MetricsAuthGuard`; spec files for interceptor and guard                    |
+| `src/modules/`        | `SharedModule` (global, dynamic)                                                                                                                             |
+| `src/mongo/`          | `MongoModule`, `MongoService`, `Log` schema, `EmailLog` schema; `mongo.service.spec.ts`                                                                      |
+| `src/publishers/`     | `NotificationsPublisher`, publisher input DTOs; `notifications.publisher.spec.ts`                                                                            |
+| `src/queue/`          | `QueueModule`, `EmailProducer`, job input DTOs + schemas; `email.producer.spec.ts`                                                                           |
+| `src/trpc/`           | `TrpcModule`, `AppContext`, `BaseRouter`, `LoggingTrpcMiddleware`, `AuthTrpcMiddleware`                                                                      |
+| `src/types/`          | `PaginatedType`, `PagedMetaType`                                                                                                                             |
+| `src/utils/`          | `BootstrapUtil`, `MicroserviceUtil`, `PaginatedUtil`, `ContextUtil`, `SanitizeUtil`, `SentryUtil`; spec files for context, paginated, sanitize, sentry utils |
+| `tsconfig.build.json` | Extends `tsconfig.json`; excludes `**/*.spec.ts` — used by `build` and `dev` scripts                                                                         |
+| `tsconfig.test.json`  | Extends `tsconfig.json`; sets `module: commonjs`, `moduleResolution: node`, `resolvePackageJsonExports: false` — used by ts-jest                             |
+
+### `packages/database/`
+
+Prisma 7 client and database infrastructure.
+
+| Path                                  | Role                                                                                                           |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `prisma/schema.prisma`                | Generator (CJS output to `generated/prisma`), datasource (PostgreSQL)                                          |
+| `prisma/auth.prisma`                  | better-auth models: `User`, `Session`, `Account`, `Verification`, `TwoFactor`                                  |
+| `src/database.service.ts`             | `DatabaseService extends PrismaClient` with `PrismaPg` adapter                                                 |
+| `src/database.module.ts`              | `DatabaseModule` — global, exports `DatabaseService`                                                           |
+| `src/database-seeder.service.ts`      | Runs registered seeders on `onModuleInit`                                                                      |
+| `src/index.ts`                        | Barrel re-export including Prisma generated client                                                             |
+| `src/database.service.spec.ts`        | Unit tests for `DatabaseService`                                                                               |
+| `src/database-seeder.service.spec.ts` | Unit tests for `DatabaseSeederService`                                                                         |
+| `tsconfig.build.json`                 | Extends `tsconfig.json`; excludes `**/*.spec.ts`                                                               |
+| `tsconfig.test.json`                  | Extends `tsconfig.json`; sets `module: commonjs`, `moduleResolution: node`, `resolvePackageJsonExports: false` |
 
 ### `packages/shared-types/`
-**Role**: Zod v4 schemas shared between frontend and backend.
-- `RoleEnum`, `paginationSchema`, `baseEntitySchema`, environment schemas.
-- Import on both NestJS DTOs and Next.js forms.
+
+Zod v4 schemas shared between frontend and backend.
+
+| Path                                | Contents                                                                       |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| `src/schemas/base-entity.schema.ts` | `baseEntitySchema` — `id`, `createdAt`, `updatedAt`, `deletedAt`, audit fields |
+| `src/schemas/pagination.schema.ts`  | `paginationSchema` — `skip`, `take` (max 100), `sortBy`, `sortOrder`           |
+| `src/schemas/user.schema.ts`        | `createUserSchema`, `editRoleSchema`                                           |
+| `src/enums/role.enum.ts`            | `RoleEnum` — `admin`, `user`                                                   |
+| `src/enums/environment.enum.ts`     | `EnvironmentEnum`                                                              |
 
 ### `packages/trpc/`
+
 **Role**: Auto-generated `AppRouter` type for end-to-end type safety.
+
 - Generated by `nestjs-trpc-v2` from the `apps/api` gateway into `src/server/api/server.ts` (non-production).
 - Exposes subpath exports `@repo/trpc/api` and `@repo/trpc/auth`; the package barrel (`src/index.ts`) re-exports the server types.
 - Next.js imports the `AppRouter` type from here for the typed tRPC client.
 
 ### `packages/mail/`
-**Role**: Email sending via Brevo provider.
-- `MailModule.forRootAsync({ provider: 'brevo', ... })`.
-- Used only by `apps/worker`.
 
-### `packages/eslint-config/` + `packages/typescript-config/`
-**Role**: Shared ESLint and TypeScript configurations for all workspaces.
+Email delivery abstraction. Currently supports Brevo only.
 
----
+| Path                                   | Role                                                                                                           |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `src/mail.module.ts`                   | Dynamic module — `forRoot` / `forRootAsync`; provider: `'brevo'`                                               |
+| `src/mail.service.ts`                  | `send()` with 3-attempt exponential retry; dev-mode email redirect; logs via `MongoService`                    |
+| `src/providers/brevo.provider.ts`      | Brevo (Sendinblue) API integration                                                                             |
+| `src/interfaces/`                      | `MailModuleOptions`, `MailProvider` interfaces                                                                 |
+| `src/mail.service.spec.ts`             | Unit tests for `MailService`                                                                                   |
+| `src/providers/brevo.provider.spec.ts` | Unit tests for `BrevoProvider`                                                                                 |
+| `tsconfig.build.json`                  | Extends `tsconfig.json`; excludes `**/*.spec.ts`                                                               |
+| `tsconfig.test.json`                   | Extends `tsconfig.json`; sets `module: commonjs`, `moduleResolution: node`, `resolvePackageJsonExports: false` |
 
-## openspec/
+### `packages/testing-utils/`
 
-```text
-openspec/
-├── config.yaml      # OpenSpec configuration
-├── changes/         # In-progress change artifacts (proposals, specs, designs, tasks)
-└── specs/           # Finalized specs (synced from archived changes)
-```
+Test-only utilities shared by all backend apps. **Never import in production code.**
 
----
+| Path                               | Role                                                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `src/index.ts`                     | Barrel export                                                                                                          |
+| `src/factories/user.factory.ts`    | `createUser(db, overrides?)` — inserts `User` + `Account` (credential provider); exports `TEST_PASSWORD = 'Test1234!'` |
+| `src/factories/session.factory.ts` | `createSession(db, userId, overrides?)` — inserts a `Session` expiring 24 h from now                                   |
+| `src/factories/index.ts`           | Re-exports factories and their override interfaces                                                                     |
+| `src/helpers/truncate.ts`          | `truncateDatabase(db)` — `DELETE` from `verification`, `user` (cascade removes sessions, accounts, 2FA)                |
+| `src/helpers/index.ts`             | Re-exports helpers                                                                                                     |
 
-## .claude/
+Password hashing in `createUser` matches better-auth's scrypt format exactly (`${salt}:${hex(key)}`, N=16384, r=16, p=1, keylen=64). The hash is cached per process to avoid paying the cost on every test.
 
-```text
-.claude/
-├── skills/          # Reusable skill definitions (SKILL.md per skill)
-├── agents/          # Agent persona definitions
-├── commands/        # Slash command files (invoke skills)
-└── settings.local.json
-```
+### `packages/eslint-config/`
+
+Shared ESLint configurations for all workspaces.
+
+### `packages/typescript-config/`
+
+Shared `tsconfig` base files (`base.json`, `nestjs.json`, `nextjs.json`).

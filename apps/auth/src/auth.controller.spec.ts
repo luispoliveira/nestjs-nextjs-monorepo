@@ -84,7 +84,9 @@ describe('AuthController', () => {
      */
     it('should throw RpcException(401) when session is null', async () => {
       // Arrange
-      (authService.api.getSession as unknown as jest.Mock).mockResolvedValue(null);
+      (authService.api.getSession as unknown as jest.Mock).mockResolvedValue(
+        null,
+      );
 
       // Act & Assert
       await expect(

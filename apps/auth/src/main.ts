@@ -32,6 +32,7 @@ async function bootstrap() {
 
   BootstrapUtil.setup(app, {
     globalPrefix: 'api/auth',
+    globalPrefixExclude: ['health', 'health/*path'],
     useHelmet: true,
     enableVersioning: true,
     swagger:

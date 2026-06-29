@@ -18,7 +18,8 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:integration": "jest --config ./test/jest-integration.json",
+    "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
     "@better-auth/prisma-adapter": "^1.6.13",
@@ -35,6 +36,7 @@
     "@repo/trpc": "workspace:*",
     "@thallesp/nestjs-better-auth": "^2.6.1",
     "better-auth": "^1.6.13",
+
     "ioredis": "^5.11.0",
     "nestjs-pino": "^4.6.1",
     "nestjs-trpc-v2": "^1.4.1",
@@ -46,6 +48,8 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@repo/testing-utils": "workspace:*",
+    "dotenv": "^17.4.2",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@nestjs/cli": "^11.0.21",

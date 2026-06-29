@@ -6,7 +6,10 @@ import { notificationsEnvSchema } from './env';
 
 @Module({
   imports: [
-    SharedModule.register({ validate: (c) => notificationsEnvSchema.parse(c) }),
+    SharedModule.register({
+      validate: (c) => notificationsEnvSchema.parse(c),
+      metrics: { appName: 'notifications' },
+    }),
     QueueModule.registerQueues([QUEUES.EMAIL]),
   ],
   controllers: [AppController],

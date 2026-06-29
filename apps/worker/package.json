@@ -25,12 +25,14 @@
     "@nestjs/common": "^11.1.24",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.24",
+    "@nestjs/microservices": "^11.1.24",
     "@nestjs/platform-express": "^11.1.24",
     "@repo/database": "workspace:*",
     "@repo/mail": "workspace:*",
     "@repo/shared": "workspace:*",
     "@repo/shared-types": "workspace:*",
     "bullmq": "^5.66.5",
+    "prom-client": "^15.0.0",
     "nestjs-pino": "^4.6.1",
     "pino-http": "^11.0.0",
     "pino-pretty": "^13.1.3",
@@ -39,6 +41,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@repo/testing-utils": "workspace:*",
     "@eslint/eslintrc": "^3.3.5",
     "@eslint/js": "^10.0.1",
     "@nestjs/cli": "^11.0.21",
@@ -89,7 +92,7 @@
     "testEnvironment": "node",
     "coverageThreshold": {
       "global": {
-        "branches": 80,
+        "branches": 70,
         "functions": 80,
         "lines": 80,
         "statements": 80

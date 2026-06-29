@@ -1,4 +1,6 @@
 import { INestApplication, VersioningType } from '@nestjs/common';
+import { ApplicationConfig } from '@nestjs/core';
+import { mapToExcludeRoute } from '@nestjs/core/middleware/utils.js';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
@@ -16,6 +18,7 @@ const LogLevelEnum = z.enum([
 
 const bootstrapUtilConfigSchema = z.object({
   globalPrefix: z.string(),
+  globalPrefixExclude: z.array(z.string()).optional(),
   logger: z.array(LogLevelEnum).optional(),
   useHelmet: z.boolean(),
   enableVersioning: z.boolean(),
@@ -33,6 +36,7 @@ const bootstrapUtilConfigSchema = z.object({
     origin: z.union([z.string().min(1), z.array(z.string().min(1))]),
     credentials: z.boolean(),
   }),
+  trustProxy: z.boolean().optional(),
 });
 
 type BootstrapUtilConfig = z.infer<typeof bootstrapUtilConfigSchema>;
@@ -48,6 +52,7 @@ export class BootstrapUtil {
     this.setupSwagger(app, validated.swagger);
     this.enableCookieParser(app, validated);
     this.enableCors(app, validated);
+    this.setTrustProxy(app, validated);
   }
 
   private static setGlobalPrefix(
@@ -55,6 +60,18 @@ export class BootstrapUtil {
     config: BootstrapUtilConfig,
   ) {
     app.setGlobalPrefix(config.globalPrefix);
+
+    if (config.globalPrefixExclude?.length) {
+      const appConfig = app.get(ApplicationConfig);
+      const current = appConfig.getGlobalPrefixOptions();
+      appConfig.setGlobalPrefixOptions({
+        ...current,
+        exclude: [
+          ...(current.exclude ?? []),
+          ...mapToExcludeRoute(config.globalPrefixExclude),
+        ],
+      });
+    }
   }
 
   private static setLogger(
@@ -126,5 +143,14 @@ export class BootstrapUtil {
       origin: config.cors.origin,
       credentials: config.cors.credentials,
     });
+  }
+
+  private static setTrustProxy(
+    app: INestApplication,
+    config: BootstrapUtilConfig,
+  ) {
+    if (!config.trustProxy) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (app.getHttpAdapter().getInstance() as any).set('trust proxy', 1);
   }
 }

@@ -4,10 +4,12 @@ import { MailModule } from '@repo/mail';
 import { QueueModule, QUEUES, SharedModule } from '@repo/shared';
 import { EmailConsumer } from './consumer/email.consumer';
 import { workerEnvSchema } from './env';
+import { DlqModule } from './dlq/dlq.module';
+import { QueueMetricsService } from './metrics/queue-metrics.service';
 
 @Module({
   imports: [
-    SharedModule.register({ validate: (c) => workerEnvSchema.parse(c) }),
+    SharedModule.register({ validate: (c) => workerEnvSchema.parse(c) }{ metrics: { appName: 'worker' } }),
     QueueModule.registerQueues([QUEUES.EMAIL]),
     MailModule.forRootAsync({
       provider: 'brevo',
@@ -20,8 +22,9 @@ import { workerEnvSchema } from './env';
       }),
       inject: [ConfigService],
     }),
+    DlqModule,
   ],
   controllers: [],
-  providers: [EmailConsumer],
+  providers: [EmailConsumer, QueueMetricsService],
 })
 export class AppModule {}
