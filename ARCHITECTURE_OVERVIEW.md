@@ -160,7 +160,7 @@ auth/AuthController.authenticate()
          │
          ▼
    EmailProducer.add(SEND_WELCOME_EMAIL, { to, name })
-         │ Bull email-queue
+         │ BullMQ email-queue
          ▼
 
 3. worker app
@@ -190,20 +190,23 @@ auth/AuthController.authenticate()
 ```text
 apps/web (Next.js)
   TrpcProvider (root layout)
-    └─ httpBatchLink → /api/auth/trpc
+    └─ httpBatchLink → tRPC endpoint
          │
          ▼
-apps/api (or apps/auth)
-  TrpcModule.register(filePath, '/trpc')
-    └─ AppRouter (nestjs-trpc-v2)
-         ├─ @Router({ alias: 'users' }) UsersRouter
-         ├─ @Router({ alias: 'admin' }) AdminRouter
-         └─ ...extends BaseRouter
-              └─ MicroserviceAuthTrpcMiddleware (validates session)
+apps/api  (HTTP gateway, globalPrefix 'api')
+  TRPCModule.forRoot({ basePath: '/api/trpc', context: AppContext })  ← nestjs-trpc-v2
+    │  APP_GUARD: MicroserviceAuthGuard (validates session via apps/auth over Redis)
+    └─ AppRouter  (@Router)
+         @UseMiddlewares(LoggingTrpcMiddleware, AuthTrpcMiddleware)
+              └─ procedures (e.g. hello)
 
 packages/trpc
-  └─ AppRouter type (auto-generated, imported by web)
+  └─ AppRouter type (auto-generated from apps/api into src/server/api/, imported by web)
 ```
+
+> The tRPC gateway lives in `apps/api`, not `apps/auth`. The `autoSchemaFile`
+> in `apps/api/src/app.module.ts` regenerates the router type into
+> `packages/trpc/src/server/api/` outside production.
 
 ---
 
