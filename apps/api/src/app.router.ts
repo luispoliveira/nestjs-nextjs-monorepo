@@ -11,9 +11,9 @@ export class AppRouter {
   @Query({
     output: z.string(),
   })
-  async hello(@Ctx() context: shared.AppContextInterface) {
+  hello(@Ctx() context: shared.AppContextInterface): string {
     console.log('🚀 ~ AppRouter ~ hello ~ context:', context.user);
-
-    return `Hello, ${context.user || 'worldsa'}!`;
+    const user = context.user as { name?: string } | null | undefined;
+    return `Hello, ${user?.name ?? 'worldsa'}!`;
   }
 }

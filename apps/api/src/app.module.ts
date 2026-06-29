@@ -20,6 +20,7 @@ import { apiEnvSchema } from './env';
     SharedModule.register({
       validate: (c) => apiEnvSchema.parse(c),
       metrics: { appName: 'api' },
+
       throttlerRedisUrl: process.env.REDIS_URL,
     }),
     ClientsModule.registerAsync([MicroserviceUtil.registerAuthService()]),

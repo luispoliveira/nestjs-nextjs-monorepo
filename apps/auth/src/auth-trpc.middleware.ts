@@ -18,7 +18,7 @@ export class AuthTrpcMiddleware implements TRPCMiddleware {
 
     try {
       const session = await this.authService.api.getSession({
-        headers: ctx.req.headers,
+        headers: ctx.req.headers as unknown as HeadersInit,
       });
 
       if (session?.user && session.session) {

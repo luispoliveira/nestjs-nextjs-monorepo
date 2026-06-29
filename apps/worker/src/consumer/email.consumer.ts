@@ -42,17 +42,27 @@ export class EmailConsumer extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case JOB_PATTERNS.SEND_WELCOME_EMAIL:
-        return this.sendWelcomeEmail(job);
+        return this.sendWelcomeEmail(job as Job<SendWelcomeEmailInput>);
       case JOB_PATTERNS.SEND_EMAIL_VERIFICATION_EMAIL:
-        return this.sendEmailVerificationEmail(job);
+        return this.sendEmailVerificationEmail(
+          job as Job<SendEmailVerificationEmailInput>,
+        );
       case JOB_PATTERNS.SEND_PASSWORD_RESET_EMAIL:
-        return this.sendPasswordResetEmail(job);
+        return this.sendPasswordResetEmail(
+          job as Job<SendPasswordResetEmailInput>,
+        );
       case JOB_PATTERNS.SEND_PASSWORD_CHANGED_EMAIL:
-        return this.sendPasswordChangedEmail(job);
+        return this.sendPasswordChangedEmail(
+          job as Job<SendPasswordChangedEmailInput>,
+        );
       case JOB_PATTERNS.SEND_TWO_FACTOR_ENABLED_EMAIL:
-        return this.sendTwoFactorEnabledEmail(job);
+        return this.sendTwoFactorEnabledEmail(
+          job as Job<SendTwoFactorEnabledEmailInput>,
+        );
       case JOB_PATTERNS.SEND_TWO_FACTOR_DISABLED_EMAIL:
-        return this.sendTwoFactorDisabledEmail(job);
+        return this.sendTwoFactorDisabledEmail(
+          job as Job<SendTwoFactorDisabledEmailInput>,
+        );
       default:
         this.logger.warn(`No handler for job ${job.id} with name ${job.name}`);
     }

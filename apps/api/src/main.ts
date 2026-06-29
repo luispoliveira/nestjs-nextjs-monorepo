@@ -45,11 +45,11 @@ async function bootstrap() {
   // Disable HTTP keep-alive in non-production so existing connections don't
   // prevent the port from being released when nest --watch restarts the process.
   if (environment !== EnvironmentEnum.PRODUCTION) {
-    app.getHttpServer().keepAliveTimeout = 0;
+    (app.getHttpServer() as { keepAliveTimeout: number }).keepAliveTimeout = 0;
   }
 
   console.log(`API is running on port ${port}`);
   console.log(`🚀 API Service running on: http://localhost:${port}/api`);
   console.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
 }
-bootstrap();
+void bootstrap();
