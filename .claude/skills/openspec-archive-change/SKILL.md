@@ -5,8 +5,8 @@ license: MIT
 compatibility: Requires openspec CLI.
 metadata:
   author: openspec
-  version: '1.0'
-  generatedBy: '1.5.0'
+  version: "1.0"
+  generatedBy: "1.5.0"
 ---
 
 Archive a completed change in the experimental workflow.
@@ -34,8 +34,6 @@ Archive a completed change in the experimental workflow.
    - `schemaName`: The workflow being used
    - `planningHome`, `changeRoot`, `artifactPaths`, and `actionContext`: path and scope context
    - `artifacts`: List of artifacts with their status (`done` or other)
-
-   If status reports `actionContext.mode: "workspace-planning"`, explain that workspace archive is not supported in this slice and STOP. Do not move workspace changes into repo-local archives or edit linked repos.
 
    **If any artifacts are not `done`:**
    - Display warning listing incomplete artifacts
@@ -73,7 +71,6 @@ Archive a completed change in the experimental workflow.
 5. **Perform the archive**
 
    Create an `archive` directory under `planningHome.changesDir` if it doesn't exist:
-
    ```bash
    mkdir -p "<planningHome.changesDir>/archive"
    ```
@@ -111,7 +108,6 @@ All artifacts complete. All tasks complete.
 ```
 
 **Guardrails**
-
 - Always prompt for change selection if not provided
 - Use artifact graph (openspec status --json) for completion checking
 - Don't block archive on warnings - just inform and confirm
