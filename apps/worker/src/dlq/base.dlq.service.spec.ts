@@ -38,7 +38,7 @@ describe('BaseDlqService', () => {
     it('should return paginated jobs and total count', async () => {
       const mockJob = makeMockJob();
       dlqQueue.getJobs.mockResolvedValue([mockJob] as never);
-      dlqQueue.getJobCounts.mockResolvedValue({ waiting: 5 } as never);
+      dlqQueue.getJobCounts.mockResolvedValue({ waiting: 5 });
 
       const result = await service.list(1, 20);
 
@@ -59,14 +59,19 @@ describe('BaseDlqService', () => {
 
       await service.replay('job-1');
 
-      expect(originalQueue.add).toHaveBeenCalledWith(mockJob.name, mockJob.data);
+      expect(originalQueue.add).toHaveBeenCalledWith(
+        mockJob.name,
+        mockJob.data,
+      );
       expect(mockJob.remove).toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when job does not exist', async () => {
       dlqQueue.getJob.mockResolvedValue(null as never);
 
-      await expect(service.replay('missing-id')).rejects.toThrow(NotFoundException);
+      await expect(service.replay('missing-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -92,7 +97,7 @@ describe('BaseDlqService', () => {
 
   describe('count()', () => {
     it('should return the waiting job count', async () => {
-      dlqQueue.getJobCounts.mockResolvedValue({ waiting: 7 } as never);
+      dlqQueue.getJobCounts.mockResolvedValue({ waiting: 7 });
 
       const count = await service.count();
 

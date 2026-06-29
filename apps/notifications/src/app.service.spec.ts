@@ -139,7 +139,9 @@ describe('AppService', () => {
       await service.sendTwoFactorEnabledNotification(email);
 
       expect(producer.sendTwoFactorEnabledEmail).toHaveBeenCalledTimes(1);
-      expect(producer.sendTwoFactorEnabledEmail).toHaveBeenCalledWith({ email });
+      expect(producer.sendTwoFactorEnabledEmail).toHaveBeenCalledWith({
+        email,
+      });
     });
   });
 
@@ -154,7 +156,9 @@ describe('AppService', () => {
       await service.sendTwoFactorDisabledNotification(email);
 
       expect(producer.sendTwoFactorDisabledEmail).toHaveBeenCalledTimes(1);
-      expect(producer.sendTwoFactorDisabledEmail).toHaveBeenCalledWith({ email });
+      expect(producer.sendTwoFactorDisabledEmail).toHaveBeenCalledWith({
+        email,
+      });
     });
   });
 });

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CustomThrottlerGuard } from '@repo/shared';
 import { AppController } from './app.controller';
 
 /**
@@ -20,7 +21,10 @@ describe('AppController', () => {
     // Add mocked providers here when the controller has dependencies.
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AppController],
-    }).compile();
+    })
+      .overrideGuard(CustomThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AppController>(AppController);
   });
