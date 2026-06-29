@@ -29,6 +29,8 @@ export const nextJsConfig = [
         ...globals.serviceworker,
       },
     },
+    // eslint-plugin-react "detect" calls context.getFilename() removed in ESLint v9+ flat config
+    settings: { react: { version: "19" } },
   },
   {
     plugins: {
@@ -43,11 +45,13 @@ export const nextJsConfig = [
     plugins: {
       "react-hooks": pluginReactHooks,
     },
-    settings: { react: { version: "detect" } },
+    settings: { react: { version: "19" } },
     rules: {
       ...pluginReactHooks.configs.recommended.rules,
       // React scope no longer necessary with new JSX transform.
       "react/react-in-jsx-scope": "off",
+      // react-hook-form is intentionally incompatible with React Compiler memoisation
+      "react-hooks/incompatible-library": "off",
     },
   },
 ];
