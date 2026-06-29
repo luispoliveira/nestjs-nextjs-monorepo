@@ -27,12 +27,23 @@ better-auth exposes these sub-routes automatically:
 
 ### `apps/api` — `http://localhost:3002/api`
 
+tRPC HTTP gateway (`TRPCModule.forRoot`, `basePath: '/api/trpc'`, `globalPrefix: 'api'`).
+`MicroserviceAuthGuard` guards routes globally; the router applies
+`LoggingTrpcMiddleware` + `AuthTrpcMiddleware`.
+
 | Method | Path | Description |
 | --- | --- | --- |
-| `POST` | `/api/trpc/*` | tRPC batch endpoint (all procedures) |
+| `GET/POST` | `/api/trpc/*` | tRPC endpoint (all procedures, batched) |
+| `GET` | `/api/` | Hello/health route (`AppController.getHello`) |
 | `GET` | `/api/health/live` | Liveness probe |
 | `GET` | `/api/health/ready` | Readiness probe |
 | `GET` | `/api/docs` | Swagger UI (non-production only) |
+
+#### tRPC procedures (`AppRouter`)
+
+| Procedure | Type | Output | Handler |
+| --- | --- | --- | --- |
+| `hello` | query | `string` | `AppRouter.hello()` |
 
 ### `apps/notifications` — `http://localhost:3004/api/notifications`
 

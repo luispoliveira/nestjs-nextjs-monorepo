@@ -17,9 +17,11 @@ apps/auth ───────────────────────�
                                                                       │
 apps/api ────────────────────────────────────────────────────────────┤
   │                                                                  │
-  ├─→ @repo/shared         (SharedModule, TrpcModule, MicroserviceUtil)
+  ├─→ @repo/shared         (SharedModule, MicroserviceUtil, guards,  │
+  │                          tRPC middlewares)                        │
   ├─→ @repo/database       (DatabaseService)                         │
-  └─→ @repo/shared-types   (schemas, RoleEnum)                      │
+  ├─→ @repo/shared-types   (schemas, RoleEnum)                       │
+  └─→ nestjs-trpc-v2       (TRPCModule.forRoot — tRPC HTTP gateway)  │
                                                                       │
 apps/notifications ──────────────────────────────────────────────────┤
   │                                                                  │
@@ -93,10 +95,10 @@ AppModule
 │
 ├─ ClientsModule (AUTH_SERVICE client)
 │
-└─ TrpcModule.register()
-    └─ AppRouter
-        ├─ UsersRouter extends BaseRouter
-        └─ AdminRouter extends BaseRouter
+├─ APP_GUARD: MicroserviceAuthGuard
+│
+└─ TRPCModule.forRoot({ basePath: '/api/trpc', context: AppContext })  ← nestjs-trpc-v2
+    └─ AppRouter (@Router, @UseMiddlewares(LoggingTrpcMiddleware, AuthTrpcMiddleware))
 ```
 
 ### `apps/notifications` Module Graph
