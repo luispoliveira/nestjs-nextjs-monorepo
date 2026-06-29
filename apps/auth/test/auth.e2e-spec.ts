@@ -3,10 +3,7 @@ import { INestApplication, VersioningType } from '@nestjs/common';
 import { mapToExcludeRoute } from '@nestjs/core/middleware/utils.js';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DatabaseService } from '@repo/database';
-import {
-  TEST_PASSWORD,
-  truncateDatabase,
-} from '@repo/testing-utils';
+import { TEST_PASSWORD, truncateDatabase } from '@repo/testing-utils';
 import supertest from 'supertest';
 import { AppModule } from '../src/app.module';
 
@@ -45,9 +42,7 @@ describe('auth app (E2E)', () => {
 
   describe('GET /health/live', () => {
     it('returns 200', async () => {
-      await supertest(app.getHttpServer())
-        .get('/health/live')
-        .expect(200);
+      await supertest(app.getHttpServer()).get('/health/live').expect(200);
     });
   });
 
@@ -65,7 +60,11 @@ describe('auth app (E2E)', () => {
       const testEmail = `e2e-${Date.now()}@example.com`;
       await supertest(app.getHttpServer())
         .post('/api/auth/sign-up/email')
-        .send({ email: testEmail, password: TEST_PASSWORD, name: 'E2E Test User' });
+        .send({
+          email: testEmail,
+          password: TEST_PASSWORD,
+          name: 'E2E Test User',
+        });
 
       // Mark email as verified (bypass email verification for testing)
       await db.user.updateMany({

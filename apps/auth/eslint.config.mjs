@@ -25,7 +25,10 @@ export default tseslint.config(
       },
       sourceType: 'commonjs',
       parserOptions: {
-        projectService: true,
+        projectService: {
+          // test/ files are outside src tsconfig; let project service handle them with defaults
+          allowDefaultProject: ['test/*.ts'],
+        },
         tsconfigRootDir: __dirname,
       },
     },
@@ -43,6 +46,24 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-return': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
       '@typescript-eslint/no-unsafe-member-access': 'off',
+    },
+  },
+  {
+    // Jest's expect(spy.method) pattern triggers unbound-method;
+    // MiddlewareResponse = Promise<any> in nestjs-trpc-v2 — can't fix upstream
+    files: ['**/*.spec.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+    },
+  },
+  {
+    // test/ sets mocked env vars intentionally — no need to declare them in turbo.json;
+    // NestJS app.getHttpServer() returns any — standard e2e pattern
+    files: ['test/**/*.ts'],
+    rules: {
+      'turbo/no-undeclared-env-vars': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
     },
   },
 );

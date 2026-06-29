@@ -125,11 +125,16 @@ describe('LocalAuthService', () => {
   describe('handlePasswordChanged()', () => {
     it('should emit emitUserPasswordChanged for a valid session', async () => {
       const mockUser = { id: 'user-1', email: 'user@example.com' };
-      authService.api.getSession.mockResolvedValue({ user: mockUser, session: {} });
+      authService.api.getSession.mockResolvedValue({
+        user: mockUser,
+        session: {},
+      });
 
       await service.handlePasswordChanged({ headers: {} } as never);
 
-      expect(notificationsPublisher.emitUserPasswordChanged).toHaveBeenCalledWith({
+      expect(
+        notificationsPublisher.emitUserPasswordChanged,
+      ).toHaveBeenCalledWith({
         userId: mockUser.id,
         email: mockUser.email,
         reason: 'User changed password',
@@ -160,11 +165,16 @@ describe('LocalAuthService', () => {
   describe('handleTwoFactorEnabled()', () => {
     it('should emit emitUserTwoFactorEnabled for a valid session', async () => {
       const mockUser = { id: 'user-1', email: 'user@example.com' };
-      authService.api.getSession.mockResolvedValue({ user: mockUser, session: {} });
+      authService.api.getSession.mockResolvedValue({
+        user: mockUser,
+        session: {},
+      });
 
       await service.handleTwoFactorEnabled({ headers: {} } as never);
 
-      expect(notificationsPublisher.emitUserTwoFactorEnabled).toHaveBeenCalledWith({
+      expect(
+        notificationsPublisher.emitUserTwoFactorEnabled,
+      ).toHaveBeenCalledWith({
         userId: mockUser.id,
         email: mockUser.email,
       });
@@ -186,11 +196,16 @@ describe('LocalAuthService', () => {
   describe('handleTwoFactorDisabled()', () => {
     it('should emit emitUserTwoFactorDisabled for a valid session', async () => {
       const mockUser = { id: 'user-1', email: 'user@example.com' };
-      authService.api.getSession.mockResolvedValue({ user: mockUser, session: {} });
+      authService.api.getSession.mockResolvedValue({
+        user: mockUser,
+        session: {},
+      });
 
       await service.handleTwoFactorDisabled({ headers: {} } as never);
 
-      expect(notificationsPublisher.emitUserTwoFactorDisabled).toHaveBeenCalledWith({
+      expect(
+        notificationsPublisher.emitUserTwoFactorDisabled,
+      ).toHaveBeenCalledWith({
         userId: mockUser.id,
         email: mockUser.email,
       });

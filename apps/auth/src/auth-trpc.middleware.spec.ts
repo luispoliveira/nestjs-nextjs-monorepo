@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from '@thallesp/nestjs-better-auth';
+import type { MiddlewareResponse } from 'nestjs-trpc-v2';
 import { AuthTrpcMiddleware } from './auth-trpc.middleware';
 
 jest.mock('@thallesp/nestjs-better-auth', () => ({
@@ -36,7 +37,10 @@ describe('AuthTrpcMiddleware', () => {
       const ctx = { req: { headers: {} }, res: {} };
       const next = jest.fn().mockResolvedValue({ result: 'ok' });
 
-      const result = await middleware.use({ ctx, next } as never);
+      const result: MiddlewareResponse = await middleware.use({
+        ctx,
+        next,
+      } as never);
 
       expect(next).toHaveBeenCalledWith({
         ctx: { ...ctx, user: mockUser },
@@ -50,9 +54,9 @@ describe('AuthTrpcMiddleware', () => {
       const ctx = { req: { headers: {} }, res: {} };
       const next = jest.fn();
 
-      await expect(
-        middleware.use({ ctx, next } as never),
-      ).rejects.toThrow('Unauthorized');
+      await expect(middleware.use({ ctx, next } as never)).rejects.toThrow(
+        'Unauthorized',
+      );
     });
 
     it('should throw Unauthorized when session has no user', async () => {
@@ -61,9 +65,9 @@ describe('AuthTrpcMiddleware', () => {
       const ctx = { req: { headers: {} }, res: {} };
       const next = jest.fn();
 
-      await expect(
-        middleware.use({ ctx, next } as never),
-      ).rejects.toThrow('Unauthorized');
+      await expect(middleware.use({ ctx, next } as never)).rejects.toThrow(
+        'Unauthorized',
+      );
     });
 
     it('should throw Unauthorized when getSession throws', async () => {
@@ -72,9 +76,9 @@ describe('AuthTrpcMiddleware', () => {
       const ctx = { req: { headers: {} }, res: {} };
       const next = jest.fn();
 
-      await expect(
-        middleware.use({ ctx, next } as never),
-      ).rejects.toThrow('Unauthorized');
+      await expect(middleware.use({ ctx, next } as never)).rejects.toThrow(
+        'Unauthorized',
+      );
     });
   });
 });

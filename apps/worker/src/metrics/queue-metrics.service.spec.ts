@@ -41,7 +41,7 @@ describe('QueueMetricsService', () => {
       const GaugeMock = Gauge as jest.Mock;
       const collectFn = GaugeMock.mock.calls[0][0]
         .collect as () => Promise<void>;
-      const setMock = GaugeMock.mock.results[0].value.set as jest.Mock;
+      const setMock = GaugeMock.mock.results[0]!.value.set as jest.Mock;
 
       await collectFn.call({ set: setMock });
 

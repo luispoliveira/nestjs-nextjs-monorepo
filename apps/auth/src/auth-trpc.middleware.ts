@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { AuthService } from '@thallesp/nestjs-better-auth';
+import type { Request, Response } from 'express';
 import {
   MiddlewareOptions,
   MiddlewareResponse,
@@ -11,13 +12,13 @@ export class AuthTrpcMiddleware implements TRPCMiddleware {
   constructor(private readonly authService: AuthService) {}
 
   async use(
-    opts: MiddlewareOptions<{ req: any; res: any }>,
+    opts: MiddlewareOptions<{ req: Request; res: Response }>,
   ): Promise<MiddlewareResponse> {
     const { ctx, next } = opts;
 
     try {
       const session = await this.authService.api.getSession({
-        headers: ctx.req.headers,
+        headers: ctx.req.headers as unknown as HeadersInit,
       });
 
       if (session?.user && session.session) {
@@ -31,7 +32,7 @@ export class AuthTrpcMiddleware implements TRPCMiddleware {
 
       throw new Error('Unauthorized');
     } catch (error) {
-      throw new Error('Unauthorized');
+      throw new Error('Unauthorized', { cause: error });
     }
   }
 }

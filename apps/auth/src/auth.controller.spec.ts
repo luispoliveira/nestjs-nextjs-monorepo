@@ -35,8 +35,8 @@ describe('AuthController', () => {
     authService = {
       api: {
         getSession: jest.fn(),
-      } as any,
-    };
+      },
+    } as unknown as jest.Mocked<Pick<AuthService, 'api'>>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
