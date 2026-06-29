@@ -27,7 +27,9 @@ const sharedModuleRegisterParamsSchema = z.object({
 
 type SharedModuleRegisterParams = z.infer<
   typeof sharedModuleRegisterParamsSchema
->;
+> & {
+  validate?: (config: Record<string, unknown>) => Record<string, unknown>;
+};
 
 const defaultParams: SharedModuleRegisterParams = {
   throttlerOptions: {
@@ -46,6 +48,7 @@ export class SharedModule {
         ConfigModule.forRoot({
           isGlobal: true,
           envFilePath: '.env',
+          validate: params.validate,
         }),
         DatabaseModule,
         TerminusModule.forRoot({

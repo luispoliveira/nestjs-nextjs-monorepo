@@ -3,10 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailModule } from '@repo/mail';
 import { QueueModule, QUEUES, SharedModule } from '@repo/shared';
 import { EmailConsumer } from './consumer/email.consumer';
+import { workerEnvSchema } from './env';
 
 @Module({
   imports: [
-    SharedModule.register(),
+    SharedModule.register({ validate: (c) => workerEnvSchema.parse(c) }),
     QueueModule.registerQueues([QUEUES.EMAIL]),
     MailModule.forRootAsync({
       provider: 'brevo',
