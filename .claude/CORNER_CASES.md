@@ -29,9 +29,9 @@ Accumulated corner cases, gotchas, and non-obvious behaviours discovered during 
 
 ---
 
-## Queues (Bull v4)
+## Queues (BullMQ)
 
-<!-- Add Bull queue edge cases here -->
+<!-- Add BullMQ queue edge cases here -->
 
 ---
 

@@ -122,70 +122,74 @@ Client (browser / other service)
          request.user populated
 ```
 
-- `@Public()` on a handler bypasses the guard.
-- `@CurrentUser()` extracts `request.user` in HTTP controllers.
-- `ContextUtil.extractToken()` resolves from `Authorization: Bearer …` header or `better-auth.session_token` / `__Secure-better-auth.session_token` cookie.
+---
+
+## Event-Driven Flow
+
+### User Created → Welcome Email
+
+```text
+1. auth app
+   better-auth fires user.created hook
+         │
+         ▼
+   NotificationsPublisher.emit(USER_CREATED, { user })
+         │ Redis EVENT_PATTERN
+         ▼
+
+2. notifications app
+   @EventPattern(USER_CREATED)
+   AppController.onUserCreated()
+         │
+         ▼
+   EmailProducer.add(SEND_WELCOME_EMAIL, { to, name })
+         │ BullMQ email-queue
+         ▼
+
+3. worker app
+   @Processor(QUEUES.EMAIL)
+   EmailConsumer.process(job) — switch on job.name
+     → case JOB_PATTERNS.SEND_WELCOME_EMAIL
+         │
+         ▼
+   MailModule → Brevo API → Email delivered
+```
+
+### Supported Events
+
+| Event Pattern                       | Trigger             | Job Enqueued                     |
+| ----------------------------------- | ------------------- | -------------------------------- |
+| `user:created`                      | New registration    | `SEND_WELCOME_EMAIL`             |
+| `user:password_reset_requested`     | Password reset flow | `SEND_PASSWORD_RESET_EMAIL`      |
+| `user:password_changed`             | Password changed    | `SEND_PASSWORD_CHANGED_EMAIL`    |
+| `user:email_verification_requested` | Email verification  | `SEND_EMAIL_VERIFICATION_EMAIL`  |
+| `user:two_factor_enabled`           | 2FA enabled         | `SEND_TWO_FACTOR_ENABLED_EMAIL`  |
+| `user:two_factor_disabled`          | 2FA disabled        | `SEND_TWO_FACTOR_DISABLED_EMAIL` |
 
 ---
 
-## Notification / Email Flow
+## tRPC Architecture
 
-```
-apps/auth (lifecycle hook)
-    │
-    │  NotificationsPublisher.emit<event>(data)
-    │  → BasePublisher.publish() injects correlationId from CLS
-    │
-    ▼ Redis (fire-and-forget, EVENT_PATTERNS.*)
-apps/notifications (AppController @EventPattern)
-    │
-    │  AppService.send<X>Notification(email, ...)
-    │  → EmailProducer.send<X>Email()
-    │  → BaseProducer.addJob() injects correlationId
-    │
-    ▼ BullMQ  email-queue
-apps/worker (EmailConsumer @Processor)
-    │
-    │  switch(job.name) → MailService.send()
-    │
-    ├── success → @OnWorkerEvent('completed') → metrics recorded
-    │
-    └── failure → @OnWorkerEvent('failed')
-                    ├── Sentry.captureException()
-                    ├── metrics.recordFailure()
-                    └── if attemptsMade >= maxAttempts
-                            → dlqQueue.add(job.name, job.data)
-                                      (email-queue-dlq)
+```text
+apps/web (Next.js)
+  TrpcProvider (root layout)
+    └─ httpBatchLink → tRPC endpoint
+         │
+         ▼
+apps/api  (HTTP gateway, globalPrefix 'api')
+  TRPCModule.forRoot({ basePath: '/api/trpc', context: AppContext })  ← nestjs-trpc-v2
+    │  APP_GUARD: MicroserviceAuthGuard (validates session via apps/auth over Redis)
+    └─ AppRouter  (@Router)
+         @UseMiddlewares(LoggingTrpcMiddleware, AuthTrpcMiddleware)
+              └─ procedures (e.g. hello)
+
+packages/trpc
+  └─ AppRouter type (auto-generated from apps/api into src/server/api/, imported by web)
 ```
 
-**DLQ management** — via Redis `@MessagePattern` on `apps/worker`:
-
-- `dlq:list` — list jobs in `email-queue-dlq`
-- `dlq:replay` — move job back to `email-queue`
-- `dlq:purge` — remove job from DLQ
-
----
-
-## Module Registration Pattern
-
-All apps follow this bootstrap sequence:
-
-```typescript
-// 1. Create app
-const app = await NestFactory.create(AppModule);
-
-// 2. Attach Redis microservice transport (where applicable)
-app.connectMicroservice({ transport: Transport.REDIS, options: { ... } });
-
-// 3. Bootstrap utilities (helmet, versioning, swagger, cors, cookie-parser)
-BootstrapUtil.setup(app, { globalPrefix, ... });
-
-// 4. Start microservices then HTTP
-await app.startAllMicroservices();
-await app.listen(port);
-```
-
-`main.ts` is the **only** place where `process.env` is read directly. All other code uses `ConfigService.getOrThrow(...)`.
+> The tRPC gateway lives in `apps/api`, not `apps/auth`. The `autoSchemaFile`
+> in `apps/api/src/app.module.ts` regenerates the router type into
+> `packages/trpc/src/server/api/` outside production.
 
 ---
 
