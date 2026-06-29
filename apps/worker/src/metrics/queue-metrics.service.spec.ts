@@ -19,8 +19,10 @@ describe('QueueMetricsService', () => {
     jest.clearAllMocks();
 
     mockQueue = {
-      getJobCounts: jest.fn().mockResolvedValue({ waiting: 2, active: 1, delayed: 0, failed: 0 }),
-    } as unknown as jest.Mocked<Pick<Queue, 'getJobCounts'>>;
+      getJobCounts: jest
+        .fn()
+        .mockResolvedValue({ waiting: 2, active: 1, delayed: 0, failed: 0 }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -37,7 +39,8 @@ describe('QueueMetricsService', () => {
   describe('onModuleInit() — Gauge collect callback', () => {
     it('should call set with job counts from the queue', async () => {
       const GaugeMock = Gauge as jest.Mock;
-      const collectFn = GaugeMock.mock.calls[0][0].collect as () => Promise<void>;
+      const collectFn = GaugeMock.mock.calls[0][0]
+        .collect as () => Promise<void>;
       const setMock = GaugeMock.mock.results[0].value.set as jest.Mock;
 
       await collectFn.call({ set: setMock });
@@ -55,7 +58,8 @@ describe('QueueMetricsService', () => {
     it('should fall back to 0 when count properties are undefined', async () => {
       (mockQueue.getJobCounts as jest.Mock).mockResolvedValue({});
       const GaugeMock = Gauge as jest.Mock;
-      const collectFn = GaugeMock.mock.calls[0][0].collect as () => Promise<void>;
+      const collectFn = GaugeMock.mock.calls[0][0]
+        .collect as () => Promise<void>;
       const setMock = jest.fn();
 
       await collectFn.call({ set: setMock });
@@ -69,7 +73,8 @@ describe('QueueMetricsService', () => {
 
   describe('recordDuration()', () => {
     it('should observe the histogram with job name and duration converted to seconds', () => {
-      const histogram = (service as unknown as Record<string, unknown>).durationHistogram as { observe: jest.Mock };
+      const histogram = (service as unknown as Record<string, unknown>)
+        .durationHistogram as { observe: jest.Mock };
 
       service.recordDuration('send-welcome-email', 1500);
 
@@ -82,7 +87,8 @@ describe('QueueMetricsService', () => {
 
   describe('recordFailure()', () => {
     it('should increment the counter with job name labels', () => {
-      const counter = (service as unknown as Record<string, unknown>).failureCounter as { inc: jest.Mock };
+      const counter = (service as unknown as Record<string, unknown>)
+        .failureCounter as { inc: jest.Mock };
 
       service.recordFailure('send-password-reset-email');
 
