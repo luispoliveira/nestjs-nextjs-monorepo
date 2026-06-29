@@ -8,7 +8,9 @@ export class SentryUtil {
     Sentry.init({
       dsn,
       environment: process.env.NODE_ENV ?? 'development',
-      tracesSampleRate: 0,
+      tracesSampleRate: process.env.SENTRY_TRACES_SAMPLE_RATE
+        ? Number(process.env.SENTRY_TRACES_SAMPLE_RATE)
+        : 0,
       initialScope: {
         tags: { app: appName },
       },
