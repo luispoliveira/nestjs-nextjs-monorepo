@@ -41,14 +41,14 @@ jobs:
       - name: Generate Prisma client
         run: pnpm db:generate
 
+      - name: Build
+        run: pnpm build
+
       - name: Lint
         run: pnpm lint
 
       - name: Type check
         run: pnpm check-types
-
-      - name: Build
-        run: pnpm build
 
       - name: Test
         run: pnpm test
