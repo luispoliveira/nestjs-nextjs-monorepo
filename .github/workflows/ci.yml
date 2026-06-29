@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Cache Turborepo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Type check
+        run: pnpm check-types
+
+      - name: Build
+        run: pnpm build
+
+      - name: Test
+        run: pnpm test
+
+  # ── Deploy skeleton ────────────────────────────────────────────────────────
+  # Uncomment and customise one of the variants below when you have a deploy
+  # target. Move to a separate deploy.yml if it grows complex.
+  #
+  # deploy:
+  #   name: Deploy
+  #   needs: quality
+  #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #
+  #     # ── PM2 on a VPS (see DEPLOY-PM2.md) ──────────────────────────────
+  #     # - uses: appleboy/ssh-action@v1
+  #     #   with:
+  #     #     host: ${{ secrets.DEPLOY_HOST }}
+  #     #     username: ${{ secrets.DEPLOY_USER }}
+  #     #     key: ${{ secrets.DEPLOY_SSH_KEY }}
+  #     #     script: |
+  #     #       cd /app
+  #     #       git pull
+  #     #       pnpm install --frozen-lockfile
+  #     #       pnpm build
+  #     #       pm2 reload ecosystem.config.js
+  #
+  #     # ── Docker Compose on a VPS (see DEPLOY.md) ───────────────────────
+  #     # - uses: appleboy/ssh-action@v1
+  #     #   with:
+  #     #     host: ${{ secrets.DEPLOY_HOST }}
+  #     #     username: ${{ secrets.DEPLOY_USER }}
+  #     #     key: ${{ secrets.DEPLOY_SSH_KEY }}
+  #     #     script: |
+  #     #       cd /app
+  #     #       git pull
+  #     #       docker compose pull
+  #     #       docker compose up -d --build
