@@ -18,9 +18,9 @@
     }
   },
   "peerDependencies": {
-    "@nestjs/common": "^11.1.24",
+    "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.24"
+    "@nestjs/core": "^11.1.28"
   },
   "dependencies": {
     "@getbrevo/brevo": "^5.0.4",
@@ -28,10 +28,10 @@
     "@repo/shared-types": "workspace:*"
   },
   "devDependencies": {
-    "@nestjs/testing": "^11.1.27",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^26.0.1",
-    "jest": "^29.7.0",
+    "@nestjs/testing": "^11.1.28",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.1.1",
+    "jest": "^30.4.2",
     "ts-jest": "^29.4.11",
     "typescript": "^6.0.3"
   },

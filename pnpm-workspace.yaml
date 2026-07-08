@@ -2,13 +2,16 @@ packages:
   - 'apps/*'
   - 'packages/*'
 overrides:
-  zod: '~4.3.6'
+  zod: '~4.4.3'
 allowBuilds:
   '@nestjs/core': true
   '@prisma/engines': true
   '@scarf/scarf': true
+  cpu-features: true
   msgpackr-extract: true
   msw: true
   prisma: true
+  protobufjs: true
   sharp: true
+  ssh2: true
   unrs-resolver: true
