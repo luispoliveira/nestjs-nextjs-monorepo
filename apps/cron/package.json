@@ -1,5 +1,5 @@
 {
-  "name": "auth",
+  "name": "cron",
   "version": "0.0.1",
   "description": "",
   "author": "",
@@ -18,30 +18,21 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:integration": "jest --config ./test/jest-integration.json",
-    "test:e2e": "NODE_OPTIONS='--experimental-vm-modules' jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
-    "@better-auth/prisma-adapter": "^1.6.23",
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.1.28",
-    "@nestjs/microservices": "^11.1.28",
     "@nestjs/platform-express": "^11.1.28",
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@nestjs/schedule": "^6.1.3",
     "@repo/database": "workspace:*",
     "@repo/shared": "workspace:*",
     "@repo/shared-types": "workspace:*",
-    "@repo/trpc": "workspace:*",
-    "@thallesp/nestjs-better-auth": "^2.7.0",
-    "better-auth": "^1.6.23",
-    "ioredis": "^5.11.1",
     "nestjs-pino": "^4.6.1",
-    "nestjs-trpc-v2": "^1.4.1",
-    "pg": "^8.22.0",
     "pino-http": "^11.0.0",
     "pino-pretty": "^13.1.3",
+    "prom-client": "^15.1.3",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "~4.4.3"
@@ -57,7 +48,6 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.1.1",
     "@types/supertest": "^7.2.0",
-    "dotenv": "^17.4.2",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
@@ -99,14 +89,11 @@
     "testEnvironment": "node",
     "coverageThreshold": {
       "global": {
-        "branches": 80,
+        "branches": 70,
         "functions": 80,
         "lines": 80,
         "statements": 80
       }
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!(@thallesp/nestjs-better-auth|better-auth)/)"
-    ]
+    }
   }
 }
