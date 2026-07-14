@@ -193,6 +193,9 @@ AUTH_API_URL=http://localhost:3000
 NEXT_PUBLIC_AUTH_API_URL=https://teu-dominio.com
 BACKEND_PROTOCOL=http
 BACKEND_HOST=localhost
+# Prefixo de path se o web for servido atrás de um subpath (ex: /admin).
+# Vazio por omissão — a app corre na raiz do domínio.
+NEXT_PUBLIC_BASE_PATH=
 ```
 
 Para ambiente QA, cria um `.env.qa` com os valores correspondentes. O ecosystem carrega automaticamente o ficheiro certo conforme o `--env` passado ao PM2.
