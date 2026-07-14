@@ -13,8 +13,10 @@ See also: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) | [ENTRYPOINTS.md
 | `package.json`        | Root workspace; pnpm scripts (`dev`, `build`, `lint`, `db:*`, `docker:*`)                                  |
 | `pnpm-workspace.yaml` | Declares `apps/*` and `packages/*`; pins `zod ~4.3.6` globally                                             |
 | `turbo.json`          | Turborepo pipeline: build, dev, lint, test, test:cov, test:integration, test:e2e, check-types, db:\* tasks |
-| `docker-compose.yaml` | Local infra: PostgreSQL, MongoDB, Redis                                                                    |
+| `docker-compose.yaml` | Local infra: PostgreSQL, MongoDB, Redis, Prometheus, Grafana (per-app service defs + Traefik kept commented for future prod use) |
 | `.nvmrc`              | Node `>=22`                                                                                                |
+| `docker/`             | Compose service config: `docker/prometheus/prometheus.yml` (scrape config), `docker/grafana/provisioning/` (datasource), `postgres.env`/`mongo.env` |
+| `openspec/specs/`     | Archived OpenSpec specs, one per shipped change (e.g. `local-observability-stack/spec.md`)                 |
 | `CLAUDE.md`           | AI assistant instructions                                                                                  |
 | `.github/`            | Copilot instructions, git commit rules, PR templates                                                       |
 | `.claude/`            | Agent definitions, corner-cases log                                                                        |
@@ -23,26 +25,13 @@ See also: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) | [ENTRYPOINTS.md
 
 ## `apps/`
 
-### `apps/api/`
-
-Main HTTP + tRPC gateway. Sits behind Nginx in production.
-
-| Path                    | Role                                                                                       |
-| ----------------------- | ------------------------------------------------------------------------------------------ |
-| `src/main.ts`           | Bootstrap: `globalPrefix='api'`, Swagger on `/api/docs`, `trustProxy:true`                 |
-| `src/app.module.ts`     | Imports `SharedModule`, `ClientsModule` (AUTH service), `TRPCModule`                       |
-| `src/app.controller.ts` | `GET /api` — health-check stub; decorated `@RateLimit('default')`                          |
-| `src/app.router.ts`     | tRPC `AppRouter`: `hello` query; middlewares `LoggingTrpcMiddleware`, `AuthTrpcMiddleware` |
-| `src/app.context.ts`    | tRPC context factory                                                                       |
-| `test/`                 | Jest unit tests                                                                            |
-
-Global guard: `MicroserviceAuthGuard` (validates bearer token via `AUTH_SERVICE` over Redis).
-
----
+All NestJS apps share the same `globalPrefix: 'api'` (set in each `src/main.ts`) and are
+distinguished by **port**, not by path prefix. See [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md#service-ports)
+for the full port table.
 
 ### `apps/auth/`
 
-**Role**: NestJS authentication service (primary backend).
+**Role**: NestJS authentication service (primary backend). Port `3000`.
 
 - Manages user sessions via `better-auth` + Prisma adapter.
 - Exposes REST API at `/api/auth` + microservice listener on Redis.
@@ -54,9 +43,11 @@ Global guard: `MicroserviceAuthGuard` (validates bearer token via `AUTH_SERVICE`
   - `src/auth.controller.ts` — `@MessagePattern(AUTH_AUTHENTICATE)` handler
   - `src/local-auth.service.ts` — Event publishing to Notifications service
 
+---
+
 ### `apps/api/`
 
-**Role**: NestJS tRPC HTTP gateway.
+**Role**: NestJS tRPC HTTP gateway. Port `3100`. Sits behind Nginx in production.
 
 - Hosts the tRPC router for end-to-end type-safe communication with Next.js.
 - Mounts `TRPCModule.forRoot()` from `nestjs-trpc-v2` (`basePath: '/api/trpc'`, `globalPrefix: 'api'`).
@@ -64,23 +55,45 @@ Global guard: `MicroserviceAuthGuard` (validates bearer token via `AUTH_SERVICE`
 - Registers an `AUTH_SERVICE` Redis client (`ClientsModule`) — it does **not** listen as a microservice.
 - Regenerates the `AppRouter` type into `packages/trpc/src/server/api/` (non-production, via `autoSchemaFile`).
 - Key files:
-  - `src/app.module.ts` — `SharedModule` + `TRPCModule.forRoot()` + `MicroserviceAuthGuard` APP_GUARD
+  - `src/main.ts` — Bootstrap: `globalPrefix='api'`, `trustProxy:true`
+  - `src/app.module.ts` — `SharedModule` + `ClientsModule` (AUTH service) + `TRPCModule.forRoot()` + `MicroserviceAuthGuard` APP_GUARD
+  - `src/app.controller.ts` — `GET /api` health-check stub, decorated `@RateLimit('default')`
   - `src/app.router.ts` — Root `AppRouter` (`@Router`, `@UseMiddlewares(LoggingTrpcMiddleware, AuthTrpcMiddleware)`)
   - `src/app.context.ts` — tRPC context (auth session extraction)
-  - `src/app.controller.ts` — `GET /` health/hello route
+  - `test/` — Jest unit tests
+
+---
+
+### `apps/cron/`
+
+**Role**: NestJS scheduled-jobs runner. Port `3200`. No business HTTP routes — health/metrics/docs only.
+
+| Path                                        | Role                                                                          |
+| -------------------------------------------- | ------------------------------------------------------------------------------ |
+| `src/main.ts`                                | Bootstrap: `globalPrefix='api'`, no Redis microservice transport             |
+| `src/app.module.ts`                          | Imports `SharedModule`, `ScheduleModule.forRoot()`; registers cron providers |
+| `src/env.ts`                                 | `cronEnvSchema` — app-specific env validation                                |
+| `src/example/example-cron.service.ts`        | Example `@Cron(CronExpression.EVERY_HOUR)` job (`Europe/Lisbon` timezone)     |
+| `src/example/example-cron.service.spec.ts`   | Unit test for the example cron job                                           |
+
+> `ExampleCronService` carries a `ponytail:` comment: run this app single-instance
+> (e.g. PM2 `fork` with 1 instance) so jobs don't fire once per replica. Upgrade
+> path if HA scheduling is ever needed: a Redis lock or a BullMQ repeatable job.
+
+---
 
 ### `apps/notifications/`
 
 Redis-event–driven notification dispatcher. Enqueues email jobs into BullMQ.
 
-| Path                         | Role                                                                                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------- |
-| `src/main.ts`                | Bootstrap: `globalPrefix='api/notifications'`, Redis microservice transport, port `3100` |
-| `src/app.module.ts`          | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`                     |
-| `src/app.controller.ts`      | Six `@EventPattern` handlers (see [ENTRYPOINTS.md](ENTRYPOINTS.md))                      |
-| `src/app.service.ts`         | Delegates to `EmailProducer` for each event type                                         |
-| `src/app.controller.spec.ts` | Unit tests for `AppController`                                                           |
-| `src/app.service.spec.ts`    | Unit tests for `AppService`                                                              |
+| Path                         | Role                                                                       |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `src/main.ts`                | Bootstrap: `globalPrefix='api'`, Redis microservice transport, port `3300` |
+| `src/app.module.ts`          | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`       |
+| `src/app.controller.ts`      | Six `@EventPattern` handlers (see [ENTRYPOINTS.md](ENTRYPOINTS.md))        |
+| `src/app.service.ts`         | Delegates to `EmailProducer` for each event type                           |
+| `src/app.controller.spec.ts` | Unit tests for `AppController`                                             |
+| `src/app.service.spec.ts`    | Unit tests for `AppService`                                                |
 
 ---
 
@@ -90,7 +103,7 @@ BullMQ consumer. Processes email jobs and handles the Dead Letter Queue.
 
 | Path                                        | Role                                                                                            |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `src/main.ts`                               | Bootstrap: `globalPrefix='api/worker'`, Redis microservice transport, port `3200`               |
+| `src/main.ts`                               | Bootstrap: `globalPrefix='api'`, Redis microservice transport, port `3400`                      |
 | `src/app.module.ts`                         | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`, `MailModule`, `DlqModule` |
 | `src/consumer/email.consumer.ts`            | `@Processor(QUEUES.EMAIL)` — dispatches on `job.name`; routes exhausted jobs to DLQ             |
 | `src/consumer/email.consumer.spec.ts`       | Unit tests for `EmailConsumer`                                                                  |
@@ -107,7 +120,7 @@ BullMQ consumer. Processes email jobs and handles the Dead Letter Queue.
 
 ### `apps/web/`
 
-Next.js 16 admin dashboard (App Router).
+Next.js 16 admin dashboard (App Router). Port `8080` (dev and prod — see `package.json` `dev` script and the commented `docker-compose.yaml` web service).
 
 | Path                                     | Role                                                                                |
 | ---------------------------------------- | ----------------------------------------------------------------------------------- |

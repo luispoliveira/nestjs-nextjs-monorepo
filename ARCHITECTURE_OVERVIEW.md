@@ -20,7 +20,7 @@ See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ENTRYPOINTS.md](ENTRYPOINTS.md) | 
                HTTP    │      │  HTTP
           ┌────────────▼──┐ ┌─▼────────────────┐
           │  apps/api     │ │  apps/auth        │
-          │  :PORT/api    │ │  :PORT/api/auth   │
+          │  :3100/api    │ │  :3000/api/auth   │
           │  tRPC + REST  │ │  better-auth      │
           └───────┬───────┘ └──────────┬────────┘
                   │                    │
@@ -35,17 +35,38 @@ See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ENTRYPOINTS.md](ENTRYPOINTS.md) | 
     Redis    │                 BullMQ │ email-queue
     events   │               ┌────────▼──────────┐
              │               │  apps/worker      │
-    ┌────────▼───────┐        │  EmailConsumer    │
-    │ apps/notif-    │        │  DLQ: email-queue-dlq │
-    │ ications       │        └────────┬──────────┘
-    │ :PORT/api/     │                 │ SMTP
-    │ notifications  │         ┌───────▼───────┐
-    └────────────────┘         │  Brevo (mail) │
-                               └───────────────┘
+    ┌────────▼───────┐        │  :3400            │
+    │ apps/notif-    │        │  EmailConsumer    │
+    │ ications       │        │  DLQ: email-queue-dlq │
+    │ :3300/api      │        └────────┬──────────┘
+    └────────────────┘                 │ SMTP
+                                ┌───────▼───────┐
+                                │  Brevo (mail) │
+                                └───────────────┘
           │
           │ BullMQ enqueue (email-queue)
           └──────────────────────────────►  apps/worker
+
+  apps/cron :3200 — not shown above; runs @nestjs/schedule jobs on a timer,
+  no inbound HTTP/Redis traffic in the request path (health/metrics only).
 ```
+
+---
+
+## Service Ports
+
+Every NestJS app shares the same `globalPrefix: 'api'` (set via `BootstrapUtil.setup`)
+— apps are told apart by **port**, not by path prefix. Set in each `apps/*/.env.example`
+and read via `ConfigService.getOrThrow<number>('PORT')` in `main.ts`.
+
+| App                  | Port   | Transport                                             |
+| --------------------- | ------ | ------------------------------------------------------ |
+| `apps/auth`          | `3000` | HTTP (`/api/auth/*`) + Redis microservice             |
+| `apps/api`           | `3100` | HTTP (`/api`, `/api/trpc/*`)                          |
+| `apps/cron`          | `3200` | HTTP (health/metrics/docs only) — no Redis            |
+| `apps/notifications` | `3300` | HTTP (health/metrics/docs only) + Redis microservice  |
+| `apps/worker`        | `3400` | HTTP (health/metrics/docs only) + Redis microservice  |
+| `apps/web`           | `8080` | HTTP (Next.js, dev and prod)                          |
 
 ---
 
@@ -56,8 +77,38 @@ See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ENTRYPOINTS.md](ENTRYPOINTS.md) | 
 | PostgreSQL | Primary database — Prisma 7 via `PrismaPg` adapter                                  |
 | MongoDB    | Log/audit storage — HTTP request logs, email send logs (30-day TTL)                 |
 | Redis      | Microservice transport (NestJS Redis strategy) + BullMQ queues + throttler storage  |
-| Sentry     | Error tracking — initialized in each app's `main.ts` via `SentryUtil.init(appName)` |
+| Prometheus | Scrapes `GET /api/metrics` on all 5 NestJS apps — see [Observability](#observability) |
+| Grafana    | Dashboards over the Prometheus datasource — see [Observability](#observability)     |
+| Sentry     | Error tracking (optional) — `SentryUtil.init(appName)` in each app's `main.ts`; enabled by setting `SENTRY_DSN` |
 | Brevo      | Transactional email delivery                                                        |
+
+---
+
+## Observability
+
+Local-only stack, provisioned by `docker-compose.yaml` (active services — unlike the
+per-app service defs and Traefik, which stay commented for future prod use). Full
+requirements: `openspec/specs/local-observability-stack/spec.md`.
+
+```
+┌───────────────┐   scrape /api/metrics    ┌───────────────────────┐
+│  Prometheus    │◄─────────────────────────┤  auth          :3000  │
+│  :9090         │◄─────────────────────────┤  api           :3100  │
+│  (container)   │◄─────────────────────────┤  cron          :3200  │
+│                │◄─────────────────────────┤  notifications :3300  │
+│                │◄─────────────────────────┤  worker        :3400  │
+└───────┬────────┘   via host.docker.internal └───────────────────────┘
+        │ datasource (provisioned)
+        ▼
+┌───────────────┐
+│   Grafana      │
+│   :3333        │
+└───────────────┘
+```
+
+- Scrape config: `docker/prometheus/prometheus.yml` — one `job_name` per app, `metrics_path: /api/metrics`, targets `host.docker.internal:<port>`. Includes a comment for Linux users to add `extra_hosts: ["host.docker.internal:host-gateway"]` to the Prometheus service.
+- Grafana datasource: `docker/grafana/provisioning/datasources/prometheus.yaml` — provisions a `Prometheus` datasource pointing at `http://prometheus:9090`, marked `isDefault: true`.
+- Every app exposes `GET /api/metrics` via `MetricsController` (`packages/shared/src/metrics/metrics.controller.ts`), guarded by `MetricsAuthGuard` (`packages/shared/src/metrics/metrics-auth.guard.ts`): if `METRICS_TOKEN` is set, requests must send `Authorization: Bearer <token>`; if unset, the endpoint is open (local dev default).
 
 ---
 
@@ -93,8 +144,8 @@ See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ENTRYPOINTS.md](ENTRYPOINTS.md) | 
 
 | Controller          | Routes                                                                    |
 | ------------------- | ------------------------------------------------------------------------- |
-| `HealthController`  | `GET /health/live`, `GET /health/ready` (version-neutral)                 |
-| `MetricsController` | `GET /metrics` (Prometheus scrape endpoint; `MetricsAuthGuard` protected) |
+| `HealthController`  | `GET /api/health/live`, `GET /api/health/ready` (version-neutral)                 |
+| `MetricsController` | `GET /api/metrics` (Prometheus scrape endpoint; `MetricsAuthGuard` protected, version-neutral) |
 
 ---
 

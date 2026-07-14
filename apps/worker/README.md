@@ -87,15 +87,15 @@ Check out a few resources that may come in handy when working with NestJS:
 
 ### Prometheus Metrics
 
-The worker exposes metrics at `GET /api/worker/metrics` (scraped by Prometheus).
+The worker exposes metrics at `GET /api/metrics` (scraped by Prometheus; distinguished from other apps by port `3400`, not by path).
 
 Key metrics:
 
-| Metric | Labels | Description |
-|---|---|---|
-| `bullmq_queue_depth` | `queue`, `state` | Job counts by queue and state |
+| Metric                        | Labels              | Description                   |
+| ----------------------------- | ------------------- | ----------------------------- |
+| `bullmq_queue_depth`          | `queue`, `state`    | Job counts by queue and state |
 | `bullmq_job_duration_seconds` | `queue`, `job_name` | Processing duration histogram |
-| `bullmq_job_failures_total` | `queue`, `job_name` | Permanent failure counter |
+| `bullmq_job_failures_total`   | `queue`, `job_name` | Permanent failure counter     |
 
 ### Dead Letter Queue (DLQ) Alert
 
@@ -111,8 +111,8 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "BullMQ DLQ has stranded jobs"
-          description: "Queue {{ $labels.queue }} has {{ $value }} job(s) in the DLQ for over 5 minutes."
+          summary: 'BullMQ DLQ has stranded jobs'
+          description: 'Queue {{ $labels.queue }} has {{ $value }} job(s) in the DLQ for over 5 minutes.'
 ```
 
 The `queue=~".*-dlq"` wildcard covers all present and future DLQ queues.

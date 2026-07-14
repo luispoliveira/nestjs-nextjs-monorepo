@@ -1,6 +1,7 @@
 # Prometheus scrape configuration for local development.
 #
 # Apps run on the host via `pnpm dev`; Prometheus reaches them via host.docker.internal.
+# All apps share the same globalPrefix ('api') and are distinguished by port, not path.
 #
 # Linux users: add the following to the `prometheus` service in docker-compose.yaml:
 #   extra_hosts:
@@ -11,23 +12,37 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
+  - job_name: auth
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ['host.docker.internal:3000']
+        labels:
+          app: auth
+
   - job_name: api
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ['host.docker.internal:3100']
+        labels:
+          app: api
+
+  - job_name: cron
+    metrics_path: /api/metrics
+    static_configs:
+      - targets: ['host.docker.internal:3200']
+        labels:
+          app: cron
+
+  - job_name: notifications
     metrics_path: /api/metrics
     static_configs:
       - targets: ['host.docker.internal:3300']
         labels:
-          app: api
-
-  - job_name: notifications
-    metrics_path: /api/notifications/metrics
-    static_configs:
-      - targets: ['host.docker.internal:3100']
-        labels:
           app: notifications
 
   - job_name: worker
-    metrics_path: /api/worker/metrics
+    metrics_path: /api/metrics
     static_configs:
-      - targets: ['host.docker.internal:3200']
+      - targets: ['host.docker.internal:3400']
         labels:
           app: worker

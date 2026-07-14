@@ -10,7 +10,7 @@ Defines the requirements for a local development observability stack powered by 
 
 ### Requirement: Prometheus scrapes all apps in local development
 
-The `docker-compose.yaml` SHALL include a Prometheus service (`prom/prometheus`) that scrapes all four NestJS apps running on the host via `host.docker.internal`. The scrape config SHALL live in `docker/prometheus/prometheus.yml` and be mounted as a volume.
+The `docker-compose.yaml` SHALL include a Prometheus service (`prom/prometheus`) that scrapes all NestJS apps (`auth`, `api`, `cron`, `notifications`, `worker`) running on the host via `host.docker.internal`. Every app shares the same `/api` prefix and is distinguished by port, not by path. The scrape config SHALL live in `docker/prometheus/prometheus.yml` and be mounted as a volume.
 
 #### Scenario: Prometheus service starts with docker:up
 
@@ -20,7 +20,7 @@ The `docker-compose.yaml` SHALL include a Prometheus service (`prom/prometheus`)
 #### Scenario: All app scrape targets are configured
 
 - **WHEN** the Prometheus UI target list is viewed
-- **THEN** scrape targets exist for `auth` (port 3000), `api` (port 3001), `notifications` (port 3100), and `worker` (port 3200)
+- **THEN** scrape targets exist for `auth` (port 3000), `api` (port 3100), `cron` (port 3200), `notifications` (port 3300), and `worker` (port 3400)
 
 ---
 
