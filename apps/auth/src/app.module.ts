@@ -41,7 +41,7 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
             plugins: [twoFactor(), admin()],
             baseURL:
               configService.get<string>('BETTER_AUTH_URL') ||
-              'http://localhost:30000/api/auth',
+              'http://localhost:3000/api/auth',
             ...(googleClientId &&
               googleClientSecret && {
                 socialProviders: {

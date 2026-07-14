@@ -11,14 +11,14 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
 
   const configService = app.get(ConfigService);
-  const port = configService.get<number>('PORT') || 3600;
+  const port = configService.get<number>('PORT') || 3200;
   const environment = configService.get<EnvironmentEnum>(
     'NODE_ENV',
     EnvironmentEnum.DEVELOPMENT,
   );
 
   BootstrapUtil.setup(app, {
-    globalPrefix: 'api/cron',
+    globalPrefix: 'api',
     useHelmet: true,
     enableVersioning: true,
     swagger:

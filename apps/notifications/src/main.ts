@@ -29,7 +29,7 @@ async function bootstrap() {
   );
 
   BootstrapUtil.setup(app, {
-    globalPrefix: 'api/notifications',
+    globalPrefix: 'api',
     useHelmet: true,
     enableVersioning: true,
     swagger:
@@ -49,7 +49,7 @@ async function bootstrap() {
     enableCookieParser: true,
   });
 
-  const port = configService.get<number>('PORT') || 3100;
+  const port = configService.get<number>('PORT') || 3300;
 
   app.enableShutdownHooks();
   await app.startAllMicroservices();
