@@ -11,19 +11,24 @@ Este guia cobre o deploy completo da plataforma num servidor Linux usando Docker
     │
 [Reverse Proxy — Traefik / Nginx]
     │
-    ├── /               → web       (Next.js, porta 8080)
-    ├── /api/auth/*     → auth      (NestJS, porta 3000)
-    ├── /api/trpc/*     → api       (NestJS, porta 3300)
-    ├── /api/...        → api       (NestJS, porta 3300)
-    └── /api/notifications/* → notifications (NestJS, porta 3100)
-                                   worker (NestJS, porta 3200 — interno)
+    ├── /               → web  (Next.js, porta 8080)
+    ├── /api/auth/*     → auth (NestJS, porta 3000)
+    └── /api/...        → api  (NestJS, porta 3100)
+
+[Apps internas — não expostas pelo reverse proxy]
+    ├── cron          (NestJS, porta 3200)
+    ├── notifications (NestJS, porta 3300)
+    └── worker        (NestJS, porta 3400)
+
 [Infraestrutura interna]
     ├── PostgreSQL  (porta 5432)
     ├── Redis       (porta 6379)
     └── MongoDB     (porta 27017)
 ```
 
-Os serviços comunicam entre si via Redis transport (microservices NestJS) e Bull queues.
+Todas as apps NestJS partilham o mesmo prefixo `/api` — a distinção entre serviços é
+feita pela porta, não pelo path. Os serviços comunicam entre si via Redis transport
+(microservices NestJS) e Bull queues.
 
 ---
 
@@ -122,12 +127,12 @@ Criar um ficheiro `.env.production` para cada app. Em produção, o Docker deve 
 
 ---
 
-### `apps/api/.env` (porta 3300)
+### `apps/api/.env` (porta 3100)
 
 | Variável             | Valor de Produção                                                     | Obrigatório | Notas                                                                                                           |
 | -------------------- | --------------------------------------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------- |
 | `NODE_ENV`           | `production`                                                          | ✅          |                                                                                                                 |
-| `PORT`               | `3300`                                                                | ✅          |                                                                                                                 |
+| `PORT`               | `3100`                                                                | ✅          |                                                                                                                 |
 | `DATABASE_URL`       | `postgres://tx_home:<PG_PASS>@postgres:5432/tx_home?schema=public`    | ✅          |                                                                                                                 |
 | `REDIS_HOST`         | `redis`                                                               | ✅          |                                                                                                                 |
 | `REDIS_PORT`         | `6379`                                                                | ✅          |                                                                                                                 |
@@ -142,12 +147,12 @@ Criar um ficheiro `.env.production` para cada app. Em produção, o Docker deve 
 
 ---
 
-### `apps/notifications/.env` (porta 3100)
+### `apps/notifications/.env` (porta 3300)
 
 | Variável         | Valor de Produção                                                     | Obrigatório | Notas |
 | ---------------- | --------------------------------------------------------------------- | ----------- | ----- |
 | `NODE_ENV`       | `production`                                                          | ✅          |       |
-| `PORT`           | `3100`                                                                | ✅          |       |
+| `PORT`           | `3300`                                                                | ✅          |       |
 | `DATABASE_URL`   | `postgres://tx_home:<PG_PASS>@postgres:5432/tx_home?schema=public`    | ✅          |       |
 | `REDIS_HOST`     | `redis`                                                               | ✅          |       |
 | `REDIS_PORT`     | `6379`                                                                | ✅          |       |
@@ -158,12 +163,12 @@ Criar um ficheiro `.env.production` para cada app. Em produção, o Docker deve 
 
 ---
 
-### `apps/worker/.env` (porta 3200)
+### `apps/worker/.env` (porta 3400)
 
 | Variável         | Valor de Produção                                                     | Obrigatório | Notas                                                     |
 | ---------------- | --------------------------------------------------------------------- | ----------- | --------------------------------------------------------- |
 | `NODE_ENV`       | `production`                                                          | ✅          |                                                           |
-| `PORT`           | `3200`                                                                | ✅          |                                                           |
+| `PORT`           | `3400`                                                                | ✅          |                                                           |
 | `DATABASE_URL`   | `postgres://tx_home:<PG_PASS>@postgres:5432/tx_home?schema=public`    | ✅          |                                                           |
 | `REDIS_HOST`     | `redis`                                                               | ✅          |                                                           |
 | `REDIS_PORT`     | `6379`                                                                | ✅          |                                                           |
@@ -184,7 +189,7 @@ Criar um ficheiro `.env.production` para cada app. Em produção, o Docker deve 
 | Variável                   | Valor de Produção           | Obrigatório | Notas                                                                                    |
 | -------------------------- | --------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
 | `AUTH_API_URL`             | `http://auth:3000`          | ✅          | URL **interna** (container-to-container) do serviço auth                                 |
-| `API_URL`                  | `http://api:3300`           | ✅          | URL **interna** do serviço api — usada para rewrite de `/api/trpc/*`                     |
+| `API_URL`                  | `http://api:3100`           | ✅          | URL **interna** do serviço api — usada para rewrite de `/api/trpc/*`                     |
 | `NEXT_PUBLIC_AUTH_API_URL` | `https://<dominio>`         | ✅          | URL **pública** do auth — exposta ao browser (prefixo `NEXT_PUBLIC_`)                    |
 | `NEXT_PUBLIC_API_URL`      | `https://<dominio>`         | ⚠️ opcional | URL pública do API — usada para construir URLs de imagens no cliente                     |
 | `NEXT_PUBLIC_STORAGE_URL`  | `https://storage.<dominio>` | ⚠️ opcional | Se usar CDN/storage externo para imagens; caso contrário o `NEXT_PUBLIC_API_URL` é usado |
@@ -248,7 +253,7 @@ auth:
     start_period: 30s
 ```
 
-Repetir o padrão para `api` (porta 3300), `notifications` (porta 3100), `worker` (porta 3200) e `web` (porta 8080 → exposta conforme o reverse proxy).
+Repetir o padrão para `api` (porta 3100), `cron` (porta 3200), `notifications` (porta 3300), `worker` (porta 3400) e `web` (porta 8080 → exposta conforme o reverse proxy).
 
 > Para os volumes do PostgreSQL e MongoDB em produção, substituir os caminhos absolutos locais (`/Volumes/SSD-DEV/...`) por caminhos no servidor, por exemplo `/data/tx-home/postgres` e `/data/tx-home/mongo`.
 
@@ -307,10 +312,14 @@ docker compose up -d auth api notifications worker web
 ### 6.5 Verificar saúde dos serviços
 
 ```bash
-# Health checks
+# Health checks (públicos, via reverse proxy)
 curl https://<dominio>/api/auth/health/ready
 curl https://<dominio>/api/health/ready
-curl https://<dominio>/api/notifications/health/ready
+
+# Health checks internos (não expostos publicamente)
+curl http://localhost:3200/api/health/ready   # cron
+curl http://localhost:3300/api/health/ready   # notifications
+curl http://localhost:3400/api/health/ready   # worker
 
 # Logs
 docker compose logs -f auth
@@ -352,7 +361,7 @@ server {
 
     # API (tRPC + REST)
     location /api/ {
-        proxy_pass http://localhost:3300/api/;
+        proxy_pass http://localhost:3100/api/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -361,8 +370,9 @@ server {
 }
 ```
 
-> O serviço `worker` (porta 3200) **não deve ser exposto publicamente** — comunica apenas via Redis internamente.
-> O serviço `notifications` (porta 3100) também é tipicamente interno.
+> Os serviços `cron` (porta 3200), `notifications` (porta 3300) e `worker` (porta 3400)
+> **não devem ser expostos publicamente** — comunicam apenas via Redis/BullMQ internamente.
+> Todas as apps partilham o mesmo prefixo `/api`; a distinção é feita pela porta.
 
 ---
 

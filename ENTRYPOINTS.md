@@ -10,12 +10,12 @@ See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ARCHITECTURE_OVERVIEW.md](ARCHITEC
 
 ### `apps/api` — prefix `/api`, versioning enabled
 
-| Method | Path                     | Description                                                                               |
-| ------ | ------------------------ | ----------------------------------------------------------------------------------------- |
-| `*`    | `/api/auth/*`            | All better-auth routes (sign-in, sign-up, sign-out, session, OAuth callbacks, 2FA, admin) |
-| `GET`  | `/api/auth/health/live`  | Liveness probe                                                                            |
-| `GET`  | `/api/auth/health/ready` | Readiness probe (checks DB, Redis)                                                        |
-| `GET`  | `/api/auth/docs`         | Swagger UI (non-production only)                                                          |
+| Method | Path                | Description                                                                               |
+| ------ | ------------------- | ----------------------------------------------------------------------------------------- |
+| `*`    | `/api/auth/*`       | All better-auth routes (sign-in, sign-up, sign-out, session, OAuth callbacks, 2FA, admin) |
+| `GET`  | `/api/health/live`  | Liveness probe                                                                            |
+| `GET`  | `/api/health/ready` | Readiness probe (checks DB, Redis)                                                        |
+| `GET`  | `/api/docs`         | Swagger UI (non-production only)                                                          |
 
 better-auth exposes these sub-routes automatically:
 
@@ -47,26 +47,27 @@ tRPC HTTP gateway (`TRPCModule.forRoot`, `basePath: '/api/trpc'`, `globalPrefix:
 | --------- | ----- | -------- | ------------------- |
 | `hello`   | query | `string` | `AppRouter.hello()` |
 
-### `apps/notifications` — prefix `/api/notifications`, port `3100`
+### `apps/notifications` — prefix `/api`, port `3300`
 
-| Method | Path                              | Notes              |
-| ------ | --------------------------------- | ------------------ |
-| `GET`  | `/api/notifications/health/live`  |                    |
-| `GET`  | `/api/notifications/health/ready` |                    |
-| `GET`  | `/api/notifications/metrics`      | `MetricsAuthGuard` |
+| Method | Path                | Notes              |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/api/health/live`  |                    |
+| `GET`  | `/api/health/ready` |                    |
+| `GET`  | `/api/metrics`      | `MetricsAuthGuard` |
 
-Swagger: `/api/notifications/docs` (non-production only).
+Swagger: `/api/docs` (non-production only).
 No application HTTP routes — all traffic is via Redis event patterns.
+Apps are distinguished by port, not by path prefix — every app shares the same `/api` prefix.
 
-### `apps/worker` — prefix `/api/worker`, port `3200`
+### `apps/worker` — prefix `/api`, port `3400`
 
-| Method | Path                       | Notes              |
-| ------ | -------------------------- | ------------------ |
-| `GET`  | `/api/worker/health/live`  |                    |
-| `GET`  | `/api/worker/health/ready` |                    |
-| `GET`  | `/api/worker/metrics`      | `MetricsAuthGuard` |
+| Method | Path                | Notes              |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/api/health/live`  |                    |
+| `GET`  | `/api/health/ready` |                    |
+| `GET`  | `/api/metrics`      | `MetricsAuthGuard` |
 
-Swagger: `/api/worker/docs` (non-production only).
+Swagger: `/api/docs` (non-production only).
 No application HTTP routes — all traffic is via Redis message patterns and BullMQ.
 
 ---

@@ -44,7 +44,9 @@ function loadSharedEnv(envName) {
   const file = fs.existsSync(specificFile) ? specificFile : fallbackFile;
 
   if (!fs.existsSync(file)) {
-    console.warn(`[PM2] WARNING: No shared env file found (.env.${envName} or .env)`);
+    console.warn(
+      `[PM2] WARNING: No shared env file found (.env.${envName} or .env)`,
+    );
     return {};
   }
 
@@ -66,7 +68,7 @@ const logRotate = {
  */
 const httpServiceDefaults = {
   ...logRotate,
-  instances: process.env.NODE_APP_INSTANCES || 2,
+  instances: process.env.NODE_APP_INSTANCES || 1,
   exec_mode: 'cluster',
   autorestart: true,
   watch: false,
@@ -86,7 +88,7 @@ const httpServiceDefaults = {
  */
 const workerDefaults = {
   ...logRotate,
-  instances: process.env.NODE_APP_INSTANCES || 2,
+  instances: process.env.NODE_APP_INSTANCES || 1,
   exec_mode: 'cluster',
   autorestart: true,
   watch: false,
@@ -159,12 +161,12 @@ module.exports = {
       out_file: `${LOG_DIR}/api-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3300,
+        PORT: 3100,
         ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        PORT: 3300,
+        PORT: 3100,
         ...loadSharedEnv('qa'),
       },
     },
@@ -180,12 +182,12 @@ module.exports = {
       out_file: `${LOG_DIR}/notifications-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3100,
+        PORT: 3300,
         ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        PORT: 3100,
+        PORT: 3300,
         ...loadSharedEnv('qa'),
       },
     },
@@ -201,12 +203,12 @@ module.exports = {
       out_file: `${LOG_DIR}/worker-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3200,
+        PORT: 3400,
         ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        PORT: 3200,
+        PORT: 3400,
         ...loadSharedEnv('qa'),
       },
     },
@@ -222,14 +224,39 @@ module.exports = {
       out_file: `${LOG_DIR}/web-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3400,
+        PORT: 8080,
         HOSTNAME: '0.0.0.0',
         ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        PORT: 3400,
+        PORT: 8080,
         HOSTNAME: '0.0.0.0',
+        ...loadSharedEnv('qa'),
+      },
+    },
+
+    // -------------------------------------------------------------------------
+    // cron — scheduled jobs (@nestjs/schedule), health/metrics HTTP only.
+    // MUST stay fork:1 — @nestjs/schedule runs jobs per-process, so cluster
+    // instances would each fire the same scheduled job N times.
+    // -------------------------------------------------------------------------
+    {
+      ...httpServiceDefaults,
+      instances: 1,
+      exec_mode: 'fork',
+      name: 'cron',
+      script: './apps/cron/dist/main.js',
+      error_file: `${LOG_DIR}/cron-error.log`,
+      out_file: `${LOG_DIR}/cron-out.log`,
+      env_production: {
+        NODE_ENV: 'production',
+        PORT: 3200,
+        ...loadSharedEnv('production'),
+      },
+      env_qa: {
+        NODE_ENV: 'qa',
+        PORT: 3200,
         ...loadSharedEnv('qa'),
       },
     },

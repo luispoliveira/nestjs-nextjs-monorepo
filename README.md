@@ -103,8 +103,8 @@ pnpm dev
 | ----------------------- | ---------------------------- |
 | Auth API                | <http://localhost:3000>      |
 | Auth API Docs (Swagger) | <http://localhost:3000/docs> |
-| Notifications           | <http://localhost:3100>      |
-| Worker                  | <http://localhost:3200>      |
+| Notifications           | <http://localhost:3300>      |
+| Worker                  | <http://localhost:3400>      |
 | Web (backoffice)        | <http://localhost:8080>      |
 
 ## Commands
@@ -246,7 +246,7 @@ ADMIN_PASSWORD=change-me
 ### `apps/notifications/.env`
 
 ```env
-PORT=3100
+PORT=3300
 DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -258,7 +258,7 @@ CORS_ORIGIN=http://localhost:8080
 ### `apps/worker/.env`
 
 ```env
-PORT=3200
+PORT=3400
 DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
 REDIS_HOST=localhost
 REDIS_PORT=6379

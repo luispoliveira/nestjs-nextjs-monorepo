@@ -23,14 +23,14 @@ async function bootstrap() {
     },
   });
 
-  const port = configService.get<number>('PORT') || 3200;
+  const port = configService.get<number>('PORT') || 3400;
   const environment = configService.get<EnvironmentEnum>(
     'NODE_ENV',
     EnvironmentEnum.DEVELOPMENT,
   );
 
   BootstrapUtil.setup(app, {
-    globalPrefix: 'api/worker',
+    globalPrefix: 'api',
     useHelmet: true,
     enableVersioning: true,
     swagger:

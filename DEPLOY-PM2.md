@@ -141,7 +141,7 @@ GOOGLE_CLIENT_SECRET=
 
 ```dotenv
 NODE_ENV=production
-PORT=3300
+PORT=3100
 
 DATABASE_URL=postgres://tx_home:<PG_PASS>@localhost:5432/tx_home?schema=public
 
@@ -169,7 +169,7 @@ PUBLIC_API_URL=https://<dominio>
 
 ```dotenv
 NODE_ENV=production
-PORT=3100
+PORT=3300
 
 DATABASE_URL=postgres://tx_home:<PG_PASS>@localhost:5432/tx_home?schema=public
 
@@ -190,7 +190,7 @@ ENCRYPTION_KEY=<mesmo valor que apps/auth>
 
 ```dotenv
 NODE_ENV=production
-PORT=3200
+PORT=3400
 
 DATABASE_URL=postgres://tx_home:<PG_PASS>@localhost:5432/tx_home?schema=public
 
@@ -221,7 +221,7 @@ NODE_ENV=production
 
 # URLs internas — usadas pelos rewrites do next.config.ts (server-side)
 AUTH_API_URL=http://127.0.0.1:3000
-API_URL=http://127.0.0.1:3300
+API_URL=http://127.0.0.1:3100
 
 # URL pública — exposta ao browser
 NEXT_PUBLIC_AUTH_API_URL=https://<dominio>
@@ -398,7 +398,7 @@ server {
 
     # API (tRPC + REST)
     location /api/ {
-        proxy_pass http://127.0.0.1:3300/api/;
+        proxy_pass http://127.0.0.1:3100/api/;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -414,7 +414,7 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-> O `notifications` (3100) e o `worker` (3200) **não devem ser expostos** — comunicam apenas internamente via Redis.
+> O `notifications` (3300) e o `worker` (3400) **não devem ser expostos** — comunicam apenas internamente via Redis. Todas as apps partilham o mesmo prefixo `/api`; a distinção é feita pela porta.
 
 ---
 
@@ -464,4 +464,4 @@ pm2 reload all
 - [ ] `pm2 start ecosystem.config.js --env production` executado
 - [ ] `pm2 startup` + `pm2 save` configurados
 - [ ] Nginx configurado e a servir HTTPS
-- [ ] Portas 3000, 3100, 3200, 3300, 8080 **não expostas** diretamente ao exterior (apenas 80/443 via Nginx)
+- [ ] Portas 3000, 3100, 3200, 3300, 3400 **não expostas** diretamente ao exterior (apenas 80/443 via Nginx; `8080` é a porta pública do `web`)

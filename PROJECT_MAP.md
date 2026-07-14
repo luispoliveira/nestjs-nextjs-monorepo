@@ -73,14 +73,14 @@ Global guard: `MicroserviceAuthGuard` (validates bearer token via `AUTH_SERVICE`
 
 Redis-event–driven notification dispatcher. Enqueues email jobs into BullMQ.
 
-| Path                         | Role                                                                                     |
-| ---------------------------- | ---------------------------------------------------------------------------------------- |
-| `src/main.ts`                | Bootstrap: `globalPrefix='api/notifications'`, Redis microservice transport, port `3100` |
-| `src/app.module.ts`          | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`                     |
-| `src/app.controller.ts`      | Six `@EventPattern` handlers (see [ENTRYPOINTS.md](ENTRYPOINTS.md))                      |
-| `src/app.service.ts`         | Delegates to `EmailProducer` for each event type                                         |
-| `src/app.controller.spec.ts` | Unit tests for `AppController`                                                           |
-| `src/app.service.spec.ts`    | Unit tests for `AppService`                                                              |
+| Path                         | Role                                                                       |
+| ---------------------------- | -------------------------------------------------------------------------- |
+| `src/main.ts`                | Bootstrap: `globalPrefix='api'`, Redis microservice transport, port `3300` |
+| `src/app.module.ts`          | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`       |
+| `src/app.controller.ts`      | Six `@EventPattern` handlers (see [ENTRYPOINTS.md](ENTRYPOINTS.md))        |
+| `src/app.service.ts`         | Delegates to `EmailProducer` for each event type                           |
+| `src/app.controller.spec.ts` | Unit tests for `AppController`                                             |
+| `src/app.service.spec.ts`    | Unit tests for `AppService`                                                |
 
 ---
 
@@ -90,7 +90,7 @@ BullMQ consumer. Processes email jobs and handles the Dead Letter Queue.
 
 | Path                                        | Role                                                                                            |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `src/main.ts`                               | Bootstrap: `globalPrefix='api/worker'`, Redis microservice transport, port `3200`               |
+| `src/main.ts`                               | Bootstrap: `globalPrefix='api'`, Redis microservice transport, port `3400`                      |
 | `src/app.module.ts`                         | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`, `MailModule`, `DlqModule` |
 | `src/consumer/email.consumer.ts`            | `@Processor(QUEUES.EMAIL)` — dispatches on `job.name`; routes exhausted jobs to DLQ             |
 | `src/consumer/email.consumer.spec.ts`       | Unit tests for `EmailConsumer`                                                                  |
