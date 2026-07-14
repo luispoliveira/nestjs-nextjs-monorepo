@@ -1,16 +1,16 @@
-import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { TopBar } from '@/components/layout/top-bar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { getServerSession } from '@/lib/auth/server';
+import { redirectTo } from '@/lib/redirect';
 import { RoleEnum } from '@repo/shared-types';
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const session = await getServerSession();
   if (!session) {
-    redirect('/sign-in');
+    redirectTo('/sign-in');
   }
 
   const role = session.user.role as RoleEnum | undefined;
