@@ -8,13 +8,14 @@ See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ARCHITECTURE_OVERVIEW.md](ARCHITEC
 
 ## HTTP Routes
 
-### `apps/api` — prefix `/api`, versioning enabled
+### `apps/auth` — prefix `/api`, port `3000`, versioning enabled
 
 | Method | Path                | Description                                                                               |
 | ------ | ------------------- | ----------------------------------------------------------------------------------------- |
 | `*`    | `/api/auth/*`       | All better-auth routes (sign-in, sign-up, sign-out, session, OAuth callbacks, 2FA, admin) |
 | `GET`  | `/api/health/live`  | Liveness probe                                                                            |
 | `GET`  | `/api/health/ready` | Readiness probe (checks DB, Redis)                                                        |
+| `GET`  | `/api/metrics`      | `MetricsAuthGuard` — Prometheus scrape endpoint                                          |
 | `GET`  | `/api/docs`         | Swagger UI (non-production only)                                                          |
 
 better-auth exposes these sub-routes automatically:
@@ -27,7 +28,7 @@ better-auth exposes these sub-routes automatically:
 - `POST /api/auth/two-factor/*`
 - `GET/POST /api/auth/admin/*`
 
-### `apps/api` — `http://localhost:3002/api`
+### `apps/api` — prefix `/api`, port `3100`, versioning enabled
 
 tRPC HTTP gateway (`TRPCModule.forRoot`, `basePath: '/api/trpc'`, `globalPrefix: 'api'`).
 `MicroserviceAuthGuard` guards routes globally; the router applies
@@ -39,6 +40,7 @@ tRPC HTTP gateway (`TRPCModule.forRoot`, `basePath: '/api/trpc'`, `globalPrefix:
 | `GET`      | `/api/`             | Hello/health route (`AppController.getHello`) |
 | `GET`      | `/api/health/live`  | Liveness probe                                |
 | `GET`      | `/api/health/ready` | Readiness probe                               |
+| `GET`      | `/api/metrics`      | `MetricsAuthGuard` — Prometheus scrape endpoint |
 | `GET`      | `/api/docs`         | Swagger UI (non-production only)              |
 
 #### tRPC procedures (`AppRouter`)
@@ -46,6 +48,17 @@ tRPC HTTP gateway (`TRPCModule.forRoot`, `basePath: '/api/trpc'`, `globalPrefix:
 | Procedure | Type  | Output   | Handler             |
 | --------- | ----- | -------- | ------------------- |
 | `hello`   | query | `string` | `AppRouter.hello()` |
+
+### `apps/cron` — prefix `/api`, port `3200`
+
+| Method | Path                | Notes              |
+| ------ | ------------------- | ------------------ |
+| `GET`  | `/api/health/live`  |                    |
+| `GET`  | `/api/health/ready` |                    |
+| `GET`  | `/api/metrics`      | `MetricsAuthGuard` |
+
+Swagger: `/api/docs` (non-production only). No business HTTP routes, no Redis
+microservice transport — see [Scheduled Jobs](#scheduled-jobs-nestjsschedule) below.
 
 ### `apps/notifications` — prefix `/api`, port `3300`
 
@@ -150,6 +163,21 @@ Constant source: `packages/shared/src/constants/jobs.ts`
 | `JOB_PATTERNS.SEND_TWO_FACTOR_DISABLED_EMAIL` | `'job:send_two_factor_disabled_email'` | `EmailProducer` | `EmailConsumer` | `sendUserTwoFactorDisabledInputSchema` |
 
 All input schemas are in `packages/shared/src/queue/input/` and re-exported from `@repo/shared`.
+
+---
+
+## Scheduled Jobs (`@nestjs/schedule`)
+
+`apps/cron` is the only app registering `ScheduleModule.forRoot()`. Jobs are plain
+`@Cron()`-decorated service methods — no Redis or BullMQ involved.
+
+| Job name             | Schedule                       | Timezone        | File                                              |
+| --------------------- | -------------------------------- | ----------------- | --------------------------------------------------- |
+| `example-heartbeat`  | `CronExpression.EVERY_HOUR`    | `Europe/Lisbon` | `apps/cron/src/example/example-cron.service.ts` |
+
+> `ExampleCronService` is a placeholder — replace with real jobs. It carries a
+> `ponytail:` comment: run `apps/cron` single-instance so jobs don't fire once
+> per replica; upgrade to a Redis lock or a BullMQ repeatable job for HA scheduling.
 
 ---
 

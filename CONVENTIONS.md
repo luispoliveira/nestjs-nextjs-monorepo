@@ -14,6 +14,7 @@ See also: [PROJECT_MAP.md](PROJECT_MAP.md) | [ARCHITECTURE_OVERVIEW.md](ARCHITEC
 - `process.env` is readable only in `main.ts`. Everywhere else use `ConfigService.getOrThrow(...)`.
 - Never hardcode queue names, service tokens, or event/job patterns — import from `@repo/shared/constants`.
 - Never commit `.env` files, credentials, or secrets.
+- Every app's `GET /api/metrics` is optionally protected by a `METRICS_TOKEN` bearer token (open access if unset); Sentry (`SENTRY_DSN`, `SENTRY_TRACES_SAMPLE_RATE`) is optional per-app error tracking. See [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md#observability) for the full local observability stack.
 
 ---
 
@@ -126,6 +127,14 @@ Default job options (set in `QueueModule`):
 - `removeOnComplete: true`
 - `removeOnFail: 500`
 
+### Scheduled Jobs (`@nestjs/schedule`)
+
+- Only `apps/cron` registers `ScheduleModule.forRoot()`. Do not add cron jobs to other apps.
+- Define jobs as `@Injectable()` services with `@Cron(CronExpression.*, { name, timeZone })`-decorated methods — see `apps/cron/src/example/example-cron.service.ts`.
+- Set an explicit `timeZone` (e.g. `'Europe/Lisbon'`) rather than relying on the process default.
+- `apps/cron` is designed to run **single-instance** (e.g. PM2 `fork` mode with 1 replica) — a naive `@Cron` job fires once per running instance. If HA scheduling across replicas is ever needed, add a Redis lock or move the job to a BullMQ repeatable job instead.
+- `apps/cron` does not open a Redis microservice connection — it only exposes health/metrics HTTP.
+
 ### Logging and Errors
 
 - Use NestJS `Logger` (backed by pino). Never use `console.log` except in `main.ts` startup messages.
@@ -201,7 +210,7 @@ Every backend app and the `packages/shared`, `packages/mail`, and `packages/data
 | `tsconfig.build.json` | `tsconfig.json` | Production build and `dev` watch — excludes `**/*.spec.ts` so test files are never emitted to `dist/` |
 | `tsconfig.test.json` | `tsconfig.json` | ts-jest compilation only — overrides `module: "commonjs"`, `moduleResolution: "node"`, `resolvePackageJsonExports: false`, `ignoreDeprecations: "6.0"` |
 
-Apps (`apps/auth`, `apps/notifications`, `apps/worker`) have `tsconfig.test.json` for the same reason; their `build` and `dev` scripts use `nest build` / `nest start --watch` which honour the NestJS CLI's own exclude list, so they do not need a separate `tsconfig.build.json`.
+Apps (`apps/auth`, `apps/api`, `apps/cron`, `apps/notifications`, `apps/worker`) have `tsconfig.test.json` for the same reason; their `build` and `dev` scripts use `nest build` / `nest start --watch` which honour the NestJS CLI's own exclude list, so they do not need a separate `tsconfig.build.json`.
 
 **Jest config** (identical shape across all three packages):
 
@@ -217,6 +226,8 @@ Apps (`apps/auth`, `apps/notifications`, `apps/worker`) have `tsconfig.test.json
 | Package / App | branches | functions | lines | statements |
 | --- | --- | --- | --- | --- |
 | `apps/auth` | 80 % | 80 % | 80 % | 80 % |
+| `apps/api` | 80 % | 80 % | 80 % | 80 % |
+| `apps/cron` | 70 % | 80 % | 80 % | 80 % |
 | `apps/notifications` | 70 % | 80 % | 80 % | 80 % |
 | `apps/worker` | 70 % | 80 % | 80 % | 80 % |
 | `packages/shared` | 70 % | 80 % | 80 % | 80 % |
@@ -411,7 +422,7 @@ Format: `<type>(<scope>): <imperative summary>` — ≤50 chars subject (hard ca
 | `style` | Formatting only |
 | `revert` | Revert a previous commit |
 
-Scopes: `auth`, `notifications`, `worker`, `web`, `api`, `database`, `shared`, `shared-types`, `mail`, `trpc`, `testing-utils`, `ci`, `docker`.
+Scopes: `auth`, `api`, `cron`, `notifications`, `worker`, `web`, `database`, `shared`, `shared-types`, `mail`, `trpc`, `testing-utils`, `ci`, `docker`.
 
 Breaking changes: append `!` to the type+scope and add a `BREAKING CHANGE:` footer.
 

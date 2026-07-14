@@ -15,30 +15,36 @@ A production-ready, full-stack monorepo template combining NestJS microservices 
 | Auth              | `better-auth` + `@thallesp/nestjs-better-auth`      |
 | Validation        | Zod v4 + `nestjs-zod`                               |
 | API Contract      | tRPC via `nestjs-trpc-v2`                           |
-| Queue             | Bull v4 via `@nestjs/bull`                          |
+| Queue             | BullMQ via `@nestjs/bullmq`                         |
 | Email             | Brevo (via `@getbrevo/brevo`)                       |
 | Logging           | `nestjs-pino` with correlation IDs via `nestjs-cls` |
 | Health            | `@nestjs/terminus`                                  |
+| Observability     | Prometheus + Grafana (local docker-compose stack)   |
 
 ## Workspace Structure
 
 ```
 apps/
   auth/           # NestJS — Auth service (HTTP + Redis microservice)
-  notifications/  # NestJS — Notification microservice (Redis events → Bull jobs)
-  worker/         # NestJS — Bull worker (processes email jobs via Brevo)
+  api/            # NestJS — tRPC HTTP gateway (mounts TRPCModule at /api/trpc)
+  cron/           # NestJS — Scheduled jobs (@nestjs/schedule), health/metrics HTTP only
+  notifications/  # NestJS — Notification microservice (Redis events → BullMQ jobs)
+  worker/         # NestJS — BullMQ worker (processes email jobs via Brevo)
   web/            # Next.js — Admin backoffice dashboard (App Router)
 packages/
   database/       # Prisma client, DatabaseModule, DatabaseService, migrations, seeders
-  shared/         # Global NestJS infrastructure (SharedModule, guards, interceptors, publishers, queue, health)
+  shared/         # Global NestJS infrastructure (SharedModule, guards, interceptors, publishers, queue, health, metrics)
   shared-types/   # Zod v4 schemas shared between frontend and backend
-  trpc/           # AppRouter type exported from auth app
+  trpc/           # AppRouter types exported from the auth and api apps
   mail/           # MailModule (Brevo provider, MongoDB email logging)
+  testing-utils/  # Test factories, DB truncation, testcontainers e2e setup
   eslint-config/  # Shared ESLint configurations
   typescript-config/ # Shared tsconfig bases
 docker/
   postgres.env[.example]
   mongo.env[.example]
+  prometheus/prometheus.yml     # Scrape config for all NestJS apps
+  grafana/provisioning/         # Provisioned Prometheus datasource
 tasks/            # PRDs and task lists (template + home platform)
 ```
 
@@ -83,7 +89,9 @@ See [Environment Variables](#environment-variables) for a description of each va
 pnpm docker:up
 ```
 
-This starts PostgreSQL (5432), Redis (6379), and MongoDB (27017).
+This starts PostgreSQL (5432), Redis (6379), MongoDB (27017), Prometheus (9090), and Grafana (3333).
+
+> On Linux, add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `prometheus` service in `docker-compose.yaml` so it can reach the apps running on the host — see the comment in `docker/prometheus/prometheus.yml`.
 
 ### 4. Run database migrations
 
@@ -103,9 +111,15 @@ pnpm dev
 | ----------------------- | ---------------------------- |
 | Auth API                | <http://localhost:3000>      |
 | Auth API Docs (Swagger) | <http://localhost:3000/docs> |
+| API (tRPC gateway)      | <http://localhost:3100>      |
+| Cron                    | <http://localhost:3200>      |
 | Notifications           | <http://localhost:3300>      |
 | Worker                  | <http://localhost:3400>      |
 | Web (backoffice)        | <http://localhost:8080>      |
+| Prometheus              | <http://localhost:9090>      |
+| Grafana                 | <http://localhost:3333>      |
+
+Every NestJS app shares the same `globalPrefix: 'api'` — they are told apart by **port**, not by path.
 
 ## Commands
 
@@ -145,6 +159,7 @@ pnpm test
 ```bash
 pnpm --filter api          test
 pnpm --filter auth         test
+pnpm --filter cron         test
 pnpm --filter notifications test
 pnpm --filter worker       test
 ```
@@ -161,6 +176,7 @@ pnpm --filter api test -- --watch
 # Single app — outputs to apps/<name>/coverage/
 pnpm --filter api          test:cov
 pnpm --filter auth         test:cov
+pnpm --filter cron         test:cov
 pnpm --filter notifications test:cov
 pnpm --filter worker       test:cov
 
@@ -197,10 +213,12 @@ pnpm test -- --testNamePattern="should return"
 Services communicate via **Redis transport** using predefined constants from `@repo/shared`:
 
 ```
-[web (Next.js)]  →  tRPC / better-auth cookies  →  [auth]
-[auth]           →  Redis EventPattern           →  [notifications]
-[notifications]  →  Bull Queue (email-queue)     →  [worker]
-[worker]         →  Brevo API                    →  Email delivery
+[web (Next.js)]  →  tRPC (auth) / better-auth cookies  →  [auth]
+[web (Next.js)]  →  tRPC (api)                         →  [api]
+[auth]           →  Redis EventPattern                 →  [notifications]
+[notifications]  →  BullMQ Queue (email-queue)         →  [worker]
+[worker]         →  Brevo API                          →  Email delivery
+[cron]           →  @nestjs/schedule                   →  Scheduled jobs (no upstream trigger)
 ```
 
 The `auth` service also exposes a `MESSAGE_PATTERNS.AUTH_AUTHENTICATE` RPC endpoint used by other services to validate session tokens.
@@ -232,15 +250,43 @@ All six better-auth lifecycle events trigger email notifications:
 ```env
 PORT=3000
 DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
+BETTER_AUTH_SECRET=change-me
+BETTER_AUTH_URL=http://localhost:3000/api/auth
 REDIS_HOST=localhost
 REDIS_PORT=6379
 MONGO_URI=mongodb://nestjs:change-me@localhost:27017/nestjs?authSource=admin
-NODE_ENV=development
 CORS_ORIGIN=http://localhost:8080
-BETTER_AUTH_URL=http://localhost:3000
 UI_URL=http://localhost:8080
 ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=change-me
+METRICS_TOKEN=
+SENTRY_DSN=
+```
+
+### `apps/api/.env`
+
+```env
+PORT=3100
+DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
+REDIS_HOST=localhost
+REDIS_PORT=6379
+MONGO_URI=mongodb://nestjs:change-me@localhost:27017/nestjs?authSource=admin
+CORS_ORIGIN=http://localhost:3000
+METRICS_TOKEN=
+SENTRY_DSN=
+```
+
+### `apps/cron/.env`
+
+```env
+PORT=3200
+DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
+REDIS_HOST=localhost
+REDIS_PORT=6379
+MONGO_URI=mongodb://nestjs:change-me@localhost:27017/nestjs?authSource=admin
+CORS_ORIGIN=http://localhost:8080
+METRICS_TOKEN=
+SENTRY_DSN=
 ```
 
 ### `apps/notifications/.env`
@@ -251,8 +297,9 @@ DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
 REDIS_HOST=localhost
 REDIS_PORT=6379
 MONGO_URI=mongodb://nestjs:change-me@localhost:27017/nestjs?authSource=admin
-NODE_ENV=development
 CORS_ORIGIN=http://localhost:8080
+METRICS_TOKEN=
+SENTRY_DSN=
 ```
 
 ### `apps/worker/.env`
@@ -263,19 +310,26 @@ DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
 REDIS_HOST=localhost
 REDIS_PORT=6379
 MONGO_URI=mongodb://nestjs:change-me@localhost:27017/nestjs?authSource=admin
-NODE_ENV=development
 CORS_ORIGIN=http://localhost:8080
 BREVO_API_KEY=your-brevo-api-key
 FROM_EMAIL=no-reply@example.com
 FROM_NAME=My App
 DEV_EMAIL=dev@example.com
+METRICS_TOKEN=
+SENTRY_DSN=
 ```
 
 ### `apps/web/.env`
 
 ```env
 AUTH_API_URL=http://localhost:3000
+API_URL=http://localhost:3100
+NEXT_PUBLIC_AUTH_API_URL=http://localhost:3000
+BACKEND_PROTOCOL=http
+BACKEND_HOST=localhost
 ```
+
+`METRICS_TOKEN` and `SENTRY_DSN` are optional on every NestJS app — leave them empty to disable auth on the metrics endpoint / disable Sentry.
 
 ## Internal Packages
 
@@ -313,7 +367,7 @@ import {
 | Constant           | Values                                                                                                                                                                               |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `SERVICES`         | `AUTH`, `NOTIFICATIONS`                                                                                                                                                              |
-| `QUEUES`           | `EMAIL: 'email-queue'`                                                                                                                                                               |
+| `QUEUES`           | `EMAIL: 'email-queue'`, `EMAIL_DLQ: 'email-queue-dlq'`                                                                                                                               |
 | `EVENT_PATTERNS`   | `USER_CREATED`, `USER_PASSWORD_RESET_REQUESTED`, `USER_PASSWORD_CHANGED`, `USER_EMAIL_VERIFICATION_REQUESTED`, `USER_TWO_FACTOR_ENABLED`, `USER_TWO_FACTOR_DISABLED`                 |
 | `MESSAGE_PATTERNS` | `AUTH_AUTHENTICATE`                                                                                                                                                                  |
 | `JOB_PATTERNS`     | `SEND_WELCOME_EMAIL`, `SEND_PASSWORD_RESET_EMAIL`, `SEND_PASSWORD_CHANGED_EMAIL`, `SEND_EMAIL_VERIFICATION_EMAIL`, `SEND_TWO_FACTOR_ENABLED_EMAIL`, `SEND_TWO_FACTOR_DISABLED_EMAIL` |
@@ -339,10 +393,11 @@ import {
 
 ### `@repo/trpc`
 
-AppRouter type definition auto-generated by `nestjs-trpc-v2` from the auth app. Import on the frontend for full type safety:
+`AppRouter` type definitions auto-generated by `nestjs-trpc-v2`, one per gateway — auth procedures from the `auth` app, application procedures from the `api` app. Import on the frontend for full type safety:
 
 ```typescript
-import type { AppRouter } from '@repo/trpc';
+import type { AppRouter } from '@repo/trpc/auth';
+import type { AppRouter } from '@repo/trpc/api';
 ```
 
 ### `@repo/mail`
@@ -354,8 +409,8 @@ Email delivery via Brevo. Configure with `MailModule.forRootAsync()`. Logs all s
 ### NestJS
 
 - Use `BootstrapUtil.setup()` to configure any HTTP app (Swagger, CORS, cookie-parser, Helmet)
-- Use `MicroserviceUtil.registerRedisService()` to register Redis microservice clients
-- Extend `BasePublisher` for Redis event publishers, `BaseProducer` for Bull queue producers
+- Use `MicroserviceUtil.registerAuthService()` / `MicroserviceUtil.registerNotificationsService()` to register Redis microservice clients
+- Extend `BasePublisher` for Redis event publishers, `BaseProducer` for BullMQ queue producers
 - Use `@Public()` to bypass auth, `@CurrentUser()` to inject the current user in controllers
 
 ### Next.js
@@ -392,6 +447,16 @@ All NestJS apps expose:
 
 - `GET /health/live` — liveness probe
 - `GET /health/ready` — readiness probe (checks database, Redis, MongoDB)
+- `GET /api/metrics` — Prometheus metrics, optionally protected by a `METRICS_TOKEN` bearer token
+
+## Observability
+
+`pnpm docker:up` starts a local Prometheus + Grafana stack alongside the usual infra:
+
+- **Prometheus** (<http://localhost:9090>) scrapes `/api/metrics` on all five NestJS apps (`auth`, `api`, `cron`, `notifications`, `worker`) via `host.docker.internal`. Scrape config: [docker/prometheus/prometheus.yml](docker/prometheus/prometheus.yml).
+- **Grafana** (<http://localhost:3333>, default login `admin` / `admin`) comes with a Prometheus datasource pre-provisioned from [docker/grafana/provisioning/](docker/grafana/provisioning/).
+
+> **Linux only:** Docker on Linux doesn't resolve `host.docker.internal` by default. Add `extra_hosts: ["host.docker.internal:host-gateway"]` to the `prometheus` service in `docker-compose.yaml`.
 
 ## Docker / Production
 
