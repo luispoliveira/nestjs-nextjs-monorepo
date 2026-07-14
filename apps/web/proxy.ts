@@ -4,17 +4,23 @@ import { NextRequest, NextResponse } from 'next/server';
 const publicRoutes = ['/sign-in'];
 
 export default function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname: rawPathname } = request.nextUrl;
+  const pathname =
+    rawPathname !== '/' && rawPathname.endsWith('/') ? rawPathname.slice(0, -1) : rawPathname;
   const sessionCookie = getSessionCookie(request);
 
   // Authenticated user landing on a public auth route → send to dashboard
   if (publicRoutes.includes(pathname) && sessionCookie) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
+    return NextResponse.redirect(url);
   }
 
   // Unauthenticated user on any protected route → send to sign-in
   if (!publicRoutes.includes(pathname) && !sessionCookie) {
-    return NextResponse.redirect(new URL('/sign-in', request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = '/sign-in';
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();

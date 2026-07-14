@@ -2,8 +2,10 @@
 
 ECOSYSTEM := ecosystem.config.js
 PM2       := pm2
+ENV       ?= production
 
 # Full deploy: pull → install → build → migrate → reload
+# Usage: make deploy ENV=qa (defaults to production)
 deploy:
 	git pull origin main
 	pnpm install --frozen-lockfile
@@ -13,8 +15,11 @@ deploy:
 	$(PM2) save
 
 # Build all apps + copy Next.js static files
+# NEXT_PUBLIC_* vars must be present at build time (Next.js bakes them into the
+# client bundle) — next build only reads .env* from apps/web/, never the repo
+# root, so the shared env file must be exported into this shell first.
 build:
-	pnpm build
+	bash -c 'set -a; [ -f .env.$(ENV) ] && source .env.$(ENV) || source .env; set +a; pnpm build'
 	cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static
 	cp -r apps/web/public       apps/web/.next/standalone/apps/web/public
 
