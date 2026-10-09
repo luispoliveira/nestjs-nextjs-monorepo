@@ -81,5 +81,5 @@ rules:
     - "SDD: every feature task is preceded by its test-writing task (unit and/or integration). Tests are written and reviewed before production code, never after"
     - Use conventional commit format in task titles (feat:, fix:, chore:, refactor:, test:)
     - Order tasks so dependencies come first (migrations before services, services before controllers)
-    - Group related tasks under a heading, and close every group with a final task that commits that group's work using the project `commit` skill (`/commit`) — it gate-checks build, lint, check-types and tests, then waits for user approval before committing
+    - Group related tasks under a heading, and close every group with a final task that commits that group's work using the `commit` skill (`/commit`) — it gate-checks build, lint, check-types and tests, then waits for user approval before committing
     - Include a final task for end-to-end smoke testing or integration verification
