@@ -1,0 +1,33 @@
+{
+  "extensionsToTreatAsEsm": [".ts"],
+  "moduleFileExtensions": ["js", "json", "ts", "mjs"],
+  "rootDir": "..",
+  "testRegex": "\\.integration\\.ts$",
+  "transform": {
+    "^.+\\.tsx?$": [
+      "ts-jest",
+      {
+        "useESM": true,
+        "tsconfig": {
+          "module": "ESNext",
+          "moduleResolution": "bundler",
+          "resolvePackageJsonExports": true,
+          "emitDecoratorMetadata": true,
+          "experimentalDecorators": true,
+          "allowSyntheticDefaultImports": true,
+          "strict": true,
+          "target": "ES2022"
+        }
+      }
+    ]
+  },
+  "collectCoverageFrom": ["src/**/*.ts", "!**/*.module.ts", "!**/main.ts"],
+  "coverageDirectory": "coverage",
+  "testEnvironment": "node",
+  "globalSetup": "@repo/testing-utils/e2e/global-setup",
+  "globalTeardown": "@repo/testing-utils/e2e/global-teardown",
+  "setupFiles": ["<rootDir>/test/jest.setup.ts"],
+  "transformIgnorePatterns": [
+    "node_modules/(?!(@thallesp/nestjs-better-auth|better-auth)/)"
+  ]
+}

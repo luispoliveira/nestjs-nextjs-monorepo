@@ -20,11 +20,11 @@
 
 ## 4. API configuration and integration-test harness
 
-- [ ] 4.1 feat(api): apps/api: add `FIELD_ENCRYPTION_KEY` and `FIELD_ENCRYPTION_HMAC_KEY` (`z.string().min(1)`) to `src/env.ts` and placeholder lines to `.env.example` — verify starting the API without either variable fails at boot with an error naming it
-- [ ] 4.2 chore(scripts): scripts/setup.mjs: replace both placeholders with independent `randomBytes(32).toString('base64')` values when writing `apps/api/.env` — verify running the script on a copy without `apps/api/.env` produces two distinct 44-char base64 values
-- [ ] 4.3 test(api): apps/api: add `test/jest-integration.json` and `test/jest.setup.ts` mirroring `apps/auth` (testcontainers `globalSetup`/`globalTeardown`, throw when `E2E_CONTAINERS_RUN_ID_ENV` is unset), `.env.test` with fixed test-only encryption keys, a `test:integration` script and `@repo/testing-utils` as a devDependency — verify `pnpm --filter api test:integration --passWithNoTests` starts and stops the containers
-- [ ] 4.4 docs: update `README.md` setup/env section with the two keys (backup required, no rotation) and the note that new PII keys must be appended to `SENSITIVE_KEYS` and pino `redact.paths` — verify both keys appear in README and in `apps/api/.env.example`
-- [ ] 4.5 Commit group 4 with `/commit`
+- [x] 4.1 feat(api): apps/api: add `FIELD_ENCRYPTION_KEY` and `FIELD_ENCRYPTION_HMAC_KEY` (`z.string().min(1)`) to `src/env.ts` and placeholder lines to `.env.example` — verify starting the API without either variable fails at boot with an error naming it
+- [x] 4.2 chore(scripts): scripts/setup.mjs: replace both placeholders with independent `randomBytes(32).toString('base64')` values when writing `apps/api/.env` — verify running the script on a copy without `apps/api/.env` produces two distinct 44-char base64 values
+- [x] 4.3 test(api): apps/api: add `test/jest-integration.json` and `test/jest.setup.ts` mirroring `apps/auth` (testcontainers `globalSetup`/`globalTeardown`, throw when `E2E_CONTAINERS_RUN_ID_ENV` is unset), `.env.test` with fixed test-only encryption keys, a `test:integration` script and `@repo/testing-utils` as a devDependency — verify `pnpm --filter api test:integration --passWithNoTests` starts and stops the containers
+- [x] 4.4 docs: update `README.md` setup/env section with the two keys (backup required, no rotation) and the note that new PII keys must be appended to `SENSITIVE_KEYS` and pino `redact.paths` — verify both keys appear in README and in `apps/api/.env.example`
+- [x] 4.5 Commit group 4 with `/commit`
 
 ## 5. Customers REST resource
 
