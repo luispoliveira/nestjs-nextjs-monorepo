@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MailModule } from '@repo/mail';
 import { QueueModule, QUEUES, SharedModule } from '@repo/shared';
+import { BullBoardDashboardModule } from './bull-board/bull-board.module';
 import { EmailConsumer } from './consumer/email.consumer';
 import { workerEnvSchema } from './env';
 import { DlqModule } from './dlq/dlq.module';
@@ -26,6 +27,7 @@ import { QueueMetricsService } from './metrics/queue-metrics.service';
       inject: [ConfigService],
     }),
     DlqModule,
+    BullBoardDashboardModule,
   ],
   controllers: [],
   providers: [EmailConsumer, QueueMetricsService],

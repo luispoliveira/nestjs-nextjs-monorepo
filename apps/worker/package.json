@@ -18,9 +18,13 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+    "test:integration": "NODE_OPTIONS='--experimental-vm-modules' jest --config ./test/jest-integration.json",
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@bull-board/api": "^9.10.4",
+    "@bull-board/express": "^9.10.4",
+    "@bull-board/nestjs": "^9.10.4",
     "@nestjs/bullmq": "^11.0.5",
     "@nestjs/common": "^11.1.28",
     "@nestjs/config": "^4.0.4",
