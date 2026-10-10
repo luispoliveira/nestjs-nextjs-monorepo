@@ -75,6 +75,7 @@ The wizard will:
 - Prompt for **PostgreSQL** database name, username, and password
 - Prompt for **MongoDB** database name, username, and password
 - Copy every `.env.example` → `.env` (root and all apps) with the provided credentials substituted in all connection strings
+- Generate `BETTER_AUTH_SECRET` (`apps/auth`) and the two field-encryption keys `FIELD_ENCRYPTION_KEY` / `FIELD_ENCRYPTION_HMAC_KEY` (`apps/api`)
 - Copy `docker/postgres.env.example` → `docker/postgres.env`
 - Copy `docker/mongo.env.example` → `docker/mongo.env`
 
@@ -275,7 +276,15 @@ MONGO_URI=mongodb://nestjs:change-me@localhost:27017/nestjs?authSource=admin
 CORS_ORIGIN=http://localhost:3000
 METRICS_TOKEN=
 SENTRY_DSN=
+FIELD_ENCRYPTION_KEY=<base64, 32 bytes>
+FIELD_ENCRYPTION_HMAC_KEY=<base64>
 ```
+
+`FIELD_ENCRYPTION_KEY` (AES-256-GCM) and `FIELD_ENCRYPTION_HMAC_KEY` (blind index) protect PII columns at rest, such as the customer NIF. Both are required: the API refuses to boot without them, or when the encryption key does not decode to 32 bytes. `pnpm setup` generates them. To generate one by hand: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
+
+> **Back the keys up.** Losing or changing either key makes the stored values unreadable (encryption key) or unsearchable and no longer unique (HMAC key). Key rotation is not supported.
+>
+> When you add a new PII field, also append its key name to `SENSITIVE_KEYS` in `packages/shared/src/utils/sanitize.util.ts` and its `req.body.*` path to `redact.paths` in `packages/shared/src/logging/pino.config.ts`, so its plaintext never reaches the request logs.
 
 ### `apps/cron/.env`
 

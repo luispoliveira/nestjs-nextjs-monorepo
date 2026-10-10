@@ -30,7 +30,7 @@ async function prompt(rl, question, defaultValue) {
 }
 
 // ─── Replace DB credentials + auth secret in an .env file content ────────────
-function applyCredentials(content, pg, mongo, secret) {
+function applyCredentials(content, pg, mongo, secret, fieldKeys) {
   // postgres://USER:PASS@HOST:PORT/DB?query
   content = content.replace(
     /(postgres:\/\/)[^:@]+:[^@]*@([^/]+)\/[^?'"\s]*/g,
@@ -48,6 +48,17 @@ function applyCredentials(content, pg, mongo, secret) {
     content = content.replace(
       /^BETTER_AUTH_SECRET=.*/m,
       `BETTER_AUTH_SECRET="${secret}"`,
+    );
+  }
+  // Field-level PII encryption keys (apps/api) — two independent values
+  if (fieldKeys) {
+    content = content.replace(
+      /^FIELD_ENCRYPTION_KEY=.*/m,
+      `FIELD_ENCRYPTION_KEY="${fieldKeys.encryption}"`,
+    );
+    content = content.replace(
+      /^FIELD_ENCRYPTION_HMAC_KEY=.*/m,
+      `FIELD_ENCRYPTION_HMAC_KEY="${fieldKeys.hmac}"`,
     );
   }
   return content;
@@ -120,6 +131,10 @@ async function main() {
   const pg = { db: pgDb, user: pgUser, password: pgPassword };
   const mongo = { db: mongoDb, user: mongoUser, password: mongoPassword };
   const betterAuthSecret = randomBytes(32).toString('base64');
+  const fieldKeys = {
+    encryption: randomBytes(32).toString('base64'),
+    hmac: randomBytes(32).toString('base64'),
+  };
 
   // ── Apply ────────────────────────────────────────────────────────────────
   step('Applying changes');
@@ -143,7 +158,13 @@ async function main() {
       skip(`${dest} already exists, skipping`);
       continue;
     }
-    let content = applyCredentials(readFileSync(srcPath, 'utf8'), pg, mongo, betterAuthSecret);
+    let content = applyCredentials(
+      readFileSync(srcPath, 'utf8'),
+      pg,
+      mongo,
+      betterAuthSecret,
+      fieldKeys,
+    );
     if (dest === 'apps/auth/.env') content = applyAuthDevDefaults(content);
     writeFileSync(destPath, content);
     ok(`${src} → ${dest}`);
