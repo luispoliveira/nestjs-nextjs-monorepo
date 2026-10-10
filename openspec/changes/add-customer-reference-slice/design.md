@@ -81,10 +81,10 @@ customers/
 
 | Method | Path | Roles | Success | Errors |
 |---|---|---|---|---|
-| GET | `/api/v1/customers` | any authenticated | 200 `{items, meta}` | 401, 422 |
+| GET | `/api/v1/customers` | any authenticated | 200 `{items, meta}` | 401, 400 |
 | GET | `/api/v1/customers/:id` | any authenticated | 200 | 401, 404 |
-| POST | `/api/v1/customers` | `ADMIN` | 201 | 401, 403, 409, 422 |
-| PATCH | `/api/v1/customers/:id` | `ADMIN` | 200 | 401, 403, 404, 409, 422 |
+| POST | `/api/v1/customers` | `ADMIN` | 201 | 401, 403, 400, 409 |
+| PATCH | `/api/v1/customers/:id` | `ADMIN` | 200 | 401, 403, 400, 404, 409 |
 | DELETE | `/api/v1/customers/:id` | `ADMIN` | 204 (`@HttpCode(204)`) | 401, 403, 404 |
 
 - Authorization: `@Roles(RoleEnum.ADMIN)` on the three write handlers only. Reads rely on the global `MicroserviceAuthGuard`. No new guards, and `role-based-authorization` semantics are unchanged.
@@ -140,7 +140,7 @@ customers/
 | unit | `packages/shared-types` | `normalizeNif`, `isValidNif`, schema accept/reject (incl. `sortBy` allow-list, `take` max) |
 | unit | `packages/shared` | `SanitizeUtil` redacts `taxId` (nested in `items[]`) |
 | unit | `apps/api` | service (mocked `DatabaseService`/`EncryptionService`): encrypt/clear/keep, P2002→409, 404 on deleted, search OR-building. Controller `@Roles` metadata on writes only |
-| integration | `apps/api/test/customers.integration.ts` (testcontainers, new `jest-integration.json` + `jest.setup.ts` mirroring `apps/auth`) | real Postgres + real `EncryptionService`, HTTP via supertest, `MicroserviceAuthGuard` overridden by a fake that sets `request.user` with a role. Covers 401/403, 409 incl. concurrent creates, reuse after delete, NIF search, no plaintext in the row |
+| integration | `apps/api/test/customers.integration.ts` (testcontainers, new `jest-integration.json` + `jest.setup.ts` mirroring `apps/auth`, but with CommonJS test files plus the `--experimental-vm-modules` flag, because the ESM mode hits a `require(esm)` cycle when importing app source; see CORNER_CASES) | real Postgres + real `EncryptionService`, HTTP via supertest, `MicroserviceAuthGuard` overridden by a fake that sets `request.user` with a role. Covers 401/403, 409 incl. concurrent creates, reuse after delete, NIF search, no plaintext in the row |
 | unit | `apps/web` (`ng test`) | page shows/hides write controls by role; dialog field errors, 409 → `taxId` conflict; `CustomersApi` parses and rejects malformed responses |
 | helpers | `packages/testing-utils` | `createCustomer()` factory (takes an optional `EncryptionService`-compatible encrypt/hash pair). `truncateDatabase` deletes `customer` |
 

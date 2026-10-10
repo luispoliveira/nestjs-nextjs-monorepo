@@ -172,6 +172,14 @@ See `openspec/changes/update-monorepo-dependencies/design.md` (D5) for the full 
 
 **Fix:** converted `apps/auth/test/jest-integration.json` to the same real-ESM Jest setup already used by `jest-e2e.json` (`extensionsToTreatAsEsm: [".ts"]`, `ts-jest` with `useESM: true` and an inline ESNext/bundler tsconfig), and prefixed the `test:integration` script with `NODE_OPTIONS='--experimental-vm-modules'` — under Node ≥24.9 (this repo runs 24.19), Jest's native ESM execution mode can `require(esm)` a CJS module that itself requires a pure-ESM package; plain CJS Jest mode cannot. Doing this surfaced a second, previously-hidden issue in the same file: under real ESM, Jest's globals (`jest.fn()`, etc.) aren't auto-injected — `test/users.integration.ts` needed an explicit `import { jest } from '@jest/globals';`. If another package ever needs a pure-ESM-only dependency under a Jest suite that still runs in CJS mode, converting that suite's config to this same ESM pattern is the fix, not a `transformIgnorePatterns` change.
 
+### A suite that imports app source can't use the ESM-mode Jest config — `require(esm)` cycle on `@repo/shared-types`
+
+**Symptom:** `apps/api`'s `test:integration`, copied from `apps/auth`'s ESM config, fails before any test runs: `Cannot require() ES Module .../packages/shared-types/dist/index.js in a cycle`, thrown from `packages/database/dist/src/database.service.js`.
+
+**Cause:** in ESM mode `ts-jest` compiles the app's own `src/` to ESM. A controller that imports both `@repo/shared` (CommonJS, which `require`s `@repo/database` → `@repo/shared-types`) and `@repo/shared-types` (ESM) puts `shared-types` into the ESM graph that is being linked. The CJS `require()` of it then counts as a cycle, and Jest refuses it. `apps/auth`'s integration suite never imports app source, so it never hits this.
+
+**Fix:** keep the suite's **test files in CommonJS** (plain `ts-jest`, no `useESM`/`extensionsToTreatAsEsm`, `tsconfig.test.json`), but **keep `NODE_OPTIONS='--experimental-vm-modules'`** on the script. That flag is what lets Jest `require(esm)` the pure-ESM `@faker-js/faker` from `@repo/testing-utils` (Node ≥24.9). See `apps/api/test/jest-integration.json`. With CJS test files the `jest` global is injected, so do not `import { jest } from '@jest/globals'`.
+
 ### `jest.setup.ts` `override: true` silently re-points `globalSetup`'s container URLs at localhost
 
 **Symptom:** with Testcontainers wired in via `globalSetup`, the suites still connect to (and `DELETE FROM "user"` in) a Postgres on `localhost:5432`.

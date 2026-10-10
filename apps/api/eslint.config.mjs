@@ -69,11 +69,14 @@ export default tseslint.config(
   },
   {
     // test/ sets mocked env vars intentionally — no need to declare them in turbo.json;
-    // NestJS app.getHttpServer() returns any — standard e2e pattern
+    // NestJS app.getHttpServer() and supertest's res.body are any — standard e2e pattern
     files: ['test/**/*.ts'],
     rules: {
       'turbo/no-undeclared-env-vars': 'off',
       '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
     },
   },
 );
