@@ -143,12 +143,17 @@ The system SHALL cap the size of every event field that takes its value from a c
 
 ### Requirement: The recorded client address is the one a trusted proxy reports
 
-The client address in an event SHALL be the address added by the trusted reverse proxy (the entry counted from the right of `X-Forwarded-For` by the configured number of trusted proxies), never the first entry, which the client controls.
+The client address in an event SHALL be the address added by the trusted reverse proxy (the entry counted from the right of `X-Forwarded-For` by the configured number of trusted proxies), never the first entry, which the client controls. When that entry is not a valid IP address, no address SHALL be recorded.
 
 #### Scenario: Forged forwarded address
 
 - **WHEN** a client sends `X-Forwarded-For: 6.6.6.6` and the trusted proxy appends the real address `198.51.100.9`
 - **THEN** the event records `198.51.100.9`
+
+#### Scenario: Header that is not an address
+
+- **WHEN** the entry counted from the right is not an IP address (for example `evil<script>`)
+- **THEN** the event records no client address
 
 ### Requirement: Audit events are retained for a configurable period
 

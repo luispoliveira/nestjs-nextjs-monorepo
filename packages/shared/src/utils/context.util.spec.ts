@@ -85,6 +85,23 @@ describe('ContextUtil', () => {
       expect(ContextUtil.clientIpFromForwardedFor(' 6.6.6.6 , , 198.51.100.9 ')).toBe('198.51.100.9');
     });
 
+    it.each(['evil<script>', 'not-an-ip', '999.999.999.999', '1.2.3', 'X'.repeat(8000), '203.0.113.7:8080 extra'])(
+      'returns undefined when the trusted entry is not an IP address (%#)',
+      (entry) => {
+        expect(ContextUtil.clientIpFromForwardedFor(`6.6.6.6, ${entry}`)).toBeUndefined();
+      },
+    );
+
+    it('accepts IPv4 and IPv6 addresses', () => {
+      expect(ContextUtil.clientIpFromForwardedFor('203.0.113.7')).toBe('203.0.113.7');
+      expect(ContextUtil.clientIpFromForwardedFor('2001:db8::1')).toBe('2001:db8::1');
+      expect(ContextUtil.clientIpFromForwardedFor('::ffff:203.0.113.7')).toBe('::ffff:203.0.113.7');
+    });
+
+    it('only validates the trusted entry, not the client-supplied ones before it', () => {
+      expect(ContextUtil.clientIpFromForwardedFor('evil<script>, 198.51.100.9')).toBe('198.51.100.9');
+    });
+
     it('trusts nothing when no proxy hop is trusted', () => {
       expect(ContextUtil.clientIpFromForwardedFor('6.6.6.6', 0)).toBeUndefined();
     });

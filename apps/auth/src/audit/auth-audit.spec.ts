@@ -641,6 +641,18 @@ describe('buildAuthEvent', () => {
       expect(real).not.toHaveProperty('ip');
     });
 
+    it('records no address when the trusted entry is not an IP, rather than arbitrary client text', () => {
+      const event = buildAuthEvent(
+        ctx('/sign-out', {
+          session: session(user('u1')),
+          headers: new Headers({ 'x-forwarded-for': 'evil<script>' }),
+        }),
+      );
+
+      expect(event).toMatchObject({ actorId: 'u1' });
+      expect(event).not.toHaveProperty('ip');
+    });
+
     it('works without headers', () => {
       const event = buildAuthEvent({
         path: '/sign-out',

@@ -54,6 +54,14 @@
 - [x] 7.4 test: rerun the failing probes against the running stack — a 200 000-char email and 3 000 keys store small events, a forged `X-Forwarded-For` is not recorded, and a sign-in with Mongo paused answers within a few seconds — record the numbers in the PR description
 - [x] 7.5 Commit group 7 with `/commit`
 
+## 8. Second /verify round
+
+- [x] 8.1 test(shared,auth): `ContextUtil.clientIpFromForwardedFor` returns undefined for a trusted entry that is not an IP (text, out-of-range, truncated, huge) and still accepts IPv4, IPv6 and v4-mapped; the auth builder records no `ip` for such a header — verify the new cases fail first
+- [x] 8.2 fix(shared): validate the trusted entry with `net.isIP` in `ContextUtil.clientIpFromForwardedFor` — verify `pnpm --filter @repo/shared test` and `pnpm --filter auth test` pass
+- [x] 8.3 chore: remove the oversized audit events left in the local Mongo by the pre-fix probes (a 200 KB and a 46 KB event) after listing them — verify `GET /api/v1/audit-events?take=100` is back to a few KB and no event is over 8 KB
+- [x] 8.4 docs: README client-address line mentions the IP check — verify wording
+- [x] 8.5 Commit group 8 with `/commit`
+
 ## Workflow follow-up
 
 - Run `/opsx:verify`, then `/opsx:archive` with spec sync.
