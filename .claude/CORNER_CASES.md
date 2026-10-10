@@ -100,6 +100,28 @@ hoisting at the root hides exactly the failure a pruned deploy reproduces.
 
 **Fix:** run `pnpm dedupe` after bumping a package that multiple workspaces depend on (directly or via a peer range) — it collapses the two resolutions back to one (`grep -n "^  bullmq@" pnpm-lock.yaml` should show exactly one entry). A plain `pnpm install` is not guaranteed to do this on its own. If a build error names a "duplicate" class assignable to its own definition, suspect two resolved copies of the same package before suspecting an actual breaking API change.
 
+### Bull Board can't replay a DLQ job: DLQ jobs sit in `waiting` in a queue nobody consumes
+
+**Symptom:** the dashboard shows `email-queue-dlq` jobs but offers no retry for them; and a retry on the failed original in `email-queue` sends the email a second time.
+
+**Cause:** `EmailConsumer` copies a permanently failed job into `email-queue-dlq` with `dlqQueue.add(job.name, job.data)`, so it is a fresh `waiting` job in a queue with no `@Processor`, while the failed original also stays in `email-queue` (`removeOnFail: 500`). Bull Board's retry only re-runs a `failed` job inside its own queue.
+
+**Fix:** replay is `BaseDlqService.replay()` (`DLQ_REPLAY` message pattern), which re-adds the job to the original queue and removes it from the DLQ. The dashboard is therefore mounted with `readOnlyMode: true` on both queues (`apps/worker/src/bull-board/`).
+
+### Bull Board is a mounted Express app: under the global prefix by default, outside guards, interceptors and CLS
+
+**Symptom:** with `globalPrefix: 'api'` the dashboard answers at `/api/admin/queues`, not `/admin/queues`; `@UseGuards`/`@Audit` have no effect on it; and the 401/403/503 bodies it returns have no `correlationId` and a `path` like `/api/queues` instead of the full URL.
+
+**Cause:** `@bull-board/nestjs` mounts the board's router through `MiddlewareConsumer.forRoutes(route)`, which Nest prefixes like any route. It is not a controller, so guards and interceptors never run. `ClsModule`'s middleware is mounted on `'*'` _under_ the prefix, so a route excluded from the prefix gets no CLS store; and Express strips the mount point from `request.url`, which is what `AllExceptionFilter` reports as `path`.
+
+**Fix:** serve it at `/admin/queues` with `globalPrefixExclude: ['admin/queues']` (`workerBootstrapConfig`), and gate it with Bull Board's own `middleware` option: Nest runs it through its exception filters, so it can simply `throw` `UnauthorizedException` / `ForbiddenException` / `ServiceUnavailableException`. Pass a function, not a class: a class is resolved in `BullBoardRootModule`'s scope, which cannot see `SERVICES.AUTH`; build it in `forRootAsync`'s `useFactory`.
+
+### Bull Board's `forFeature` instantiates the adapter class itself — formatters need a subclass, and `readOnlyMode` answers 405
+
+**Symptom:** `adapter.setFormatter('data', …)` has nowhere to be called, because `forFeature({ name, adapter, options })` takes the adapter _class_ and `options` has no formatter slot.
+
+**Fix:** a `BullMQAdapter` subclass that calls `this.setFormatter(...)` in its constructor (`RedactingBullMQAdapter`). Note `readOnlyMode` is enforced server-side — every queue-scoped write route returns **405** (`ERRORS.QUEUE_READ_ONLY`) through `queueProvider`; the global pause-all/resume-all answer 200 but skip read-only queues. `apps/worker/test/bull-board.integration.ts` lists every write route of the installed version and fails if an upgrade adds one that isn't covered.
+
 ---
 
 ## Database (Prisma / PrismaPg)
