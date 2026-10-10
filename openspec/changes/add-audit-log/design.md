@@ -126,6 +126,7 @@ Guards run before interceptors, so a 401/403 never reaches `AuditInterceptor`, a
 
 - `AuditContextGuard` is registered as the **first** `APP_GUARD` in `apps/api`'s `AppModule` (Nest runs global guards in registration order). It always returns `true` and copies the handler's `@Audit` metadata onto `req.audit`.
 - `AllExceptionFilter` (shared) gets `@Optional() AuditService`. For an HTTP 401/403 whose `req.audit` is set, it records a `failure` with that action, the status and `req.user` (absent on 401).
+- `request.user` is the `AUTH_AUTHENTICATE` reply (`session.user`), which has no session data. `apps/auth`'s `authenticate` therefore adds `impersonatedBy` to the reply when the session is an impersonation, so the interceptor and filter can record the real admin. Normal sessions get exactly the reply they got before.
 - *Alternative:* matching `req.route.path` against a registry built with `DiscoveryService`. Rejected as more machinery for the same result.
 
 ### D6 — Query API (`apps/api`)

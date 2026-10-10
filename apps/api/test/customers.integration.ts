@@ -1,11 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  INestApplication,
-  Injectable,
-  UnauthorizedException,
-  VersioningType,
-} from '@nestjs/common';
+import { INestApplication, VersioningType } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { DatabaseService } from '@repo/database';
@@ -14,26 +7,7 @@ import { truncateDatabase } from '@repo/testing-utils';
 import supertest from 'supertest';
 import { CustomersModule } from '../src/customers/customers.module';
 import { apiEnvSchema } from '../src/env';
-
-/**
- * Stands in for MicroserviceAuthGuard (which needs a running apps/auth over
- * Redis RPC): no `x-test-role` header → 401, otherwise `request.user` gets
- * that role. Everything else — SharedModule's global pipe, serializer,
- * exception filter and logging interceptor, the real RolesGuard, Postgres
- * and EncryptionService — is the production wiring.
- */
-@Injectable()
-class FakeAuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
-    const request = context
-      .switchToHttp()
-      .getRequest<{ headers: Record<string, string>; user?: unknown }>();
-    const role = request.headers['x-test-role'];
-    if (!role) throw new UnauthorizedException();
-    request.user = { id: `test-${role}`, role };
-    return true;
-  }
-}
+import { FakeAuthGuard } from './fake-auth.guard';
 
 const NIF = '123456789';
 const OTHER_NIF = '999999990';

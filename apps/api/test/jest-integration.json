@@ -26,5 +26,6 @@
   "globalTeardown": "@repo/testing-utils/e2e/global-teardown",
   "setupFiles": [
     "<rootDir>/test/jest.setup.ts"
-  ]
+  ],
+  "maxWorkers": 1
 }

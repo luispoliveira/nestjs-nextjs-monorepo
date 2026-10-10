@@ -7,6 +7,8 @@ export const apiEnvSchema = baseEnvSchema.extend({
   // length is checked by EncryptionService at module init).
   FIELD_ENCRYPTION_KEY: z.string().min(1),
   FIELD_ENCRYPTION_HMAC_KEY: z.string().min(1),
+  // Days an audit event is kept before it expires (new events only).
+  AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365),
 });
 
 export type ApiEnv = z.infer<typeof apiEnvSchema>;

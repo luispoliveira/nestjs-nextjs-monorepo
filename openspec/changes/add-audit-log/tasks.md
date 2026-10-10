@@ -28,10 +28,10 @@
 
 ## 4. API events and query endpoint (apps/api)
 
-- [ ] 4.1 test(api): apps/api: controller specs asserting `@Audit` metadata on customer create/update/delete (none on reads), a spec asserting `AuditContextGuard` is registered before `MicroserviceAuthGuard` and `RolesGuard` in `AppModule`, and `audit-events.controller.spec.ts` asserting `@Roles(ADMIN)` and GET-only — verify the suites fail
-- [ ] 4.2 feat(api): apps/api: decorate the customer write handlers, register `AuditContextGuard` (first `APP_GUARD`) and `AuditInterceptor`, add `AuditEventsController` (`GET /api/v1/audit-events`, design D6) and `AUDIT_RETENTION_DAYS` in `src/env.ts`, `.env.example` and `.env.test` — verify `pnpm --filter api test` passes and `/api/docs` lists the endpoint
-- [ ] 4.3 test(api): apps/api: write `test/audit.integration.ts` (real Mongo and Postgres): customer create/update/delete success events with target and `changedFields` (`taxId` listed, no NIF value anywhere); 409, 401 and 403 failure events with the right actor; `expireAt` ≈ occurredAt + configured days; query filters (actor, target, action, outcome, date range), pagination, newest first; non-admin 403; PATCH/DELETE `/audit-events/:id` → 404; listing customers produces no event — verify `pnpm --filter api test:integration` passes
-- [ ] 4.4 Commit group 4 with `/commit`
+- [x] 4.1 test(auth,api): apps/auth: `auth.controller.spec` — the `AUTH_AUTHENTICATE` reply carries `impersonatedBy` only for an impersonation session (needed so `apps/api` can name the real admin; normal sessions are unchanged); apps/api: controller specs asserting `@Audit` metadata on customer create/update/delete (none on reads), a spec asserting `AuditContextGuard` is registered before `MicroserviceAuthGuard` and `RolesGuard` in `AppModule`, and `audit-events.controller.spec.ts` asserting `@Roles(ADMIN)` and GET-only — verify the suites fail
+- [x] 4.2 feat(auth,api): apps/auth: include `impersonatedBy` in the authenticate reply when present; apps/api: decorate the customer write handlers, register `AuditContextGuard` (first `APP_GUARD`) and `AuditInterceptor`, add `AuditEventsController` (`GET /api/v1/audit-events`, design D6) and `AUDIT_RETENTION_DAYS` in `src/env.ts`, `.env.example` and `.env.test` — verify `pnpm --filter api test` passes and `/api/docs` lists the endpoint
+- [x] 4.3 test(api): apps/api: write `test/audit.integration.ts` (real Mongo and Postgres): customer create/update/delete success events with target and `changedFields` (`taxId` listed, no NIF value anywhere); 409, 401 and 403 failure events with the right actor; `expireAt` ≈ occurredAt + configured days; query filters (actor, target, action, outcome, date range), pagination, newest first; non-admin 403; PATCH/DELETE `/audit-events/:id` → 404; listing customers produces no event — verify `pnpm --filter api test:integration` passes
+- [x] 4.4 Commit group 4 with `/commit`
 
 ## 5. Audit page (apps/web)
 
