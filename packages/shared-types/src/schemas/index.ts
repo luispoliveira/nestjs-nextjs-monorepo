@@ -1,3 +1,4 @@
+export * from './audit.schema.js';
 export * from './auth.schema.js';
 export * from './base-entity.schema.js';
 export * from './customer.schema.js';
