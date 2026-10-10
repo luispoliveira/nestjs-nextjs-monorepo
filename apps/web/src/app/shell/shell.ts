@@ -32,7 +32,13 @@ const NAV_GROUPS: NavGroup[] = [
       { label: 'Customers', path: '/customers', icon: 'contacts', adminOnly: false },
     ],
   },
-  { label: 'System', entries: [{ label: 'Users', path: '/users', icon: 'group', adminOnly: true }] },
+  {
+    label: 'System',
+    entries: [
+      { label: 'Users', path: '/users', icon: 'group', adminOnly: true },
+      { label: 'Audit log', path: '/audit', icon: 'policy', adminOnly: true },
+    ],
+  },
 ];
 
 /**

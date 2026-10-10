@@ -35,9 +35,9 @@
 
 ## 5. Audit page (apps/web)
 
-- [ ] 5.1 test(web): apps/web: write `features/audit/audit.api.spec.ts` (query params mapping, response parsed, malformed → reject) and `features/audit/audit.spec.ts` (renders rows; filter changes call the API with the right params and reset to page 0; load error → no rows) plus a shell spec case: the Audit nav entry only for admins — verify the suites fail
-- [ ] 5.2 feat(web): apps/web: implement `AuditApi`, the `audit` page (MatTable, filters, MatPaginator, MatDatepicker range), the `audit` route with `adminGuard`, and the System nav entry (`policy` icon, `adminOnly: true`) per design D7 — verify `pnpm --filter web test` and `pnpm --filter web build` pass
-- [ ] 5.3 Commit group 5 with `/commit`
+- [x] 5.1 test(web): apps/web: write `features/audit/audit.api.spec.ts` (query params mapping, response parsed, malformed → reject) and `features/audit/audit.spec.ts` (renders rows; filter changes call the API with the right params and reset to page 0; load error → no rows) plus a shell spec case: the Audit nav entry only for admins — verify the suites fail
+- [x] 5.2 feat(web): apps/web: implement `AuditApi`, the `audit` page (MatTable, filters, MatPaginator, MatDatepicker range), the `audit` route with `adminGuard`, and the System nav entry (`policy` icon, `adminOnly: true`) per design D7 — verify `pnpm --filter web test` and `pnpm --filter web build` pass
+- [x] 5.3 Commit group 5 with `/commit`
 
 ## 6. Docs and end-to-end verification
 
