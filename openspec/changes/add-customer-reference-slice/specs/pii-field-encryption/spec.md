@@ -67,6 +67,11 @@ The plaintext of a protected field SHALL NOT appear in persisted HTTP request/re
 - **WHEN** a customer response containing `taxId` is logged
 - **THEN** the stored response log shows the `taxId` value redacted
 
+#### Scenario: Search term in a logged URL
+
+- **WHEN** customers are searched by NIF (`?search=<nif>`) and the request is logged
+- **THEN** every logged URL shows the `search` value redacted, while the path and other query parameters are kept
+
 ### Requirement: Encryption keys are required configuration
 
 An app that handles protected fields SHALL require an encryption key (base64, exactly 32 bytes) and a separate index key (base64) at boot. It SHALL refuse to start when either key is missing or when the encryption key has the wrong length. The project setup script SHALL generate both keys for local development.

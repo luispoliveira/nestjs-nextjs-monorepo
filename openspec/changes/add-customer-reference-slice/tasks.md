@@ -44,10 +44,16 @@
 
 ## 7. Removal note and end-to-end verification
 
-- [ ] 7.1 docs: add a "Reference slice: Customers" section to `README.md` that lists what the slice demonstrates and the exact removal steps from design.md's Migration Plan; append to `.claude/CORNER_CASES.md` (Database) the `partialIndexes` preview and the drift risk of hand-written partial indexes — verify every path listed in the removal steps exists
-- [ ] 7.2 test: run `pnpm build`, `pnpm lint`, `pnpm check-types` and `pnpm test` at the root — verify all exit 0
+- [x] 7.1 docs: add a "Reference slice: Customers" section to `README.md` that lists what the slice demonstrates and the exact removal steps from design.md's Migration Plan; append to `.claude/CORNER_CASES.md` (Database) the `partialIndexes` preview and the drift risk of hand-written partial indexes — verify every path listed in the removal steps exists
+- [x] 7.2 test: run `pnpm build`, `pnpm lint`, `pnpm check-types` and `pnpm test` at the root — verify all exit 0
 - [ ] 7.3 test: manual smoke with `pnpm docker:up && pnpm dev`: as admin, create a customer with NIF `PT 123 456 789`, search it by `123456789`, edit it, try a duplicate NIF (form shows conflict), delete it, then recreate with the same NIF; as a non-admin user, open `/customers` and confirm read-only; in Mongo `logs`, confirm `taxId` is `[SANITIZED]` — record the results in the PR description
 - [ ] 7.4 Commit group 7 with `/commit`
+
+## 8. Redact search terms from logged URLs (found in smoke test)
+
+- [x] 8.1 test(shared): packages/shared: add `SanitizeUtil.sanitizeUrl` cases (redacts `search`, case-insensitive key, keeps path and other params, no query → unchanged), a pino `req` serializer case and an `AllExceptionFilter`/`LoggingInterceptor` case asserting the logged URL is redacted; extend `apps/api/test/customers.integration.ts` so a NIF search's Mongo request log has no NIF in `url` — verify the new cases fail
+- [x] 8.2 fix(shared): packages/shared: add `SENSITIVE_QUERY_PARAMS = ['search']` and `SanitizeUtil.sanitizeUrl`, and apply it in `LoggingInterceptor`, pino's `req` serializer and `AllExceptionFilter` log lines (design D5) — verify `pnpm --filter @repo/shared test` and `pnpm --filter api test:integration` pass
+- [x] 8.3 Commit group 8 with `/commit`
 
 ## Workflow follow-up
 

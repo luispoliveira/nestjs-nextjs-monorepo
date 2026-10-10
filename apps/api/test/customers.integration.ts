@@ -348,5 +348,18 @@ describe('customers (integration)', () => {
       createLog.mockRestore();
       updateLog.mockRestore();
     });
+
+    it('stores a NIF search with the search value redacted in the url', async () => {
+      await createAsAdmin({ name: 'Ana', taxId: NIF }).expect(201);
+      const createLog = jest.spyOn(mongo, 'createLog');
+
+      await asUser(http().get(BASE).query({ search: NIF })).expect(200);
+
+      const requestLog = createLog.mock.calls.at(-1)?.[0];
+      expect(requestLog?.url).toContain('search=[SANITIZED]');
+      expect(JSON.stringify(createLog.mock.calls)).not.toContain(NIF);
+
+      createLog.mockRestore();
+    });
   });
 });

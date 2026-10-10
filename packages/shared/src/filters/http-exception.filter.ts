@@ -12,6 +12,7 @@ import { ClsService } from 'nestjs-cls';
 import { ZodValidationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
 import { CLS_CORRELATION_ID } from '../constants';
+import { SanitizeUtil } from '../utils/sanitize.util';
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionFilter.name);
@@ -53,7 +54,7 @@ export class AllExceptionFilter implements ExceptionFilter {
         : 'Internal server error';
 
     this.logger.error(
-      `${request.method} ${request.url}`,
+      `${request.method} ${SanitizeUtil.sanitizeUrl(request.url)}`,
       exception instanceof Error ? exception.stack : '',
     );
 
@@ -79,7 +80,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     const zodError = exception.getZodError() as ZodError;
 
     this.logger.warn(
-      `${request.method} ${request.url} - Validation failed`,
+      `${request.method} ${SanitizeUtil.sanitizeUrl(request.url)} - Validation failed`,
       JSON.stringify(zodError.issues),
     );
 

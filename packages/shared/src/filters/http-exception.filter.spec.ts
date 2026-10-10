@@ -116,4 +116,16 @@ describe('AllExceptionFilter', () => {
       expect(Sentry.captureException).toHaveBeenCalledWith(exception);
     });
   });
+
+  it('should not log the search value of the request url', () => {
+    const errorSpy = jest
+      .spyOn((filter as unknown as { logger: { error: () => void } }).logger, 'error')
+      .mockImplementation(() => undefined);
+    const { host } = makeHttpContext({ url: '/api/v1/customers?search=123456789' });
+
+    filter.catch(new HttpException('Not found', HttpStatus.NOT_FOUND), host);
+
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain('123456789');
+    expect(JSON.stringify(errorSpy.mock.calls)).toContain('search=[SANITIZED]');
+  });
 });

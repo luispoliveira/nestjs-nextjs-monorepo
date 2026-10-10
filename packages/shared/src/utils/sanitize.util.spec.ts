@@ -66,4 +66,30 @@ describe('SanitizeUtil', () => {
       expect(result.config.host).toBe('localhost');
     });
   });
+
+  describe('sanitizeUrl', () => {
+    it('redacts the search query parameter value', () => {
+      expect(
+        SanitizeUtil.sanitizeUrl('/api/v1/customers?skip=0&search=123456789'),
+      ).toBe('/api/v1/customers?skip=0&search=[SANITIZED]');
+    });
+
+    it('matches the parameter name case-insensitively', () => {
+      expect(SanitizeUtil.sanitizeUrl('/x?Search=ana')).toBe(
+        '/x?Search=[SANITIZED]',
+      );
+    });
+
+    it('keeps the path and other parameters untouched', () => {
+      expect(
+        SanitizeUtil.sanitizeUrl('/api/v1/customers?take=20&sortBy=name'),
+      ).toBe('/api/v1/customers?take=20&sortBy=name');
+    });
+
+    it('returns a URL without a query string unchanged', () => {
+      expect(SanitizeUtil.sanitizeUrl('/api/v1/customers/c1')).toBe(
+        '/api/v1/customers/c1',
+      );
+    });
+  });
 });
