@@ -65,7 +65,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     response.status(status).json({
       statusCode: status,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: SanitizeUtil.sanitizeUrl(request.url),
       message,
       correlationId,
     });
@@ -87,7 +87,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     response.status(HttpStatus.BAD_REQUEST).json({
       statusCode: HttpStatus.BAD_REQUEST,
       timestamp: new Date().toISOString(),
-      path: request.url,
+      path: SanitizeUtil.sanitizeUrl(request.url),
       message: 'Validation failed',
       errors: zodError.issues,
       correlationId,

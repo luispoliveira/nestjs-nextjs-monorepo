@@ -104,7 +104,7 @@ customers/
 
 - Add `'taxid'` to `SENSITIVE_KEYS` in `SanitizeUtil`. It already lowercases keys and recurses, so it covers request bodies and `items[].taxId` in list responses written by `LoggingInterceptor`.
 - Add `'req.body.taxId'` to pino's `redact.paths`.
-- Logged URLs: `SanitizeUtil.sanitizeUrl()` redacts the value of every query parameter listed in `SENSITIVE_QUERY_PARAMS` (`search`). It is applied to the `LoggingInterceptor` `url` field, pino's `req` serializer and `AllExceptionFilter`'s log lines. A NIF search sends the plaintext in the query string, and search terms in general may be names or emails. Found during the manual smoke test. The `path` in error *responses* is not a log and is left as is. Access logs of nginx or another proxy are outside the app and out of scope.
+- Logged URLs: `SanitizeUtil.sanitizeUrl()` redacts the value of every query parameter listed in `SENSITIVE_QUERY_PARAMS` (`search`). It is applied to the `LoggingInterceptor` `url` field, pino's `req` serializer and `AllExceptionFilter`'s log lines. A NIF search sends the plaintext in the query string, and search terms in general may be names or emails. Found during the manual smoke test. The same function also redacts the `path` echoed in `AllExceptionFilter` error *responses*. A runtime check showed any error (even a 401) returned the full `?search=<nif>` to the client. Access logs of nginx or another proxy are outside the app and out of scope.
 - This is a key-name rule. Any future field named `taxId` in any app is redacted too, which is the intended default for a template. Other PII fields added later must be appended to the same list. This is called out in the removal/usage note.
 
 ### D6 — Configuration (`apps/api`, `scripts/setup.mjs`)
