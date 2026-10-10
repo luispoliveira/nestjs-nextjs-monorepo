@@ -136,6 +136,14 @@ describe('auditEventListQuerySchema', () => {
     expect(q).toMatchObject({ actorId: 'u1', targetId: 'u2', action: 'admin.user.set-role', outcome: 'failure' });
   });
 
+  it('accepts an actor email filter, trimmed and lowercased', () => {
+    expect(auditEventListQuerySchema.parse({ actorEmail: '  Admin@Example.COM ' }).actorEmail).toBe('admin@example.com');
+  });
+
+  it('rejects an empty actor email', () => {
+    expect(auditEventListQuerySchema.safeParse({ actorEmail: '   ' }).success).toBe(false);
+  });
+
   it('rejects an unknown action and an unknown outcome', () => {
     expect(auditEventListQuerySchema.safeParse({ action: 'customer.read' }).success).toBe(false);
     expect(auditEventListQuerySchema.safeParse({ outcome: 'maybe' }).success).toBe(false);

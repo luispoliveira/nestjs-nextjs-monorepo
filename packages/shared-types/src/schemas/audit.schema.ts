@@ -93,6 +93,9 @@ export const auditEventListQuerySchema = paginationSchema
   .pick({ skip: true, take: true })
   .extend({
     actorId: z.string().trim().min(1).optional(),
+    // Matches the actor's email and, for failed sign-ins that have no actor,
+    // the attempted email. Emails are stored lowercased by better-auth.
+    actorEmail: z.string().trim().toLowerCase().min(1).optional(),
     targetId: z.string().trim().min(1).optional(),
     action: auditActionSchema.optional(),
     outcome: auditOutcomeSchema.optional(),

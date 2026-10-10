@@ -53,7 +53,8 @@ export class Audit {
   protected readonly filters = new FormGroup({
     action: new FormControl<AuditAction | ''>('', { nonNullable: true }),
     outcome: new FormControl<AuditOutcome | ''>('', { nonNullable: true }),
-    actorId: new FormControl('', { nonNullable: true }),
+    // An email (contains "@") or a user id.
+    actor: new FormControl('', { nonNullable: true }),
     targetId: new FormControl('', { nonNullable: true }),
     range: new FormGroup({
       start: new FormControl<Date | null>(null),
@@ -94,8 +95,9 @@ export class Audit {
     const query: Partial<AuditEventListQuery> = { skip: page * PAGE_SIZE, take: PAGE_SIZE };
     if (f.action) query.action = f.action;
     if (f.outcome) query.outcome = f.outcome;
-    const actorId = f.actorId.trim();
-    if (actorId) query.actorId = actorId;
+    const actor = f.actor.trim();
+    if (actor.includes('@')) query.actorEmail = actor.toLowerCase();
+    else if (actor) query.actorId = actor;
     const targetId = f.targetId.trim();
     if (targetId) query.targetId = targetId;
     if (f.range.start) query.from = startOfDay(f.range.start);

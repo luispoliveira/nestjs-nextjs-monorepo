@@ -419,7 +419,7 @@ Email delivery via Brevo. Configure with `MailModule.forRootAsync()`. Logs all s
 
 ## Audit log
 
-Authentication, account-management and customer write actions are recorded in an append-only MongoDB collection (`audit_events`), separate from the HTTP request `Log`. Admins read it on the `/audit` page (`GET /api/v1/audit-events`).
+Authentication, account-management and customer write actions are recorded in an append-only MongoDB collection (`audit_events`), separate from the HTTP request `Log`. Admins read it on the `/audit` page (`GET /api/v1/audit-events`), filtering by action, outcome, actor (email or id), target and dates. An email also finds the failed sign-ins that tried it.
 
 - **What is recorded:** `apps/auth` records every audited better-auth route (sign-in/up/out, password and email changes, 2FA, session revocation, and the admin user actions: create, update, remove, ban, unban, role, password, impersonate), on success **and** on failure. `apps/api` records the writes marked with `@Audit`. Reads are never recorded.
 - **What an event holds:** actor (and the real admin during an impersonation), action, target, outcome with error code, changed **field names**, values only for `role`, `banned`, `banReason` and `banExpires`, IP, user agent and the request's correlation ID. Passwords, tokens, codes, NIFs and email values are never stored. A **failed** action records no changed fields or values, since nothing changed. A failed sign-in keeps the attempted email.

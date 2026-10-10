@@ -137,7 +137,7 @@ Guards run before interceptors, so a 401/403 never reaches `AuditInterceptor`, a
 
 | Method | Path | Roles | Notes |
 |---|---|---|---|
-| GET | `/api/v1/audit-events` | `ADMIN` | `auditEventListQuerySchema`: `skip`, `take` (≤100), `actorId?`, `targetId?`, `action?` (enum), `outcome?`, `from?`, `to?` (ISO). Sorted by `occurredAt` desc. Response `paginatedSchema(auditEventSchema)` |
+| GET | `/api/v1/audit-events` | `ADMIN` | `auditEventListQuerySchema`: `skip`, `take` (≤100), `actorId?`, `actorEmail?` (trimmed, lowercased; matches the actor email or the attempted email of a failed sign-in), `targetId?`, `action?` (enum), `outcome?`, `from?`, `to?` (ISO). Sorted by `occurredAt` desc. Response `paginatedSchema(auditEventSchema)` |
 
 - No other methods exist on the resource, so PATCH/PUT/DELETE get the framework's 404 (immutability scenario).
 - The query schema has no root `.meta({ id })`, the same rule as `customerListQuerySchema`.

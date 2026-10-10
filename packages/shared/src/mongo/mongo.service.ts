@@ -7,6 +7,8 @@ import { Log } from './schema/log.schema';
 
 export interface AuditEventFilter {
   actorId?: string;
+  /** Matches `actorEmail` or `attemptedEmail` (a failed sign-in has no actor). */
+  actorEmail?: string;
   targetId?: string;
   action?: string;
   outcome?: string;
@@ -61,8 +63,11 @@ export class MongoService {
     skip: number,
     take: number,
   ): Promise<{ items: AuditEventRecord[]; total: number }> {
-    const { from, to, ...equals } = filter;
+    const { from, to, actorEmail, ...equals } = filter;
     const query: Record<string, unknown> = { ...equals };
+    if (actorEmail) {
+      query.$or = [{ actorEmail }, { attemptedEmail: actorEmail }];
+    }
     if (from || to) {
       query.occurredAt = {
         ...(from ? { $gte: from } : {}),

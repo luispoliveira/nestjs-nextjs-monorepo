@@ -374,6 +374,26 @@ describe('audit events (integration)', () => {
       expect(empty.body.meta.total).toBe(0);
     });
 
+    it('filters by the actor email, ignoring case and surrounding spaces', async () => {
+      const { since } = await seed();
+
+      const res = await as(
+        'admin',
+        http().get(EVENTS).query({
+          from: since.toISOString(),
+          actorEmail: '  Test-Admin@Example.com ',
+        }),
+      ).expect(200);
+
+      expect(res.body.items.length).toBeGreaterThanOrEqual(3);
+      expect(
+        res.body.items.every(
+          (e: { actorEmail: string }) =>
+            e.actorEmail === 'test-admin@example.com',
+        ),
+      ).toBe(true);
+    });
+
     it('rejects an unknown action, a bad date and take above 100 with 400', async () => {
       await as(
         'admin',

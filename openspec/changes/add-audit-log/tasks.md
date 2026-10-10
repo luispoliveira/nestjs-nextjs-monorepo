@@ -70,6 +70,14 @@
 - [x] 9.4 test: rerun the real-route probe — `admin.user.revoke-session` shows the session owner as target and no failure event carries changes — record the result in the PR description
 - [x] 9.5 Commit group 9 with `/commit`
 
+## 10. Fourth /verify round (UI)
+
+- [x] 10.1 test(shared-types,shared,api,web): query schema accepts `actorEmail` (trimmed, lowercased, not empty); `MongoService` matches it against actor and attempted email and keeps combining with other filters; api integration filters by email ignoring case; web sends an email in the actor field as `actorEmail` and anything else as `actorId`, and the actor cell carries the id as `title` — verify the new cases fail first
+- [x] 10.2 fix(shared-types,shared,web): add the `actorEmail` filter end to end and one "Actor (email or id)" field with an id tooltip on the actor cell — verify unit and integration suites pass and `pnpm --filter web build` succeeds
+- [x] 10.3 docs: README audit section mentions filtering by email — verify wording
+- [x] 10.4 test: in the browser, typing an email in the actor field lists that user's events and failed sign-ins, hovering the actor shows the id — record in the PR description
+- [x] 10.5 Commit group 10 with `/commit`
+
 ## Workflow follow-up
 
 - Run `/opsx:verify`, then `/opsx:archive` with spec sync.

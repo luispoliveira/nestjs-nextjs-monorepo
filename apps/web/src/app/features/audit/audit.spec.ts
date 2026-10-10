@@ -115,7 +115,7 @@ describe('Audit', () => {
       instance['onPage']({ pageIndex: 2, pageSize: 20, length: 42 });
       expect(instance['page']()).toBe(2);
 
-      instance['filters'].patchValue({ action: 'admin.user.ban', outcome: 'failure', actorId: ' a1 ', targetId: 'u1' });
+      instance['filters'].patchValue({ action: 'admin.user.ban', outcome: 'failure', actor: ' a1 ', targetId: 'u1' });
       await vi.advanceTimersByTimeAsync(299);
       expect(instance['page']()).toBe(2);
       await vi.advanceTimersByTimeAsync(2);
@@ -134,6 +134,39 @@ describe('Audit', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('sends an email typed in the actor field as actorEmail (lowercased) and anything else as actorId', async () => {
+    vi.useFakeTimers();
+    try {
+      const list = vi.fn().mockResolvedValue(page([event('e1')]));
+      const fixture = setUp(list);
+      const instance = fixture.componentInstance;
+      await vi.advanceTimersByTimeAsync(0);
+
+      instance['filters'].patchValue({ actor: ' Admin@Example.com ' });
+      await vi.advanceTimersByTimeAsync(301);
+      fixture.detectChanges();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(list).toHaveBeenLastCalledWith({ skip: 0, take: 20, actorEmail: 'admin@example.com' });
+
+      instance['filters'].patchValue({ actor: 'qeDz0o12evcRb' });
+      await vi.advanceTimersByTimeAsync(301);
+      fixture.detectChanges();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(list).toHaveBeenLastCalledWith({ skip: 0, take: 20, actorId: 'qeDz0o12evcRb' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('shows the actor id on hover so an admin can filter by it', async () => {
+    const list = vi.fn().mockResolvedValue(page([event('e1', { actorId: 'user-42' })]));
+    const fixture = setUp(list);
+    await settle(fixture);
+
+    const actorCell = (fixture.nativeElement.querySelector('[data-testid="audit-row-e1"]') as HTMLTableRowElement).cells[1];
+    expect(actorCell?.getAttribute('title')).toBe('user-42');
   });
 
   it('turns the date range into a whole-day from/to', async () => {
@@ -168,7 +201,7 @@ describe('Audit', () => {
       const fixture = setUp(list);
       const instance = fixture.componentInstance;
       await vi.advanceTimersByTimeAsync(0);
-      instance['filters'].patchValue({ outcome: 'failure', actorId: 'a1' });
+      instance['filters'].patchValue({ outcome: 'failure', actor: 'a1' });
       await vi.advanceTimersByTimeAsync(301);
 
       instance['clearFilters']();

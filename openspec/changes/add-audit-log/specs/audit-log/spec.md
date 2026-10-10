@@ -199,12 +199,17 @@ The system SHALL offer no operation to edit or delete individual audit events. E
 
 ### Requirement: Admins can query audit events
 
-The API SHALL expose audit events read-only at `GET /api/v1/audit-events`, to admins only. Results SHALL be newest first, paginated in the shared paginated shape (`take` 1–100, default 20), and filterable by actor id, target id, action, outcome and an occurred-at date range. Any combination of filters SHALL be allowed.
+The API SHALL expose audit events read-only at `GET /api/v1/audit-events`, to admins only. Results SHALL be newest first, paginated in the shared paginated shape (`take` 1–100, default 20), and filterable by actor id, actor email, target id, action, outcome and an occurred-at date range. The actor email SHALL also match the attempted email of failed sign-ins, which have no actor. Any combination of filters SHALL be allowed.
 
 #### Scenario: Filter by target
 
 - **WHEN** an admin requests events with `targetId` set to user U
 - **THEN** only events targeting U are returned, newest first, with `meta.total` counting all matches
+
+#### Scenario: Filter by actor email
+
+- **WHEN** an admin requests events with `actorEmail` set to a user's email in any letter case
+- **THEN** the events of that actor are returned, together with the failed sign-ins that tried that email
 
 #### Scenario: Non-admin access
 
@@ -218,7 +223,7 @@ The API SHALL expose audit events read-only at `GET /api/v1/audit-events`, to ad
 
 ### Requirement: Admin UI shows the audit log
 
-The web app SHALL provide an `/audit` page, reachable from the navigation only by admins. It SHALL show a paginated table of events (time, actor, impersonated by, action, target, outcome) and offer filters for action, outcome, actor, target and date range. Non-admins SHALL be redirected away from it.
+The web app SHALL provide an `/audit` page, reachable from the navigation only by admins. It SHALL show a paginated table of events (time, actor, impersonated by, action, target, outcome) and offer filters for action, outcome, actor (by email or id), target and date range. The actor cell SHALL expose the actor's id. Non-admins SHALL be redirected away from it.
 
 #### Scenario: Admin views and filters
 

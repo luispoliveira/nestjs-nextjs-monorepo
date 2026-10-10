@@ -161,6 +161,20 @@ describe('MongoService', () => {
       expect(mockCountDocuments).toHaveBeenCalledWith(expected);
     });
 
+    it('matches an email against the actor and against the attempted email of failed sign-ins', async () => {
+      mockLean.mockResolvedValue([]);
+      mockCountExec.mockResolvedValue(0);
+
+      await service.findAuditEvents({ actorEmail: 'ana@example.com', outcome: 'failure' }, 0, 20);
+
+      const expected = {
+        outcome: 'failure',
+        $or: [{ actorEmail: 'ana@example.com' }, { attemptedEmail: 'ana@example.com' }],
+      };
+      expect(mockFind).toHaveBeenCalledWith(expected);
+      expect(mockCountDocuments).toHaveBeenCalledWith(expected);
+    });
+
     it('supports a one-sided date range', async () => {
       mockLean.mockResolvedValue([]);
       mockCountExec.mockResolvedValue(0);
