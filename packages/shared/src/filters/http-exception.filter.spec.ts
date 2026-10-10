@@ -116,4 +116,40 @@ describe('AllExceptionFilter', () => {
       expect(Sentry.captureException).toHaveBeenCalledWith(exception);
     });
   });
+
+  it('should not log the search value of the request url', () => {
+    const errorSpy = jest
+      .spyOn((filter as unknown as { logger: { error: () => void } }).logger, 'error')
+      .mockImplementation(() => undefined);
+    const { host } = makeHttpContext({ url: '/api/v1/customers?search=123456789' });
+
+    filter.catch(new HttpException('Not found', HttpStatus.NOT_FOUND), host);
+
+    expect(JSON.stringify(errorSpy.mock.calls)).not.toContain('123456789');
+    expect(JSON.stringify(errorSpy.mock.calls)).toContain('search=[SANITIZED]');
+  });
+
+  it('should not echo the search value in the error response path', () => {
+    const { host, json } = makeHttpContext({ url: '/api/v1/customers?search=123456789&take=101' });
+
+    filter.catch(new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED), host);
+
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/api/v1/customers?search=[SANITIZED]&take=101' }),
+    );
+  });
+
+  it('should not echo the search value in a validation error response path', () => {
+    const { host, json } = makeHttpContext({ url: '/api/v1/customers?search=123456789&take=101' });
+    const zodError = { issues: [{ path: ['take'], message: 'Too big' }] };
+    const exception = Object.assign(Object.create(ZodValidationException.prototype), {
+      getZodError: () => zodError,
+    });
+
+    filter.catch(exception, host);
+
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/api/v1/customers?search=[SANITIZED]&take=101' }),
+    );
+  });
 });

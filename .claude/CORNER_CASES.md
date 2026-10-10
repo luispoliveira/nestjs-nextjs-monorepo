@@ -98,6 +98,14 @@ hoisting at the root hides exactly the failure a pruned deploy reproduces.
 
 <!-- Add Prisma / DB corner cases here -->
 
+### Partial unique indexes must be declared in the schema (`partialIndexes` preview), never hand-written into a migration
+
+**Context:** `Customer.taxIdHash` has to be unique only among non-deleted rows (`WHERE "deletedAt" IS NULL`).
+
+**Gotcha:** if you hand-write a `CREATE UNIQUE INDEX ... WHERE ...` into a migration's SQL, the Prisma schema doesn't know the index exists. The next `prisma migrate dev` detects drift and generates a `DROP INDEX` for it.
+
+**Fix:** since Prisma 7.4, enable `previewFeatures = ["partialIndexes"]` on the generator and declare `@@unique([taxIdHash], where: { deletedAt: null })`. The generated migration contains the `WHERE ("deletedAt" IS NULL)` clause, and `migrate dev --create-only` then produces an empty migration, which confirms there is no drift. This is a preview feature: if it is ever removed, fall back to raw SQL **and** expect to re-apply it after every drift-triggered regeneration. Columns are camelCase here (no field `@map`), so a `raw(...)` predicate must quote `"deletedAt"`.
+
 ### `pnpm db:generate` alone is not enough after editing `auth.prisma` — `packages/database` must also be rebuilt
 
 **Symptom:** after editing `packages/database/prisma/auth.prisma` and running `pnpm db:generate`, a Prisma-backed feature (e.g. better-auth's own runtime schema validation, new in 1.7.3 — see the Authentication section) still reports the *old* schema, even though the freshly generated `packages/database/generated/prisma/**/*.ts` source on disk is correct and the live database has the new columns.
@@ -123,6 +131,14 @@ Under that distribution model, an incremental migration added here would reach *
 ## Angular
 
 <!-- Add Angular edge cases here -->
+
+### `<mat-dialog-content class="flex …">` silently renders as `display: block`
+
+**Symptom:** dialog form fields sit side by side in narrow inline rows (and overflow the dialog) instead of stacking, even though `<mat-dialog-content>` has `flex flex-col gap-2`.
+
+**Cause:** Material's `.mat-mdc-dialog-content { display: block }` is injected **unlayered**, while Tailwind v4 utilities live in `@layer utilities`. Unlayered CSS beats any layered rule regardless of specificity, so `.flex` loses, and the `inline-flex` `mat-form-field`s flow inline. `flex-col`/`gap-*` still compute, but they do nothing on a block container. This affected every dialog in `apps/web`.
+
+**Fix:** a global unlayered `.mat-mdc-dialog-content.flex { display: flex; }` in `apps/web/src/styles.scss` (specificity 0,2,0 beats Material's 0,1,0 regardless of injection order). When a Tailwind utility "does nothing" on a Material element, check the computed style for an unlayered Material rule before adding more classes.
 
 ---
 
@@ -171,6 +187,14 @@ See `openspec/changes/update-monorepo-dependencies/design.md` (D5) for the full 
 **Cause:** `@faker-js/faker` ships `"type": "module"` with no CommonJS build at all (checked directly against its `package.json`). `packages/testing-utils` compiles to CommonJS, so its compiled `user.factory.js` calls `require()` on a package that has no `require`-able entry point — Node throws `ERR_REQUIRE_ESM` regardless of any `transformIgnorePatterns` tweak, because the `.js` file has already been compiled to a static `require()` call; no Jest transform step can retroactively turn that into an `import()`. `apps/auth/test/jest-integration.json` ran plain CommonJS Jest, unlike `jest-e2e.json`, which was already ESM-mode and unaffected. Not caused by any dependency version bump — `@faker-js/faker` was already pinned at `^10.6.0` (pure ESM) before this repo's most recent dependency work; `test:integration` isn't wired into any CI workflow, so nothing had caught it.
 
 **Fix:** converted `apps/auth/test/jest-integration.json` to the same real-ESM Jest setup already used by `jest-e2e.json` (`extensionsToTreatAsEsm: [".ts"]`, `ts-jest` with `useESM: true` and an inline ESNext/bundler tsconfig), and prefixed the `test:integration` script with `NODE_OPTIONS='--experimental-vm-modules'` — under Node ≥24.9 (this repo runs 24.19), Jest's native ESM execution mode can `require(esm)` a CJS module that itself requires a pure-ESM package; plain CJS Jest mode cannot. Doing this surfaced a second, previously-hidden issue in the same file: under real ESM, Jest's globals (`jest.fn()`, etc.) aren't auto-injected — `test/users.integration.ts` needed an explicit `import { jest } from '@jest/globals';`. If another package ever needs a pure-ESM-only dependency under a Jest suite that still runs in CJS mode, converting that suite's config to this same ESM pattern is the fix, not a `transformIgnorePatterns` change.
+
+### A suite that imports app source can't use the ESM-mode Jest config — `require(esm)` cycle on `@repo/shared-types`
+
+**Symptom:** `apps/api`'s `test:integration`, copied from `apps/auth`'s ESM config, fails before any test runs: `Cannot require() ES Module .../packages/shared-types/dist/index.js in a cycle`, thrown from `packages/database/dist/src/database.service.js`.
+
+**Cause:** in ESM mode `ts-jest` compiles the app's own `src/` to ESM. A controller that imports both `@repo/shared` (CommonJS, which `require`s `@repo/database` → `@repo/shared-types`) and `@repo/shared-types` (ESM) puts `shared-types` into the ESM graph that is being linked. The CJS `require()` of it then counts as a cycle, and Jest refuses it. `apps/auth`'s integration suite never imports app source, so it never hits this.
+
+**Fix:** keep the suite's **test files in CommonJS** (plain `ts-jest`, no `useESM`/`extensionsToTreatAsEsm`, `tsconfig.test.json`), but **keep `NODE_OPTIONS='--experimental-vm-modules'`** on the script. That flag is what lets Jest `require(esm)` the pure-ESM `@faker-js/faker` from `@repo/testing-utils` (Node ≥24.9). See `apps/api/test/jest-integration.json`. With CJS test files the `jest` global is injected, so do not `import { jest } from '@jest/globals'`.
 
 ### `jest.setup.ts` `override: true` silently re-points `globalSetup`'s container URLs at localhost
 

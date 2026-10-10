@@ -140,7 +140,7 @@ Default job options (set in `QueueModule`):
 - Use NestJS `Logger` (backed by pino). Never use `console.log` except in `main.ts` startup messages.
 - `LoggingInterceptor` persists HTTP request/response to MongoDB. Skipped (as is pino auto-logging and Sentry tracing) for any path with a `/health`, `/metrics` or `/favicon.ico` segment, e.g. `/api/health/live`, via `isSilentPath` in `constants/observability.ts`.
 - `AllExceptionFilter` returns: `{ statusCode, timestamp, path, message, correlationId }`.
-- Throw standard NestJS HTTP exceptions (`NotFoundException`, `BadRequestException`, etc.). Zod validation errors → 422 via `ZodValidationException`.
+- Throw standard NestJS HTTP exceptions (`NotFoundException`, `BadRequestException`, etc.). Zod validation errors → 400 via `ZodValidationException` (response adds an `errors` array of Zod issues).
 - 5xx errors are automatically captured by Sentry via `AllExceptionFilter`.
 
 > There is no tRPC layer. `apps/api` exposes plain REST controllers only —

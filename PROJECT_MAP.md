@@ -61,7 +61,7 @@ See also: [ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md) | [ENTRYPOINTS.md
 
 ### `apps/cron/`
 
-**Role**: NestJS scheduled-jobs runner. Port `3200`. No business HTTP routes — health/metrics/docs only.
+**Role**: NestJS scheduled-jobs runner. Port `3400`. No business HTTP routes — health/metrics/docs only.
 
 | Path                                        | Role                                                                          |
 | -------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -83,7 +83,7 @@ Redis-event–driven notification dispatcher. Enqueues email jobs into BullMQ.
 
 | Path                         | Role                                                                       |
 | ---------------------------- | ---------------------------------------------------------------------------- |
-| `src/main.ts`                | Bootstrap: `globalPrefix='api'`, Redis microservice transport, port `3300` |
+| `src/main.ts`                | Bootstrap: `globalPrefix='api'`, Redis microservice transport, port `3200` |
 | `src/app.module.ts`          | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`       |
 | `src/app.controller.ts`      | Six `@EventPattern` handlers (see [ENTRYPOINTS.md](ENTRYPOINTS.md))        |
 | `src/app.service.ts`         | Delegates to `EmailProducer` for each event type                           |
@@ -99,7 +99,7 @@ BullMQ consumer. Processes email jobs and handles the Dead Letter Queue.
 
 | Path                                        | Role                                                                                            |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `src/main.ts`                               | Bootstrap: `globalPrefix='api'`, Redis microservice transport, port `3400`                      |
+| `src/main.ts`                               | Bootstrap: `globalPrefix='api'`, Redis microservice transport, port `3300`                      |
 | `src/app.module.ts`                         | Imports `SharedModule`, `QueueModule.registerQueues([QUEUES.EMAIL])`, `MailModule`, `DlqModule` |
 | `src/consumer/email.consumer.ts`            | `@Processor(QUEUES.EMAIL)` — dispatches on `job.name`; routes exhausted jobs to DLQ, records metrics via `QueueMetricsService` |
 | `src/consumer/email.consumer.spec.ts`       | Unit tests for `EmailConsumer`                                                                  |

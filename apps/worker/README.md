@@ -87,7 +87,7 @@ Check out a few resources that may come in handy when working with NestJS:
 
 ### Prometheus Metrics
 
-The worker exposes metrics at `GET /api/metrics` (scraped by Prometheus; distinguished from other apps by port `3400`, not by path).
+The worker exposes metrics at `GET /api/metrics` (scraped by Prometheus; distinguished from other apps by port `3300`, not by path).
 
 Key metrics:
 

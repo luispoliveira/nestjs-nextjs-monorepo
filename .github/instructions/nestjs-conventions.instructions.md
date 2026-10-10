@@ -292,7 +292,7 @@ HTTP request/response logs are written to MongoDB automatically by `LoggingInter
 }
 ```
 
-`ZodValidationException` is handled separately with a 422 status. In services, throw NestJS HTTP exceptions:
+`ZodValidationException` is handled separately with a 400 status and an `errors` array of Zod issues. In services, throw NestJS HTTP exceptions:
 
 ```typescript
 throw new NotFoundException(`User ${id} not found`);

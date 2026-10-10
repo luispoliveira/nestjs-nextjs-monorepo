@@ -42,3 +42,12 @@ body {
   margin: 0;
   height: 100%;
 }
+
+// Material's `.mat-mdc-dialog-content { display: block }` is unlayered, so it
+// beats Tailwind's layered `.flex` utility and every dialog's
+// `<mat-dialog-content class="flex flex-col gap-2">` collapses into inline
+// rows of form fields. An unlayered, more specific rule restores the flex
+// container; `flex-col`/`gap-*` have no Material counterpart and still apply.
+.mat-mdc-dialog-content.flex {
+  display: flex;
+}

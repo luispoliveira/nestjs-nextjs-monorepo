@@ -9,6 +9,7 @@ import {
   SharedModule,
 } from '@repo/shared';
 import { AppController } from './app.controller';
+import { CustomersModule } from './customers/customers.module';
 import { apiEnvSchema } from './env';
 
 @Module({
@@ -21,6 +22,7 @@ import { apiEnvSchema } from './env';
     }),
     ClientsModule.registerAsync([MicroserviceUtil.registerAuthService()]),
     DatabaseSeederModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [
