@@ -170,4 +170,77 @@ describe('AuditService', () => {
       userAgent: 'jest',
     });
   });
+
+  describe('size limits (client-controlled fields cannot bloat the collection)', () => {
+    it('truncates an oversized attempted email, user agent, ip, ids and error code', async () => {
+      await service.record({
+        action: 'auth.sign-in',
+        outcome: 'failure',
+        errorCode: '4'.repeat(5000),
+        actorId: 'a'.repeat(5000),
+        actorEmail: 'e'.repeat(5000),
+        attemptedEmail: 'x'.repeat(200000) + '@example.com',
+        targetId: 't'.repeat(5000),
+        ip: '1'.repeat(5000),
+        userAgent: 'u'.repeat(5000),
+      });
+
+      const event = stored();
+      expect((event.attemptedEmail as string).length).toBe(254);
+      expect((event.actorEmail as string).length).toBe(254);
+      expect((event.userAgent as string).length).toBe(256);
+      expect((event.ip as string).length).toBe(64);
+      expect((event.errorCode as string).length).toBe(128);
+      expect((event.actorId as string).length).toBe(128);
+      expect((event.targetId as string).length).toBe(128);
+    });
+
+    it('leaves values within the limits untouched', async () => {
+      await service.record({
+        action: 'auth.sign-in',
+        outcome: 'failure',
+        attemptedEmail: 'someone@example.com',
+        userAgent: 'Mozilla/5.0',
+      });
+
+      expect(stored()).toMatchObject({ attemptedEmail: 'someone@example.com', userAgent: 'Mozilla/5.0' });
+    });
+
+    it('caps the number of changed fields and the length of each name', async () => {
+      const fields = Array.from({ length: 3000 }, (_, i) => `field${i}_${'z'.repeat(500)}`);
+
+      await service.record({ action: 'auth.update-user', outcome: 'success', changedFields: fields });
+
+      const stored_ = stored().changedFields as string[];
+      expect(stored_).toHaveLength(50);
+      expect(stored_.every((f) => f.length <= 64)).toBe(true);
+      expect(stored_[0]).toBe(fields[0]!.slice(0, 64));
+    });
+
+    it('caps the length of a stored change value and keeps non-string values as they are', async () => {
+      await service.record({
+        action: 'admin.user.ban',
+        outcome: 'success',
+        changes: { banned: true, banReason: 'r'.repeat(100000) },
+      });
+
+      const changes = stored().changes as Record<string, unknown>;
+      expect(changes.banned).toBe(true);
+      expect((changes.banReason as string).length).toBe(500);
+    });
+
+    it('keeps an event comfortably small even when every field is hostile', async () => {
+      await service.record({
+        action: 'auth.update-user',
+        outcome: 'failure',
+        errorCode: 'x'.repeat(1e6),
+        attemptedEmail: 'x'.repeat(1e6),
+        userAgent: 'x'.repeat(1e6),
+        changedFields: Array.from({ length: 1e4 }, () => 'x'.repeat(1000)),
+        changes: { banReason: 'x'.repeat(1e6) },
+      });
+
+      expect(JSON.stringify(stored()).length).toBeLessThan(8 * 1024);
+    });
+  });
 });

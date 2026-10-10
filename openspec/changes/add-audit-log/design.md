@@ -63,6 +63,7 @@ record(event: AuditInput): Promise<void>
 
 - `SAFE_CHANGE_FIELDS = ['role', 'banned', 'banReason', 'banExpires']` and the action names live in `@repo/shared-types` as `AUDIT_ACTIONS` (a `z.enum`), so the web filter dropdown and the backend share one list. Consumers import them from `@repo/shared-types` directly (one import path for the single source).
 - The service is global so that `AllExceptionFilter`, which is shared, can inject it (D5). Apps that never audit pay nothing.
+- **Size bounds** (found by runtime verification): `AuditService.record` truncates every client-controlled field before storing (`AUDIT_LIMITS`: emails 254, user agent 256, ids 128, address 64, error code 128; at most 50 changed-field names of 64 characters; change values 500), so one event stays under ~8 KB whatever the request sends. Truncation is silent and central, so both apps get it.
 - `AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365)` is added to the env schemas of `apps/auth` and `apps/api`, the two apps that record events.
 
 ### D3 — `apps/auth`: one `@AfterHook()` provider with a path allow-list
@@ -105,8 +106,9 @@ export class AuthAuditHook {
 
 - **Outcome:** `isAPIError(ctx.context.returned)` → `failure`, with `errorCode` = `${status}` plus `body.code` when present.
 - **Actor:** `ctx.context.newSession?.user ?? ctx.context.session?.user`. `impersonatedById` comes from `session.session.impersonatedBy`.
-- **IP and user agent:** from `ctx.headers` / `ctx.request` (`x-forwarded-for` first hop; the app sets `trustProxy: true`).
+- **IP and user agent:** from `ctx.headers`. The address is the `X-Forwarded-For` entry the trusted proxy appended (`ContextUtil.clientIpFromForwardedFor`, `TRUSTED_PROXY_HOPS = 1`, the same rule `BootstrapUtil` gives Express `trust proxy`); the first entry is client-supplied and never used, and `x-real-ip` is ignored for the same reason. With no forwarded header (direct access in development) no address is recorded.
 - **Correlation ID (verified at runtime, task 3.3):** better-auth is mounted outside Nest's middleware chain, so `ClsService` has no store inside the hook and events came out with no `correlationId`. The `AuthModule` `middleware` option wraps the handler in `cls.run(...)` with a fresh id (`withCorrelationId`, `apps/auth/src/audit/correlation.middleware.ts`). `ClsService` is imported from `@repo/shared`, not `nestjs-cls`: under Jest's ESM mode the app's own copy is a different class from the one `SharedModule` provides (see CORNER_CASES).
+- **Bounded wait:** the hook awaits the write so the event normally exists when the response leaves, but only for `AUDIT_HOOK_MAX_WAIT_MS` (2 s). With Mongo unreachable the driver blocks ~30 s (measured: a sign-in took 35 s), so past the budget the response goes out and the write finishes, or fails and is reported, in the background.
 - **Sign-out actor (verified at runtime, task 3.3):** better-auth clears the session during `/sign-out`, so the after hook had no actor. `AuthAuditHook` has a `@BeforeHook('/sign-out')` that looks the session up and stashes it on `ctx.context.auditSession`; `buildAuthEvent` uses it as a last-resort actor source.
 - *Alternative:* about 30 `@AfterHook('/path')` methods. Rejected, because a newly used endpoint would silently go unaudited.
 
@@ -162,7 +164,7 @@ Guards run before interceptors, so a 401/403 never reaches `AuditInterceptor`, a
 - [Sign-out loses the actor] → Resolved in task 3.3 (before-hook stash, see D3).
 - [Correlation ID unavailable inside better-auth hooks] → Resolved in task 3.3 (module `middleware` + CLS, see D3).
 - [The pre-existing notification hooks (`LocalAuthService`) fire on failed requests too, for example "password changed" after a rejected set-password] → Out of scope, flagged for a separate fix.
-- [The best-effort write loses events during a Mongo outage] → Every loss is logged and sent to Sentry with action and correlation ID.
+- [The best-effort write loses events during a Mongo outage] → Every loss is logged and sent to Sentry with action and correlation ID. A hanging Mongo no longer stalls auth responses beyond the 2 s budget.
 - [The attempted email of a failed sign-in may belong to no user (PII of a non-user)] → Bounded retention, admin-only access, documented.
 - [`AllExceptionFilter` is shared by every app] → `AuditService` is `@Optional`, and recording happens only when `req.audit` is set, which only `apps/api`'s guard does, so other apps are unaffected.
 - [Global guard order is registration order] → `AuditContextGuard` must be listed before `MicroserviceAuthGuard`. A unit test asserts the `AppModule` provider order.

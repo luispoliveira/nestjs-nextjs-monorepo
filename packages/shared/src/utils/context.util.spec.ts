@@ -56,4 +56,37 @@ describe('ContextUtil', () => {
       expect(ContextUtil.newCorrelationId()).not.toBe(ContextUtil.newCorrelationId());
     });
   });
+
+  describe('clientIpFromForwardedFor', () => {
+    it('returns undefined without the header', () => {
+      expect(ContextUtil.clientIpFromForwardedFor(undefined)).toBeUndefined();
+      expect(ContextUtil.clientIpFromForwardedFor(null)).toBeUndefined();
+      expect(ContextUtil.clientIpFromForwardedFor('')).toBeUndefined();
+    });
+
+    it('returns the only entry', () => {
+      expect(ContextUtil.clientIpFromForwardedFor('203.0.113.7')).toBe('203.0.113.7');
+    });
+
+    it('takes the entry the trusted proxy appended, not the client-supplied first one', () => {
+      // A client sends "6.6.6.6"; nginx ($proxy_add_x_forwarded_for) appends the real address.
+      expect(ContextUtil.clientIpFromForwardedFor('6.6.6.6, 198.51.100.9')).toBe('198.51.100.9');
+    });
+
+    it('counts hops from the right, like Express trust proxy', () => {
+      expect(ContextUtil.clientIpFromForwardedFor('6.6.6.6, 198.51.100.9, 10.0.0.1', 2)).toBe('198.51.100.9');
+    });
+
+    it('falls back to the leftmost entry when there are fewer entries than trusted hops', () => {
+      expect(ContextUtil.clientIpFromForwardedFor('198.51.100.9', 3)).toBe('198.51.100.9');
+    });
+
+    it('trims blanks and ignores empty entries', () => {
+      expect(ContextUtil.clientIpFromForwardedFor(' 6.6.6.6 , , 198.51.100.9 ')).toBe('198.51.100.9');
+    });
+
+    it('trusts nothing when no proxy hop is trusted', () => {
+      expect(ContextUtil.clientIpFromForwardedFor('6.6.6.6', 0)).toBeUndefined();
+    });
+  });
 });

@@ -46,6 +46,14 @@
 - [x] 6.3 test: runtime verification with the `verify` skill: as admin, ban/unban, set role and set password on a test user; impersonate and update its profile; create/update/delete a customer; a wrong-password sign-in; a non-admin customer write (403). Confirm each appears on `/audit` with the right actor, impersonatedBy, target, outcome and changes, that `/audit` is not reachable as non-admin, and that no NIF, password or token appears in `audit_events` — record the results in the PR description
 - [x] 6.4 Commit group 6 with `/commit`
 
+## 7. Hardening found by the post-implementation /verify
+
+- [x] 7.1 test(shared,auth): packages/shared: `ContextUtil.clientIpFromForwardedFor` (first hop never trusted, hop counting, fewer entries than hops, no header, zero hops) and `AuditService` size limits (every capped field, 50 × 64 changed fields, 500-char change values, <8 KB worst case); apps/auth: builder takes the proxy-appended address and ignores `x-real-ip`, and the hook stops waiting after `AUDIT_HOOK_MAX_WAIT_MS` with no timer left behind; e2e for a 200 000-char attempted email and a forged `X-Forwarded-For` — verify the new cases fail first
+- [x] 7.2 fix(shared,auth): packages/shared: `TRUSTED_PROXY_HOPS` constant (also used by `BootstrapUtil`), `ContextUtil.clientIpFromForwardedFor`, `AUDIT_LIMITS` applied in `AuditService.record`; apps/auth: use the trusted-hop address and a bounded wait in `AuthAuditHook` — verify `pnpm --filter @repo/shared test`, `pnpm --filter auth test` and `pnpm --filter auth test:e2e` pass
+- [x] 7.3 docs: README audit section (size bounds, trusted-proxy address, 2 s wait) and the `.github`/CLAUDE/CONVENTIONS lines that describe the hook — verify the three numbers match the code constants
+- [x] 7.4 test: rerun the failing probes against the running stack — a 200 000-char email and 3 000 keys store small events, a forged `X-Forwarded-For` is not recorded, and a sign-in with Mongo paused answers within a few seconds — record the numbers in the PR description
+- [x] 7.5 Commit group 7 with `/commit`
+
 ## Workflow follow-up
 
 - Run `/opsx:verify`, then `/opsx:archive` with spec sync.

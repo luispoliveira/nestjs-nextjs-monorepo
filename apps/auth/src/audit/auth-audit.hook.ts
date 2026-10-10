@@ -4,6 +4,14 @@ import * as nestjsBetterAuth from '@thallesp/nestjs-better-auth';
 import { buildAuthEvent } from './auth-audit';
 
 /**
+ * How long a response may wait for its audit event. The write is awaited so
+ * the event normally exists when the response leaves, but if Mongo is down
+ * the driver blocks ~30s: past this budget the response goes out and the
+ * write finishes (or fails, logged and reported) in the background.
+ */
+export const AUDIT_HOOK_MAX_WAIT_MS = 2000;
+
+/**
  * One after hook for every better-auth endpoint (a pathless `@AfterHook()`
  * runs for all of them, failures included — better-auth sets
  * `ctx.context.returned` to the APIError before running after hooks).
@@ -49,13 +57,25 @@ export class AuthAuditHook {
   async onAfter(ctx: nestjsBetterAuth.AuthHookContext): Promise<void> {
     try {
       const event = buildAuthEvent(ctx);
-      if (event) await this.audit.record(event);
+      if (event) await this.withinBudget(this.audit.record(event));
     } catch (error) {
       this.logger.error(
         'Failed to audit an authentication request',
         error instanceof Error ? error.stack : String(error),
       );
       SentryUtil.captureException(error, { tags: { component: 'audit' } });
+    }
+  }
+
+  private async withinBudget(write: Promise<void>): Promise<void> {
+    let timer: NodeJS.Timeout | undefined;
+    const budget = new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, AUDIT_HOOK_MAX_WAIT_MS);
+    });
+    try {
+      await Promise.race([write, budget]);
+    } finally {
+      clearTimeout(timer);
     }
   }
 }

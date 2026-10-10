@@ -1,4 +1,4 @@
-import type { AuditInput } from '@repo/shared';
+import { ContextUtil, type AuditInput } from '@repo/shared';
 import type { AuditAction } from '@repo/shared-types';
 
 type SessionLike =
@@ -264,9 +264,9 @@ function clientInfo(headers: Headers | undefined): {
   userAgent?: string;
 } {
   if (!headers) return {};
-  const forwarded = headers.get('x-forwarded-for')?.split(',')[0]?.trim();
   return {
-    ip: forwarded || headers.get('x-real-ip') || undefined,
+    // The trusted proxy's entry, never the client-supplied first one.
+    ip: ContextUtil.clientIpFromForwardedFor(headers.get('x-forwarded-for')),
     userAgent: headers.get('user-agent') || undefined,
   };
 }

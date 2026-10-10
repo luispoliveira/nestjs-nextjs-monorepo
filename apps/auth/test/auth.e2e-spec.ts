@@ -365,5 +365,37 @@ describe('auth app (E2E)', () => {
         (await mongo.findAuditEvents({ actorId: user.id }, 0, 100)).total,
       ).toBe(before);
     });
+
+    it('truncates a hostile attempted email so an anonymous request cannot bloat the log', async () => {
+      const marker = `bloat${Date.now()}`;
+      const hostile = `${marker}${'a'.repeat(200000)}@example.com`;
+
+      const res = await supertest(app.getHttpServer())
+        .post('/api/auth/sign-in/email')
+        .send({ email: hostile, password: 'x' });
+
+      expect(res.status).toBe(401);
+      const stored = (
+        await eventsFor({ action: 'auth.sign-in', outcome: 'failure' })
+      ).filter((e) => e.attemptedEmail?.startsWith(marker));
+      expect(stored).toHaveLength(1);
+      expect(stored[0]?.attemptedEmail).toHaveLength(254);
+    });
+
+    it('records the address the trusted proxy appended, not a forged first X-Forwarded-For hop', async () => {
+      const user = await makeUser('xff');
+
+      await supertest(app.getHttpServer())
+        .post('/api/auth/sign-in/email')
+        .set('X-Forwarded-For', '6.6.6.6, 198.51.100.9')
+        .send({ email: user.email, password: 'DefinitelyWrong1!' })
+        .expect(401);
+
+      const failures = (
+        await eventsFor({ action: 'auth.sign-in', outcome: 'failure' })
+      ).filter((e) => e.attemptedEmail === user.email);
+      expect(failures).toHaveLength(1);
+      expect(failures[0]?.ip).toBe('198.51.100.9');
+    });
   });
 });

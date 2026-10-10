@@ -423,7 +423,9 @@ Authentication, account-management and customer write actions are recorded in an
 
 - **What is recorded:** `apps/auth` records every audited better-auth route (sign-in/up/out, password and email changes, 2FA, session revocation, and the admin user actions: create, update, remove, ban, unban, role, password, impersonate), on success **and** on failure. `apps/api` records the writes marked with `@Audit`. Reads are never recorded.
 - **What an event holds:** actor (and the real admin during an impersonation), action, target, outcome with error code, changed **field names**, values only for `role`, `banned`, `banReason` and `banExpires`, IP, user agent and the request's correlation ID. Passwords, tokens, codes, NIFs and email values are never stored. A failed sign-in keeps the attempted email.
-- **Best-effort:** if an event cannot be stored the audited action is not affected; the failure goes to the log and Sentry.
+- **Best-effort:** if an event cannot be stored the audited action is not affected; the failure goes to the log and Sentry. In `apps/auth` a response waits at most 2 s for its event (`AUDIT_HOOK_MAX_WAIT_MS`), so an unreachable Mongo cannot stall sign-ins.
+- **Bounded:** every field a client controls is truncated before storing (emails 254 characters, user agent 256, at most 50 changed-field names of 64, change values 500), so no request can store a large event.
+- **Client address:** the entry the trusted proxy appended to `X-Forwarded-For` (`TRUSTED_PROXY_HOPS`, 1 for the documented nginx topology, same rule as Express `trust proxy`); the first entry is client-supplied and is never used. Behind two proxies, raise `TRUSTED_PROXY_HOPS` in `packages/shared/src/constants/proxy.ts`.
 - **Retention:** `AUDIT_RETENTION_DAYS` (default 365). Events cannot be edited or deleted through the API; they only expire.
 - **Not an audit trail:** the HTTP request `Log` (30 days) is a debugging aid. It does not see better-auth routes or requests rejected by guards.
 

@@ -115,12 +115,40 @@ An event for an update SHALL list the names of the changed fields. It SHALL incl
 
 ### Requirement: Writing an audit event never affects the audited action
 
-Recording SHALL be best-effort. If an event cannot be stored, the audited action SHALL complete with exactly the result it would have had, and the storage failure SHALL be logged and reported to error tracking with the action and correlation ID.
+Recording SHALL be best-effort. If an event cannot be stored, the audited action SHALL complete with exactly the result it would have had, and the storage failure SHALL be logged and reported to error tracking with the action and correlation ID. A storage that hangs SHALL NOT delay the response by more than five seconds.
 
 #### Scenario: Audit storage unavailable
 
 - **WHEN** an admin bans a user while audit storage is unavailable
 - **THEN** the ban succeeds with its normal response, and an error naming `admin.user.ban` and the correlation ID is logged and reported
+
+#### Scenario: Audit storage hangs
+
+- **WHEN** a user signs in while audit storage accepts connections but never answers
+- **THEN** the sign-in response is returned within five seconds with its normal result
+
+### Requirement: Client-controlled event fields are size-bounded
+
+The system SHALL cap the size of every event field that takes its value from a client: text fields (emails, user agent, ids, error code, address), the number and length of changed-field names, and the length of any stored change value. A value over its cap SHALL be truncated, not rejected, and the audited action SHALL be unaffected.
+
+#### Scenario: Oversized attempted email
+
+- **WHEN** an unauthenticated request signs in with a 200 000-character email
+- **THEN** the sign-in is rejected as usual and the stored attempted email is at most 254 characters
+
+#### Scenario: Many changed fields
+
+- **WHEN** a signed-in user sends a profile update naming 3 000 fields
+- **THEN** the event lists at most 50 field names, each at most 64 characters
+
+### Requirement: The recorded client address is the one a trusted proxy reports
+
+The client address in an event SHALL be the address added by the trusted reverse proxy (the entry counted from the right of `X-Forwarded-For` by the configured number of trusted proxies), never the first entry, which the client controls.
+
+#### Scenario: Forged forwarded address
+
+- **WHEN** a client sends `X-Forwarded-For: 6.6.6.6` and the trusted proxy appends the real address `198.51.100.9`
+- **THEN** the event records `198.51.100.9`
 
 ### Requirement: Audit events are retained for a configurable period
 

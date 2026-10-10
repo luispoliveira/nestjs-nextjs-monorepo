@@ -285,7 +285,7 @@ Writes that matter are recorded in the Mongo `audit_events` collection through `
 - `apps/api`: decorate a write handler with `@Audit('<action>', { targetType, fields })`. Declare `fields` on update handlers so unknown body keys never appear. `AuditContextGuard` must stay the **first** global `APP_GUARD` (so a 401/403 from a later guard still finds the metadata); `AuditInterceptor` records successes and handler errors.
 - `apps/auth`: add the better-auth path to `AUTH_AUDIT_PATHS` (`src/audit/auth-audit.ts`). `AuthAuditHook` must never throw: an `APIError` thrown from an after hook replaces the real response.
 - Actions live in `AUDIT_ACTIONS` (`@repo/shared-types`). Events store field **names**; values only for `SAFE_CHANGE_FIELDS`.
-- Recording is best-effort: a storage failure is logged and sent to Sentry, never thrown. Retention is `AUDIT_RETENTION_DAYS` (default 365), enforced per document (`expireAt`).
+- Recording is best-effort: a storage failure is logged and sent to Sentry, never thrown, and `AuthAuditHook` waits at most `AUDIT_HOOK_MAX_WAIT_MS` for the write. Client-controlled fields are truncated centrally in `AuditService` (`AUDIT_LIMITS`). The client address is the `X-Forwarded-For` entry the trusted proxy appended (`ContextUtil.clientIpFromForwardedFor`), never the first one. Retention is `AUDIT_RETENTION_DAYS` (default 365), enforced per document (`expireAt`).
 
 ## Error Handling
 

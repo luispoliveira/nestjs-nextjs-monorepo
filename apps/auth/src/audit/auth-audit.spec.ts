@@ -4,7 +4,7 @@ import {
   AuthAuditContext,
   buildAuthEvent,
 } from './auth-audit';
-import { AuthAuditHook } from './auth-audit.hook';
+import { AUDIT_HOOK_MAX_WAIT_MS, AuthAuditHook } from './auth-audit.hook';
 
 jest.mock('@thallesp/nestjs-better-auth', () => ({
   Hook: () => () => undefined,
@@ -139,7 +139,7 @@ describe('buildAuthEvent', () => {
         outcome: 'success',
         actorId: 'u1',
         actorEmail: 'a@x.y',
-        ip: '203.0.113.7',
+        ip: '10.0.0.1',
         userAgent: 'jest',
       });
       expect(event).not.toHaveProperty('errorCode');
@@ -621,19 +621,24 @@ describe('buildAuthEvent', () => {
   });
 
   describe('client info', () => {
-    it('takes the first x-forwarded-for hop, falling back to x-real-ip', () => {
-      const forwarded = buildAuthEvent(
+    it('takes the address the trusted proxy appended, not the first (client-supplied) hop', () => {
+      const event = buildAuthEvent(
         ctx('/sign-out', { session: session(user('u1')) }),
       );
-      expect(forwarded?.ip).toBe('203.0.113.7');
 
+      // ctx() sends "203.0.113.7, 10.0.0.1": the first hop is whatever the client claimed.
+      expect(event?.ip).toBe('10.0.0.1');
+    });
+
+    it('does not trust a forged single-entry header over nothing, and ignores x-real-ip', () => {
       const real = buildAuthEvent(
         ctx('/sign-out', {
           session: session(user('u1')),
           headers: new Headers({ 'x-real-ip': '198.51.100.9' }),
         }),
       );
-      expect(real?.ip).toBe('198.51.100.9');
+
+      expect(real).not.toHaveProperty('ip');
     });
 
     it('works without headers', () => {
@@ -778,6 +783,43 @@ describe('AuthAuditHook', () => {
       await expect(
         hook.rememberSignOutSession(ctx('/sign-out') as never),
       ).resolves.toBeUndefined();
+    });
+  });
+
+  describe('waiting for the audit write (Mongo outage must not stall the response)', () => {
+    afterEach(() => jest.useRealTimers());
+
+    it('returns as soon as the write finishes, leaving no timer behind', async () => {
+      jest.useFakeTimers();
+      audit.record.mockResolvedValue(undefined);
+
+      await run(ctx('/sign-out', { session: session(user('u1')) }));
+
+      expect(audit.record).toHaveBeenCalled();
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('stops waiting after AUDIT_HOOK_MAX_WAIT_MS when the write hangs', async () => {
+      jest.useFakeTimers();
+      audit.record.mockReturnValue(new Promise(() => undefined));
+      let done = false;
+
+      const pending = run(
+        ctx('/sign-out', { session: session(user('u1')) }),
+      ).then(() => {
+        done = true;
+      });
+      await jest.advanceTimersByTimeAsync(AUDIT_HOOK_MAX_WAIT_MS - 1);
+      expect(done).toBe(false);
+      await jest.advanceTimersByTimeAsync(2);
+      await pending;
+
+      expect(done).toBe(true);
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('keeps the wait short enough for a client timeout of 30s', () => {
+      expect(AUDIT_HOOK_MAX_WAIT_MS).toBeLessThanOrEqual(5000);
     });
   });
 });
