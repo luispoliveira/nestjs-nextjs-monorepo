@@ -14,9 +14,9 @@
 
 ## 3. Customer persistence
 
-- [ ] 3.1 feat(database): packages/database: add `previewFeatures = ["partialIndexes"]` and the `Customer` model from design D1 to `prisma/schema.prisma`; run `pnpm db:migrate --name add_customer` against local Postgres — verify the generated `migration.sql` contains a `CREATE UNIQUE INDEX ... WHERE ("deletedAt" IS NULL)` on `taxIdHash` and that `pnpm db:generate && pnpm --filter @repo/database build` succeed (CORNER_CASES: rebuild after generate)
-- [ ] 3.2 test(testing-utils): packages/testing-utils: add `factories/customer.factory.ts` (`createCustomer(db, overrides, crypto?)`, where `crypto` provides `encrypt`/`blindIndex` for an optional `taxId`), export it, and add `DELETE FROM "customer"` to `truncateDatabase` before `user` — verify `pnpm --filter @repo/testing-utils build` succeeds
-- [ ] 3.3 Commit group 3 with `/commit`
+- [x] 3.1 feat(database): packages/database: add `previewFeatures = ["partialIndexes"]` and the `Customer` model from design D1 to `prisma/schema.prisma`; run `pnpm db:migrate --name add_customer` against local Postgres — verify the generated `migration.sql` contains a `CREATE UNIQUE INDEX ... WHERE ("deletedAt" IS NULL)` on `taxIdHash` and that `pnpm db:generate && pnpm --filter @repo/database build` succeed (CORNER_CASES: rebuild after generate)
+- [x] 3.2 test(testing-utils): packages/testing-utils: add `factories/customer.factory.ts` (`createCustomer(db, overrides, crypto?)`, where `crypto` provides `encrypt`/`blindIndex` for an optional `taxId`), export it, and add `DELETE FROM "customer"` to `truncateDatabase` before `user` — verify `pnpm --filter @repo/testing-utils build` succeeds
+- [x] 3.3 Commit group 3 with `/commit`
 
 ## 4. API configuration and integration-test harness
 
