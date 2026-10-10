@@ -413,6 +413,28 @@ import {
 
 Email delivery via Brevo. Configure with `MailModule.forRootAsync()`. Logs all sent emails to MongoDB (`EmailLog`) with a 30-day TTL.
 
+## Reference slice: Customers
+
+`Customer` is a small end-to-end example that shows how to build a business resource with this template's conventions. Copy it as the starting point for your own resources, or delete it (steps below).
+
+| Layer | Where | Demonstrates |
+| --- | --- | --- |
+| Schema | `packages/database/prisma/schema.prisma` (`Customer`), migration `*_add_customer` | `cuid` id, timestamps, soft delete (`deletedAt`), index for the default listing, a **partial unique index** (`partialIndexes` preview) so a deleted row frees its NIF |
+| Contract | `packages/shared-types/src/schemas/customer.schema.ts` | Request/response/list-query schemas shared by API and web, a `sortBy` allow-list, NIF normalization and mod-11 validation |
+| API | `apps/api/src/customers/` → `/api/v1/customers` | `createZodDto` DTOs, `@ZodSerializerDto` responses, `@Roles(ADMIN)` on writes only, P2002 → 409, NIF encrypted with `EncryptionService` and blind-indexed for exact search |
+| Web | `apps/web/src/app/features/customers/` → `/customers` | `injectQuery` list with debounced search and paging, network-boundary parsing, one Material dialog for create/edit, 409 shown on the NIF field, write controls for admins only |
+| Tests | `*.spec.ts` next to each file, `apps/api/test/customers.integration.ts` | Unit tests per layer plus a Testcontainers integration suite covering 401/403, uniqueness under concurrency, soft delete, search and log redaction |
+
+### Removing it
+
+1. Delete `apps/api/src/customers/`, then remove the `CustomersModule` import from `apps/api/src/app.module.ts`.
+2. Delete `apps/api/test/customers.integration.ts` (keep the harness if you want integration tests).
+3. Delete `apps/web/src/app/features/customers/`, the `customers` route in `apps/web/src/app/app.routes.ts` and the `Customers` entry in `apps/web/src/app/shell/shell.ts`. If you no longer call `apps/api` from the web app, also drop `provideHttpClient` from `apps/web/src/app/app.config.ts`.
+4. Delete `packages/shared-types/src/schemas/customer.schema.ts` and its spec, plus the export in `packages/shared-types/src/schemas/index.ts`.
+5. Delete `packages/testing-utils/src/factories/customer.factory.ts`, its exports in `packages/testing-utils/src/factories/index.ts` and `packages/testing-utils/src/index.ts`, and the `customer` line in `packages/testing-utils/src/helpers/truncate.ts`.
+6. Remove the `Customer` model (and the `partialIndexes` preview flag if nothing else uses it) from `packages/database/prisma/schema.prisma`. On a fresh project with no applied migrations, delete the `packages/database/prisma/migrations/*_add_customer/` folder. Otherwise run `pnpm db:migrate --name drop_customer`.
+7. Keep `FIELD_ENCRYPTION_KEY` / `FIELD_ENCRYPTION_HMAC_KEY` and the `taxid` redaction key if you store other PII. Otherwise remove them from `apps/api/src/env.ts`, `apps/api/.env.example` and `scripts/setup.mjs`.
+
 ## Conventions
 
 ### NestJS

@@ -98,6 +98,14 @@ hoisting at the root hides exactly the failure a pruned deploy reproduces.
 
 <!-- Add Prisma / DB corner cases here -->
 
+### Partial unique indexes must be declared in the schema (`partialIndexes` preview), never hand-written into a migration
+
+**Context:** `Customer.taxIdHash` has to be unique only among non-deleted rows (`WHERE "deletedAt" IS NULL`).
+
+**Gotcha:** if you hand-write a `CREATE UNIQUE INDEX ... WHERE ...` into a migration's SQL, the Prisma schema doesn't know the index exists. The next `prisma migrate dev` detects drift and generates a `DROP INDEX` for it.
+
+**Fix:** since Prisma 7.4, enable `previewFeatures = ["partialIndexes"]` on the generator and declare `@@unique([taxIdHash], where: { deletedAt: null })`. The generated migration contains the `WHERE ("deletedAt" IS NULL)` clause, and `migrate dev --create-only` then produces an empty migration, which confirms there is no drift. This is a preview feature: if it is ever removed, fall back to raw SQL **and** expect to re-apply it after every drift-triggered regeneration. Columns are camelCase here (no field `@map`), so a `raw(...)` predicate must quote `"deletedAt"`.
+
 ### `pnpm db:generate` alone is not enough after editing `auth.prisma` — `packages/database` must also be rebuilt
 
 **Symptom:** after editing `packages/database/prisma/auth.prisma` and running `pnpm db:generate`, a Prisma-backed feature (e.g. better-auth's own runtime schema validation, new in 1.7.3 — see the Authentication section) still reports the *old* schema, even though the freshly generated `packages/database/generated/prisma/**/*.ts` source on disk is correct and the live database has the new columns.

@@ -46,8 +46,8 @@
 
 - [x] 7.1 docs: add a "Reference slice: Customers" section to `README.md` that lists what the slice demonstrates and the exact removal steps from design.md's Migration Plan; append to `.claude/CORNER_CASES.md` (Database) the `partialIndexes` preview and the drift risk of hand-written partial indexes — verify every path listed in the removal steps exists
 - [x] 7.2 test: run `pnpm build`, `pnpm lint`, `pnpm check-types` and `pnpm test` at the root — verify all exit 0
-- [ ] 7.3 test: manual smoke with `pnpm docker:up && pnpm dev`: as admin, create a customer with NIF `PT 123 456 789`, search it by `123456789`, edit it, try a duplicate NIF (form shows conflict), delete it, then recreate with the same NIF; as a non-admin user, open `/customers` and confirm read-only; in Mongo `logs`, confirm `taxId` is `[SANITIZED]` — record the results in the PR description
-- [ ] 7.4 Commit group 7 with `/commit`
+- [x] 7.3 test: manual smoke with `pnpm docker:up && pnpm dev`: as admin, create a customer with NIF `PT 123 456 789`, search it by `123456789`, edit it, try a duplicate NIF (form shows conflict), delete it, then recreate with the same NIF; as a non-admin user, open `/customers` and confirm read-only; in Mongo `logs`, confirm `taxId` is `[SANITIZED]` — record the results in the PR description
+- [x] 7.4 Commit group 7 with `/commit`
 
 ## 8. Redact search terms from logged URLs (found in smoke test)
 
