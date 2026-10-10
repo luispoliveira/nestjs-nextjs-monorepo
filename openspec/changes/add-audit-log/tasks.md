@@ -41,10 +41,10 @@
 
 ## 6. Docs and end-to-end verification
 
-- [ ] 6.1 docs: README environment section: `AUDIT_RETENTION_DAYS` (default 365, per-document expiry, applies to new events only); `CONVENTIONS.md`/`CLAUDE.md`: how to audit a new write (`@Audit` in apps/api, add a path to `AUTH_AUDIT_PATHS` in apps/auth), and that the HTTP `Log` is not an audit trail — verify the variable appears in README and both `.env.example` files
-- [ ] 6.2 test: run `pnpm build`, `pnpm lint`, `pnpm check-types` and `pnpm test` at the root — verify all exit 0
-- [ ] 6.3 test: runtime verification with the `verify` skill: as admin, ban/unban, set role and set password on a test user; impersonate and update its profile; create/update/delete a customer; a wrong-password sign-in; a non-admin customer write (403). Confirm each appears on `/audit` with the right actor, impersonatedBy, target, outcome and changes, that `/audit` is not reachable as non-admin, and that no NIF, password or token appears in `audit_events` — record the results in the PR description
-- [ ] 6.4 Commit group 6 with `/commit`
+- [x] 6.1 docs: README environment section: `AUDIT_RETENTION_DAYS` (default 365, per-document expiry, applies to new events only); `CONVENTIONS.md`/`CLAUDE.md`: how to audit a new write (`@Audit` in apps/api, add a path to `AUTH_AUDIT_PATHS` in apps/auth), and that the HTTP `Log` is not an audit trail — verify the variable appears in README and both `.env.example` files
+- [x] 6.2 test: run `pnpm build`, `pnpm lint`, `pnpm check-types` and `pnpm test` at the root — verify all exit 0
+- [x] 6.3 test: runtime verification with the `verify` skill: as admin, ban/unban, set role and set password on a test user; impersonate and update its profile; create/update/delete a customer; a wrong-password sign-in; a non-admin customer write (403). Confirm each appears on `/audit` with the right actor, impersonatedBy, target, outcome and changes, that `/audit` is not reachable as non-admin, and that no NIF, password or token appears in `audit_events` — record the results in the PR description
+- [x] 6.4 Commit group 6 with `/commit`
 
 ## Workflow follow-up
 

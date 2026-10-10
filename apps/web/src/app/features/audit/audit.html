@@ -78,7 +78,7 @@
 
         <ng-container matColumnDef="outcome">
           <th mat-header-cell *matHeaderCellDef>Outcome</th>
-          <td mat-cell *matCellDef="let event" [class.text-red-700]="event.outcome === 'failure'">
+          <td mat-cell *matCellDef="let event" class="break-all" [class.text-red-700]="event.outcome === 'failure'">
             {{ event.outcome }}@if (event.errorCode) {
               <span class="text-sm"> ({{ event.errorCode }})</span>
             }
