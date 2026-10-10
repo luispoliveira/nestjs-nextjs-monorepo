@@ -36,4 +36,13 @@ describe('pinoConfig', () => {
     expect(autoLogging?.ignore({ url: '/api/metrics?x=1' })).toBe(true);
     expect(autoLogging?.ignore({ url: '/api/users' })).toBe(false);
   });
+
+  it('redacts the protected taxId request body field', () => {
+    const { pinoConfig } = require('./pino.config') as typeof import('./pino.config');
+    const redact = pinoConfig.pinoHttp && 'redact' in pinoConfig.pinoHttp
+      ? (pinoConfig.pinoHttp.redact as { paths: string[] })
+      : undefined;
+
+    expect(redact?.paths).toContain('req.body.taxId');
+  });
 });

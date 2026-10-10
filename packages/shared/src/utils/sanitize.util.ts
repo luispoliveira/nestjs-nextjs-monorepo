@@ -10,6 +10,9 @@ const SENSITIVE_KEYS = [
   'secret',
   'access_token',
   'x-api-key',
+  // Protected PII (pii-field-encryption spec) — append new PII keys here and
+  // in pino's redact.paths.
+  'taxid',
 ];
 
 export class SanitizeUtil {

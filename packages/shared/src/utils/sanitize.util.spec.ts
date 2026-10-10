@@ -43,6 +43,23 @@ describe('SanitizeUtil', () => {
       expect(result.data).toBe('value');
     });
 
+    it('should sanitize taxId (protected PII) case-insensitively', () => {
+      const input = { name: 'Ana', taxId: '123456789' };
+      const result = SanitizeUtil.sanitize(input);
+      expect(result.taxId).toBe('[SANITIZED]');
+      expect(result.name).toBe('Ana');
+    });
+
+    it('should sanitize taxId inside paginated response items', () => {
+      const input = {
+        items: [{ id: 'c1', taxId: '123456789' }, { id: 'c2', taxId: null }],
+      };
+      const result = SanitizeUtil.sanitize(input);
+      expect(result.items[0].taxId).toBe('[SANITIZED]');
+      expect(result.items[1].taxId).toBe('[SANITIZED]');
+      expect(result.items[0].id).toBe('c1');
+    });
+
     it('should not sanitize non-sensitive string values in nested objects', () => {
       const input = { config: { host: 'localhost', port: 5432 } };
       const result = SanitizeUtil.sanitize(input);

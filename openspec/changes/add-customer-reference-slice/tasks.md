@@ -4,13 +4,13 @@
 
 - [x] 1.1 test(shared-types): packages/shared-types: write `src/schemas/customer.schema.spec.ts` covering `normalizeNif` (`"PT 123 456 789"`, `"pt123456789"`, `"123456789"` → `"123456789"`), `isValidNif` (valid checksum, wrong checksum, 8/10 digits, check digit 10/11 → 0), `createCustomerSchema` (missing name, name > 200, bad email, notes > 2000, invalid NIF rejected; valid body normalizes `taxId`), `updateCustomerSchema` (all optional, `null` accepted for email/taxId/notes), `customerListQuerySchema` (`sortBy=taxId` rejected, `take=101` rejected, defaults `createdAt`/`desc`/20, blank `search` trimmed), `customersListResponseSchema` (missing `meta.total` or item `id` rejected) — verify the suite fails because the module does not exist yet
 - [x] 1.2 feat(shared-types): packages/shared-types: implement `src/schemas/customer.schema.ts` per design D2 (no root `.meta({ id })` on the list query schema) and export from `schemas/index.ts` — verify `pnpm --filter @repo/shared-types test` passes and `scripts/verify-single-zod-version.mjs` still passes
-- [ ] 1.3 Commit group 1 with `/commit`
+- [x] 1.3 Commit group 1 with `/commit`
 
 ## 2. Log redaction for protected fields
 
-- [ ] 2.1 test(shared): packages/shared: extend `utils/sanitize.util.spec.ts` so `taxId` is replaced by `[SANITIZED]` at the top level and inside `items[]`; add a `logging/pino.config` assertion that `req.body.taxId` is in `redact.paths` — verify the new cases fail
-- [ ] 2.2 feat(shared): packages/shared: add `'taxid'` to `SENSITIVE_KEYS` and `'req.body.taxId'` to pino `redact.paths` (design D5) — verify `pnpm --filter @repo/shared test` passes
-- [ ] 2.3 Commit group 2 with `/commit`
+- [x] 2.1 test(shared): packages/shared: extend `utils/sanitize.util.spec.ts` so `taxId` is replaced by `[SANITIZED]` at the top level and inside `items[]`; add a `logging/pino.config` assertion that `req.body.taxId` is in `redact.paths` — verify the new cases fail
+- [x] 2.2 feat(shared): packages/shared: add `'taxid'` to `SENSITIVE_KEYS` and `'req.body.taxId'` to pino `redact.paths` (design D5) — verify `pnpm --filter @repo/shared test` passes
+- [x] 2.3 Commit group 2 with `/commit`
 
 ## 3. Customer persistence
 

@@ -97,6 +97,7 @@ export const pinoConfig: Params = {
         'req.body.password',
         'req.body.currentPassword',
         'req.body.newPassword',
+        'req.body.taxId',
         'res.headers["set-cookie"]',
       ],
       censor: '[REDACTED]',
