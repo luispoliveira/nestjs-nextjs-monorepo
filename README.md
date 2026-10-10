@@ -112,9 +112,9 @@ pnpm dev
 | Auth API                | <http://localhost:3000>      |
 | Auth API Docs (Swagger) | <http://localhost:3000/docs> |
 | API                     | <http://localhost:3100>      |
-| Cron                    | <http://localhost:3200>      |
-| Notifications           | <http://localhost:3300>      |
-| Worker                  | <http://localhost:3400>      |
+| Cron                    | <http://localhost:3400>      |
+| Notifications           | <http://localhost:3200>      |
+| Worker                  | <http://localhost:3300>      |
 | Web (backoffice, `ng serve`) | <http://localhost:4200> |
 | Prometheus              | <http://localhost:9090>      |
 | Grafana                 | <http://localhost:3333>      |
@@ -289,7 +289,7 @@ FIELD_ENCRYPTION_HMAC_KEY=<base64>
 ### `apps/cron/.env`
 
 ```env
-PORT=3200
+PORT=3400
 DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -302,7 +302,7 @@ SENTRY_DSN=
 ### `apps/notifications/.env`
 
 ```env
-PORT=3300
+PORT=3200
 DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -315,7 +315,7 @@ SENTRY_DSN=
 ### `apps/worker/.env`
 
 ```env
-PORT=3400
+PORT=3300
 DATABASE_URL=postgresql://nestjs:change-me@localhost:5432/nestjs
 REDIS_HOST=localhost
 REDIS_PORT=6379

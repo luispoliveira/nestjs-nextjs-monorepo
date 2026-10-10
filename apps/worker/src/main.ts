@@ -24,7 +24,7 @@ async function bootstrap() {
     },
   });
 
-  const port = configService.get<number>('PORT') || 3400;
+  const port = configService.get<number>('PORT') || 3300;
   const environment = configService.get<EnvironmentEnum>(
     'NODE_ENV',
     EnvironmentEnum.DEVELOPMENT,

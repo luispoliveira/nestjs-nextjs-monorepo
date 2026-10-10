@@ -182,12 +182,12 @@ module.exports = {
       out_file: `${LOG_DIR}/notifications-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3300,
+        PORT: 3200,
         ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        PORT: 3300,
+        PORT: 3200,
         ...loadSharedEnv('qa'),
       },
     },
@@ -203,12 +203,12 @@ module.exports = {
       out_file: `${LOG_DIR}/worker-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3400,
+        PORT: 3300,
         ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        PORT: 3400,
+        PORT: 3300,
         ...loadSharedEnv('qa'),
       },
     },
@@ -232,12 +232,12 @@ module.exports = {
       out_file: `${LOG_DIR}/cron-out.log`,
       env_production: {
         NODE_ENV: 'production',
-        PORT: 3200,
+        PORT: 3400,
         ...loadSharedEnv('production'),
       },
       env_qa: {
         NODE_ENV: 'qa',
-        PORT: 3200,
+        PORT: 3400,
         ...loadSharedEnv('qa'),
       },
     },

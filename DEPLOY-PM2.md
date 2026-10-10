@@ -165,7 +165,7 @@ ENCRYPTION_KEY=<mesmo valor que apps/auth>
 
 ```dotenv
 NODE_ENV=production
-PORT=3300
+PORT=3200
 
 DATABASE_URL=postgres://app_db:<PG_PASS>@localhost:5432/app_db?schema=public
 
@@ -186,7 +186,7 @@ ENCRYPTION_KEY=<mesmo valor que apps/auth>
 
 ```dotenv
 NODE_ENV=production
-PORT=3400
+PORT=3300
 
 DATABASE_URL=postgres://app_db:<PG_PASS>@localhost:5432/app_db?schema=public
 
@@ -353,7 +353,7 @@ sudo systemctl reload nginx
 sudo certbot --nginx -d <dominio-frontend> -d <dominio-auth>
 ```
 
-> O `notifications` (3300) e o `worker` (3400) **não devem ser expostos** — comunicam apenas internamente via Redis. Todas as apps NestJS partilham o mesmo prefixo `/api`; a distinção entre elas é feita pela porta.
+> O `notifications` (3200) e o `worker` (3300) **não devem ser expostos** — comunicam apenas internamente via Redis. Todas as apps NestJS partilham o mesmo prefixo `/api`; a distinção entre elas é feita pela porta.
 
 ---
 
