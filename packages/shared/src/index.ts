@@ -1,4 +1,5 @@
 export * from './abstracts';
+export * from './audit';
 export * from './config';
 export * from './constants';
 export * from './decorators';

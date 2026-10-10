@@ -11,6 +11,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
 import { randomUUID } from 'node:crypto';
 import z from 'zod';
+import { AuditService } from '../audit/audit.service';
 import { CLS_CORRELATION_ID } from '../constants';
 import { AllExceptionFilter } from '../filters';
 import { HealthController } from '../health/health.controller';
@@ -102,6 +103,7 @@ export class SharedModule {
         MetricsModule.register(params.metrics ?? {}),
       ],
       providers: [
+        AuditService,
         {
           provide: APP_FILTER,
           useClass: AllExceptionFilter,
@@ -128,7 +130,7 @@ export class SharedModule {
         },
       ],
       controllers: [HealthController],
-      exports: [],
+      exports: [AuditService],
     };
   }
 }

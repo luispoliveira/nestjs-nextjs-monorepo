@@ -61,7 +61,7 @@ record(event: AuditInput): Promise<void>
 //   with { action, correlationId } }  -- never rethrows
 ```
 
-- `SAFE_CHANGE_FIELDS = ['role', 'banned', 'banReason', 'banExpires']` and the action names live in `@repo/shared-types` as `AUDIT_ACTIONS` (a `z.enum`), so the web filter dropdown and the backend share one list. The `@repo/shared` constants re-export them, which follows the "never hardcode" convention.
+- `SAFE_CHANGE_FIELDS = ['role', 'banned', 'banReason', 'banExpires']` and the action names live in `@repo/shared-types` as `AUDIT_ACTIONS` (a `z.enum`), so the web filter dropdown and the backend share one list. Consumers import them from `@repo/shared-types` directly (one import path for the single source).
 - The service is global so that `AllExceptionFilter`, which is shared, can inject it (D5). Apps that never audit pay nothing.
 - `AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365)` is added to the env schemas of `apps/auth` and `apps/api`, the two apps that record events.
 
