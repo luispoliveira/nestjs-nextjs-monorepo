@@ -46,4 +46,14 @@ describe('ContextUtil', () => {
       expect(ContextUtil.extractToken(req)).toBe('header-token');
     });
   });
+
+  describe('newCorrelationId', () => {
+    it('has the <timestamp>-<uuid> shape the request middleware uses', () => {
+      expect(ContextUtil.newCorrelationId()).toMatch(/^\d{13,}-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+    });
+
+    it('is unique per call', () => {
+      expect(ContextUtil.newCorrelationId()).not.toBe(ContextUtil.newCorrelationId());
+    });
+  });
 });

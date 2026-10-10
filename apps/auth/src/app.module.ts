@@ -5,6 +5,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ClientsModule } from '@nestjs/microservices';
 import { DatabaseModule, DatabaseService } from '@repo/database';
 import {
+  ClsService,
   MicroserviceUtil,
   NotificationsPublisher,
   SharedModule,
@@ -13,6 +14,8 @@ import { AuthGuard, AuthModule } from '@thallesp/nestjs-better-auth';
 import { betterAuth } from 'better-auth';
 import { admin } from 'better-auth/plugins';
 import { twoFactor } from 'better-auth/plugins/two-factor';
+import { AuthAuditHook } from './audit/auth-audit.hook';
+import { withCorrelationId } from './audit/correlation.middleware';
 import { AuthController } from './auth.controller';
 import { authEnvSchema } from './env';
 import { LocalAuthService, publisherProxy } from './local-auth.service';
@@ -25,12 +28,19 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
     ]),
     AuthModule.forRootAsync({
       imports: [DatabaseModule, ConfigModule],
-      useFactory: (database: DatabaseService, configService: ConfigService) => {
+      useFactory: (
+        database: DatabaseService,
+        configService: ConfigService,
+        cls: ClsService,
+      ) => {
         const googleClientId = configService.get<string>('GOOGLE_CLIENT_ID');
         const googleClientSecret = configService.get<string>(
           'GOOGLE_CLIENT_SECRET',
         );
         return {
+          // Gives audit events recorded inside better-auth hooks a
+          // correlation id (better-auth bypasses Nest's CLS middleware).
+          middleware: withCorrelationId(cls),
           bodyParser: {
             json: { limit: '10mb' },
             urlencoded: { limit: '10mb', extended: true },
@@ -184,7 +194,7 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
           }),
         };
       },
-      inject: [DatabaseService, ConfigService],
+      inject: [DatabaseService, ConfigService, ClsService],
     }),
   ],
   controllers: [AuthController],
@@ -195,6 +205,7 @@ import { LocalAuthService, publisherProxy } from './local-auth.service';
     },
     NotificationsPublisher,
     LocalAuthService,
+    AuthAuditHook,
   ],
 })
 export class AppModule {}

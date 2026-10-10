@@ -106,7 +106,8 @@ export class AuthAuditHook {
 - **Outcome:** `isAPIError(ctx.context.returned)` → `failure`, with `errorCode` = `${status}` plus `body.code` when present.
 - **Actor:** `ctx.context.newSession?.user ?? ctx.context.session?.user`. `impersonatedById` comes from `session.session.impersonatedBy`.
 - **IP and user agent:** from `ctx.headers` / `ctx.request` (`x-forwarded-for` first hop; the app sets `trustProxy: true`).
-- **Correlation ID:** the global `ClsMiddleware` is a Nest middleware, while better-auth is mounted with `httpAdapter.use`, so their relative order is not guaranteed. Task 4.1 verifies at runtime whether `ClsService` has the ID inside the hook. If not, the hook reads `req[CLS_CORRELATION_ID]`, or the module's `middleware` option runs the handler inside CLS (the module exposes `options.middleware(req, res, next)` around the handler).
+- **Correlation ID (verified at runtime, task 3.3):** better-auth is mounted outside Nest's middleware chain, so `ClsService` has no store inside the hook and events came out with no `correlationId`. The `AuthModule` `middleware` option wraps the handler in `cls.run(...)` with a fresh id (`withCorrelationId`, `apps/auth/src/audit/correlation.middleware.ts`). `ClsService` is imported from `@repo/shared`, not `nestjs-cls`: under Jest's ESM mode the app's own copy is a different class from the one `SharedModule` provides (see CORNER_CASES).
+- **Sign-out actor (verified at runtime, task 3.3):** better-auth clears the session during `/sign-out`, so the after hook had no actor. `AuthAuditHook` has a `@BeforeHook('/sign-out')` that looks the session up and stashes it on `ctx.context.auditSession`; `buildAuthEvent` uses it as a last-resort actor source.
 - *Alternative:* about 30 `@AfterHook('/path')` methods. Rejected, because a newly used endpoint would silently go unaudited.
 
 ### D4 — `apps/api`: `@Audit()` decorator + interceptor for handled requests
@@ -157,8 +158,8 @@ Guards run before interceptors, so a 401/403 never reaches `AuditInterceptor`, a
 ## Risks / Trade-offs
 
 - [better-auth paths rename across versions] → The allow-list is a single constant, unit tests cover every row, and the auth e2e exercises real routes, so an upgrade that renames a path fails a test.
-- [Sign-out may clear the session before the after hook runs, which would lose the actor] → Task 4.1 verifies this. Fallback: a `@BeforeHook('/sign-out')` stashes the session user on `ctx.context` for the after hook.
-- [Correlation ID may be unavailable inside better-auth hooks] → Verified in task 4.1, with the fallbacks given in D3.
+- [Sign-out loses the actor] → Resolved in task 3.3 (before-hook stash, see D3).
+- [Correlation ID unavailable inside better-auth hooks] → Resolved in task 3.3 (module `middleware` + CLS, see D3).
 - [The pre-existing notification hooks (`LocalAuthService`) fire on failed requests too, for example "password changed" after a rejected set-password] → Out of scope, flagged for a separate fix.
 - [The best-effort write loses events during a Mongo outage] → Every loss is logged and sent to Sentry with action and correlation ID.
 - [The attempted email of a failed sign-in may belong to no user (PII of a non-user)] → Bounded retention, admin-only access, documented.

@@ -9,7 +9,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
 import { ClsModule } from 'nestjs-cls';
 import { LoggerModule } from 'nestjs-pino';
 import { ZodSerializerInterceptor, ZodValidationPipe } from 'nestjs-zod';
-import { randomUUID } from 'node:crypto';
 import z from 'zod';
 import { AuditService } from '../audit/audit.service';
 import { CLS_CORRELATION_ID } from '../constants';
@@ -17,6 +16,7 @@ import { AllExceptionFilter } from '../filters';
 import { HealthController } from '../health/health.controller';
 import { CorrelationInterceptor, LoggingInterceptor } from '../interceptors';
 import { pinoConfig } from '../logging';
+import { ContextUtil } from '../utils/context.util';
 import { HttpMetricsInterceptor, MetricsModule } from '../metrics';
 import { MongoModule } from '../mongo/mongo.module';
 
@@ -90,7 +90,7 @@ export class SharedModule {
           middleware: {
             mount: true,
             setup(cls, req: Request, _res: Response) {
-              const correlationId = `${Date.now()}-${randomUUID()}`;
+              const correlationId = ContextUtil.newCorrelationId();
               cls.set(CLS_CORRELATION_ID, correlationId);
               (req as unknown as Record<string, unknown>)[CLS_CORRELATION_ID] =
                 correlationId;

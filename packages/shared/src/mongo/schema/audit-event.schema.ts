@@ -54,7 +54,8 @@ export class AuditEvent extends Document implements AuditEventFields {
   targetType?: AuditTargetType;
   @Prop()
   targetId?: string;
-  @Prop({ type: [String] })
+  // `default: undefined`: mongoose would otherwise store [] on every event.
+  @Prop({ type: [String], default: undefined })
   changedFields?: string[];
   @Prop({ type: Object })
   changes?: Record<string, unknown>;
