@@ -23,6 +23,11 @@ export interface AuthAuditContext {
      * after hook runs better-auth has already cleared the session.
      */
     auditSession?: SessionLike;
+    /**
+     * Stashed by AuthAuditHook's before hook for `/admin/revoke-user-session`,
+     * whose request carries a session token, not the user id.
+     */
+    auditTargetId?: string;
   };
 }
 
@@ -38,7 +43,8 @@ interface AuthAuditSpec {
    * session exists beforehand).
    */
   actor?: 'new-first' | 'session-first' | 'returned';
-  target?: 'self' | 'body.userId' | 'returned.user' | 'previous-session';
+  target?:
+    'self' | 'body.userId' | 'returned.user' | 'previous-session' | 'stashed';
   /** Record `body.email` as the attempted email when no actor can be identified. */
   attemptedEmail?: boolean;
   /** Field NAMES that changed — never values. */
@@ -157,7 +163,7 @@ export const AUTH_AUDIT_PATHS: Record<string, AuthAuditSpec> = {
   },
   '/admin/revoke-user-session': {
     action: 'admin.user.revoke-session',
-    target: 'body.userId',
+    target: 'stashed',
   },
   '/admin/revoke-user-sessions': {
     action: 'admin.user.revoke-sessions',
@@ -202,13 +208,7 @@ export function buildAuthEvent(ctx: AuthAuditContext): AuditInput | null {
     ...clientInfo(ctx.headers),
   };
 
-  const targetId = resolveTarget(
-    spec,
-    body,
-    returned,
-    actorId,
-    ctx.context.session,
-  );
+  const targetId = resolveTarget(spec, body, returned, actorId, ctx.context);
   if (targetId) {
     event.targetType = 'user';
     event.targetId = targetId;
@@ -233,7 +233,7 @@ function resolveTarget(
   body: Body,
   returned: unknown,
   actorId: string | undefined,
-  session: SessionLike,
+  { session, auditTargetId }: AuthAuditContext['context'],
 ): string | undefined {
   switch (spec.target) {
     case 'self':
@@ -244,6 +244,8 @@ function resolveTarget(
       return asString(asRecord(asRecord(returned)?.user)?.id);
     case 'previous-session':
       return asString(session?.user?.id);
+    case 'stashed':
+      return asString(auditTargetId);
     default:
       return undefined;
   }

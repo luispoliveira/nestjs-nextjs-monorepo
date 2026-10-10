@@ -53,6 +53,29 @@ export class AuthAuditHook {
     }
   }
 
+  /**
+   * `/admin/revoke-user-session` is addressed by session token, so the
+   * request does not say whose session it is. Look the owner up before the
+   * session disappears and stash it for `buildAuthEvent`.
+   */
+  @nestjsBetterAuth.BeforeHook('/admin/revoke-user-session')
+  async rememberRevokedSessionOwner(
+    ctx: nestjsBetterAuth.AuthHookContext,
+  ): Promise<void> {
+    try {
+      const token = (ctx.body as { sessionToken?: unknown } | undefined)
+        ?.sessionToken;
+      if (typeof token !== 'string') return;
+      const found = await ctx.context.internalAdapter.findSession(token);
+      if (found?.user?.id) {
+        (ctx.context as unknown as Record<string, unknown>).auditTargetId =
+          found.user.id;
+      }
+    } catch {
+      // Best-effort: the event is still recorded, just without a target.
+    }
+  }
+
   @nestjsBetterAuth.AfterHook()
   async onAfter(ctx: nestjsBetterAuth.AuthHookContext): Promise<void> {
     try {

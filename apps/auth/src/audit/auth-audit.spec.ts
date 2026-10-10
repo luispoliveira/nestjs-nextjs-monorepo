@@ -500,6 +500,7 @@ describe('buildAuthEvent', () => {
       const revoke = buildAuthEvent(
         ctx('/admin/revoke-user-session', {
           session: admin,
+          auditTargetId: 'u9',
           body: { sessionToken: 'SESSION-TOKEN-X' },
           returned: { success: true },
         }),
@@ -507,6 +508,8 @@ describe('buildAuthEvent', () => {
       expect(revoke).toMatchObject({
         action: 'admin.user.revoke-session',
         actorId: 'admin-1',
+        targetType: 'user',
+        targetId: 'u9',
       });
       expect(JSON.stringify(revoke)).not.toContain('SESSION-TOKEN-X');
       expect(
@@ -603,6 +606,24 @@ describe('buildAuthEvent', () => {
       );
 
       expect(event).toMatchObject({ actorId: 'u2' });
+    });
+  });
+
+  describe('revoke-user-session target (the request carries a token, not a user id)', () => {
+    it('has no target when the session owner could not be resolved', () => {
+      const event = buildAuthEvent(
+        ctx('/admin/revoke-user-session', {
+          session: session(user('admin-1')),
+          body: { sessionToken: 'x' },
+          returned: { success: true },
+        }),
+      );
+
+      expect(event).toMatchObject({
+        action: 'admin.user.revoke-session',
+        actorId: 'admin-1',
+      });
+      expect(event).not.toHaveProperty('targetId');
     });
   });
 
@@ -832,6 +853,56 @@ describe('AuthAuditHook', () => {
 
     it('keeps the wait short enough for a client timeout of 30s', () => {
       expect(AUDIT_HOOK_MAX_WAIT_MS).toBeLessThanOrEqual(5000);
+    });
+  });
+
+  describe('rememberRevokedSessionOwner (before hook)', () => {
+    const hookCtx = (findSession: jest.Mock, body: unknown) =>
+      ({ body, context: { internalAdapter: { findSession } } }) as never;
+
+    it('stashes the owner of the session being revoked so the after hook can name the target', async () => {
+      const findSession = jest
+        .fn()
+        .mockResolvedValue({ session: { token: 't' }, user: { id: 'u9' } });
+      const c = hookCtx(findSession, { sessionToken: 'tok' });
+
+      await hook.rememberRevokedSessionOwner(c);
+
+      expect(findSession).toHaveBeenCalledWith('tok');
+      expect(
+        (c as { context: Record<string, unknown> }).context.auditTargetId,
+      ).toBe('u9');
+    });
+
+    it('stashes nothing for an unknown token or a missing token', async () => {
+      const unknown = hookCtx(jest.fn().mockResolvedValue(null), {
+        sessionToken: 'nope',
+      });
+      const missing = hookCtx(jest.fn(), {});
+
+      await hook.rememberRevokedSessionOwner(unknown);
+      await hook.rememberRevokedSessionOwner(missing);
+
+      expect(
+        (unknown as { context: Record<string, unknown> }).context,
+      ).not.toHaveProperty('auditTargetId');
+      expect(
+        (
+          missing as {
+            context: { internalAdapter: { findSession: jest.Mock } };
+          }
+        ).context.internalAdapter.findSession,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('never throws when the lookup fails', async () => {
+      const c = hookCtx(jest.fn().mockRejectedValue(new Error('db down')), {
+        sessionToken: 'tok',
+      });
+
+      await expect(
+        hook.rememberRevokedSessionOwner(c),
+      ).resolves.toBeUndefined();
     });
   });
 });

@@ -67,13 +67,17 @@ export class AuditService {
       );
       correlationId ??= this.currentCorrelationId();
 
-      const { changes, ...rest } = this.bound(input);
-      const safeChanges = this.pickSafeChanges(changes);
+      // A failed action changed nothing, so it records no changed fields or
+      // values: listing the attempted ones would read as if they had applied.
+      const { changes, changedFields, ...rest } = this.bound(input);
+      const applied = rest.outcome === 'success';
+      const safeChanges = applied ? this.pickSafeChanges(changes) : undefined;
       await this.mongo.createAuditEvent({
         ...rest,
         correlationId,
         occurredAt,
         expireAt,
+        ...(applied && changedFields ? { changedFields } : {}),
         ...(safeChanges ? { changes: safeChanges } : {}),
       });
     } catch (error) {

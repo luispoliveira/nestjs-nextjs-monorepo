@@ -62,6 +62,14 @@
 - [x] 8.4 docs: README client-address line mentions the IP check — verify wording
 - [x] 8.5 Commit group 8 with `/commit`
 
+## 9. Third /verify round
+
+- [x] 9.1 test(shared,auth,api): `AuditService` drops `changedFields`/`changes` on failures and keeps them on successes; auth builder resolves the revoke-user-session target from `auditTargetId` and has none without it; the new before hook stashes the session owner, ignores an unknown or missing token and never throws; auth e2e asserts the revoke target and that a refused ban records no changes; api integration asserts refused writes list no changed fields — verify the new cases fail first
+- [x] 9.2 fix(shared,auth): central failure stripping in `AuditService.record`; `AuthAuditHook.rememberRevokedSessionOwner` (`@BeforeHook('/admin/revoke-user-session')`) and a `stashed` target in `AUTH_AUDIT_PATHS` — verify `pnpm --filter @repo/shared test`, `pnpm --filter auth test`, `pnpm --filter auth test:e2e` and `pnpm --filter api test:integration` pass
+- [x] 9.3 docs: README audit section states that failures record no changed fields — verify wording
+- [x] 9.4 test: rerun the real-route probe — `admin.user.revoke-session` shows the session owner as target and no failure event carries changes — record the result in the PR description
+- [x] 9.5 Commit group 9 with `/commit`
+
 ## Workflow follow-up
 
 - Run `/opsx:verify`, then `/opsx:archive` with spec sync.

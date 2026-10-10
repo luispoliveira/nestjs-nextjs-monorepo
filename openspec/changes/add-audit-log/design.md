@@ -63,6 +63,7 @@ record(event: AuditInput): Promise<void>
 
 - `SAFE_CHANGE_FIELDS = ['role', 'banned', 'banReason', 'banExpires']` and the action names live in `@repo/shared-types` as `AUDIT_ACTIONS` (a `z.enum`), so the web filter dropdown and the backend share one list. Consumers import them from `@repo/shared-types` directly (one import path for the single source).
 - The service is global so that `AllExceptionFilter`, which is shared, can inject it (D5). Apps that never audit pay nothing.
+- **Failures carry no changes:** `AuditService.record` drops `changedFields` and `changes` from an event whose outcome is `failure` (a refused action changed nothing; listing the attempted fields read as if they had applied). Found by the third runtime verification.
 - **Size bounds** (found by runtime verification): `AuditService.record` truncates every client-controlled field before storing (`AUDIT_LIMITS`: emails 254, user agent 256, ids 128, address 64, error code 128; at most 50 changed-field names of 64 characters; change values 500), so one event stays under ~8 KB whatever the request sends. Truncation is silent and central, so both apps get it.
 - `AUDIT_RETENTION_DAYS: z.coerce.number().int().positive().default(365)` is added to the env schemas of `apps/auth` and `apps/api`, the two apps that record events.
 
@@ -102,7 +103,8 @@ export class AuthAuditHook {
 | `/admin/set-role` | `admin.user.set-role` | `changes: { role }` |
 | `/admin/set-user-password` | `admin.user.set-password` | `changedFields: ['password']`, no value |
 | `/admin/impersonate-user` / `/admin/stop-impersonating` | `admin.user.impersonate` / `.stop-impersonating` | target = `body.userId` / impersonated user |
-| `/admin/revoke-user-session(s)` | `admin.user.revoke-session(s)` | target = `body.userId` |
+| `/admin/revoke-user-session` | `admin.user.revoke-session` | target = owner of `body.sessionToken`, looked up by a `@BeforeHook` and stashed on `ctx.context.auditTargetId` (the request carries no user id) |
+| `/admin/revoke-user-sessions` | `admin.user.revoke-sessions` | target = `body.userId` |
 
 - **Outcome:** `isAPIError(ctx.context.returned)` → `failure`, with `errorCode` = `${status}` plus `body.code` when present.
 - **Actor:** `ctx.context.newSession?.user ?? ctx.context.session?.user`. `impersonatedById` comes from `session.session.impersonatedBy`.

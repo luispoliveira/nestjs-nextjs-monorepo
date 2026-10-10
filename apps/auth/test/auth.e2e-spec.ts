@@ -344,6 +344,9 @@ describe('auth app (E2E)', () => {
         targetId: target.id,
       });
       expect(events[0]?.errorCode).toMatch(/^403/);
+      // The ban was refused, so the event must not claim anything changed.
+      expect(events[0]).not.toHaveProperty('changedFields');
+      expect(events[0]).not.toHaveProperty('changes');
     });
 
     it('records nothing for read endpoints such as get-session', async () => {
@@ -396,6 +399,36 @@ describe('auth app (E2E)', () => {
       ).filter((e) => e.attemptedEmail === user.email);
       expect(failures).toHaveLength(1);
       expect(failures[0]?.ip).toBe('198.51.100.9');
+    });
+
+    it('names the owner of the revoked session as the target of admin revoke-user-session', async () => {
+      const admin = await makeUser('revoker', 'admin');
+      const target = await makeUser('revoked');
+      const adminSession = await signIn(admin.email);
+      // The request only carries a session token, never the user id.
+      const targetSignIn = await supertest(app.getHttpServer())
+        .post('/api/auth/sign-in/email')
+        .send({ email: target.email, password: TEST_PASSWORD });
+      const sessionToken = targetSignIn.body.token as string;
+
+      await supertest(app.getHttpServer())
+        .post('/api/auth/admin/revoke-user-session')
+        .set('Cookie', adminSession.cookie)
+        .set('Origin', TRUSTED_ORIGIN)
+        .send({ sessionToken })
+        .expect(200);
+
+      const events = await eventsFor({
+        actorId: admin.id,
+        action: 'admin.user.revoke-session',
+      });
+      expect(events).toHaveLength(1);
+      expect(events[0]).toMatchObject({
+        outcome: 'success',
+        targetType: 'user',
+        targetId: target.id,
+      });
+      expect(JSON.stringify(events)).not.toContain(sessionToken);
     });
   });
 });

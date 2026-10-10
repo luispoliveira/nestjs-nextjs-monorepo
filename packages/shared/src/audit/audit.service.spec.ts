@@ -243,4 +243,33 @@ describe('AuditService', () => {
       expect(JSON.stringify(stored()).length).toBeLessThan(8 * 1024);
     });
   });
+
+  describe('failed actions do not claim changes', () => {
+    it('drops changedFields and changes from a failure, whatever the caller supplied', async () => {
+      await service.record({
+        action: 'admin.user.set-role',
+        outcome: 'failure',
+        errorCode: '403',
+        targetId: 'u1',
+        changedFields: ['role'],
+        changes: { role: 'admin' },
+      });
+
+      const event = stored();
+      expect(event).not.toHaveProperty('changedFields');
+      expect(event).not.toHaveProperty('changes');
+      expect(event).toMatchObject({ outcome: 'failure', errorCode: '403', targetId: 'u1' });
+    });
+
+    it('keeps them on a success', async () => {
+      await service.record({
+        action: 'admin.user.set-role',
+        outcome: 'success',
+        changedFields: ['role'],
+        changes: { role: 'admin' },
+      });
+
+      expect(stored()).toMatchObject({ changedFields: ['role'], changes: { role: 'admin' } });
+    });
+  });
 });

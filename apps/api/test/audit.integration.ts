@@ -193,6 +193,8 @@ describe('audit events (integration)', () => {
       errorCode: '409',
       actorId: 'test-admin',
     });
+    // A refused write changed nothing: no attempted field names are recorded.
+    expect(failures[0]).not.toHaveProperty('changedFields');
   });
 
   it('records an unknown customer as a 404 failure with the id as target', async () => {
@@ -252,6 +254,7 @@ describe('audit events (integration)', () => {
       'customer.update',
     ]);
     expect(failures.every((e) => e.errorCode === '403')).toBe(true);
+    expect(failures.every((e) => e.changedFields === undefined)).toBe(true);
     expect(failures.find((e) => e.action === 'customer.delete')?.targetId).toBe(
       id,
     );

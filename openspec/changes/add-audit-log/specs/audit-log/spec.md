@@ -29,6 +29,11 @@ The system SHALL record an audit event for each admin action on users, whether i
 - **WHEN** an admin bans user U with a reason
 - **THEN** an event with action `admin.user.ban`, the admin as actor, U as target and outcome `success` is recorded
 
+#### Scenario: Revoked session names its owner
+
+- **WHEN** an admin revokes a user's session, addressing it by session token only
+- **THEN** the `admin.user.revoke-session` event has that session's owner as target
+
 #### Scenario: Admin changes a role
 
 - **WHEN** an admin sets user U's role from `user` to `admin`
@@ -112,6 +117,20 @@ An event for an update SHALL list the names of the changed fields. It SHALL incl
 
 - **WHEN** an admin bans a user with reason "spam"
 - **THEN** the event includes `banned: true` and `banReason: "spam"` as changed values
+
+### Requirement: A failed action records no changes
+
+A failed action SHALL record neither changed field names nor change values, because nothing was changed. The action, actor, target and error code identify the attempt.
+
+#### Scenario: Refused role change
+
+- **WHEN** a non-admin tries to set a user's role and is refused with 403
+- **THEN** the `admin.user.set-role` failure event carries the target and the error code, and no changed fields or values
+
+#### Scenario: Rejected customer write
+
+- **WHEN** a customer create is rejected because the NIF is already in use
+- **THEN** the failure event lists no changed fields
 
 ### Requirement: Writing an audit event never affects the audited action
 
