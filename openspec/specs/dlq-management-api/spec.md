@@ -1,4 +1,10 @@
-## ADDED Requirements
+# dlq-management-api Specification
+
+## Purpose
+
+Lets operators inspect and act on dead-letter queues (list, replay and purge) through the worker app's message patterns and an admin queue UI.
+
+## Requirements
 
 ### Requirement: DLQ message patterns are defined as constants
 `packages/shared/src/constants/events.ts` (or `message-patterns.ts`) SHALL define `MESSAGE_PATTERNS.DLQ_LIST`, `MESSAGE_PATTERNS.DLQ_REPLAY`, and `MESSAGE_PATTERNS.DLQ_PURGE` constants for use by the worker microservice and the auth app caller.
@@ -25,18 +31,18 @@
 - **THEN** the handler calls `EmailDlqService.purge()` and returns `{ removed: number }`
 
 ### Requirement: Bull Board is mounted in the worker app at /admin/queues
-The worker app SHALL mount the Bull Board NestJS adapter at the path `/admin/queues`. Both `email-queue` and `email-queue:dlq` SHALL be visible in the Bull Board UI.
+The worker app SHALL mount the Bull Board NestJS adapter at the path `/admin/queues`. Both `email-queue` and `email-queue-dlq` SHALL be visible in the Bull Board UI.
 
 #### Scenario: Bull Board shows both queues
 - **WHEN** an authenticated admin user navigates to `/admin/queues`
-- **THEN** the Bull Board UI renders with `email-queue` and `email-queue:dlq` listed
+- **THEN** the Bull Board UI renders with `email-queue` and `email-queue-dlq` listed
 
 #### Scenario: Unauthenticated access is rejected
 - **WHEN** a request without a valid admin session accesses `/admin/queues`
 - **THEN** the server responds with 401 Unauthorized
 
 #### Scenario: Bull Board allows manual job replay
-- **WHEN** an admin selects a failed job in `email-queue:dlq` and triggers replay via the UI
+- **WHEN** an admin selects a failed job in `email-queue-dlq` and triggers replay via the UI
 - **THEN** the job is re-queued to `email-queue` and removed from the DLQ
 
 ### Requirement: EmailDlqService extends BaseDlqService for the email queue
