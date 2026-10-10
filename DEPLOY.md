@@ -331,7 +331,7 @@ docker compose logs -f api
 
 `web` e `auth` vivem em subdomínios irmãos que partilham o domínio pai, para que o cookie de sessão possa ser partilhado entre ambos (SSO). Usar os server blocks prontos em [docs/deploy/nginx/](docs/deploy/nginx/):
 
-- [`frontend.conf`](docs/deploy/nginx/frontend.conf) — serve os estáticos do `web` (proxied até ao container na porta `8080`, ou diretamente do filesystem, conforme a instalação) e faz proxy same-origin de `/api/` para `api` (porta 3100)
+- [`frontend.conf`](docs/deploy/nginx/frontend.conf) — serve os estáticos do `web` (proxied até ao container na porta `8080`, ou diretamente do filesystem, conforme a instalação) e faz proxy same-origin de `/api/` para `api` (porta 3100) e de `/admin/queues/` para o dashboard de filas (só leitura, só admins) do `worker` (porta 3300)
 - [`auth.conf`](docs/deploy/nginx/auth.conf) — faz proxy de `/api/auth/` para `auth` (porta 3000)
 
 ```bash
@@ -348,6 +348,11 @@ Configurar em `apps/auth`: `BETTER_AUTH_URL=https://<dominio-auth>/api/auth`, `C
 
 > Os serviços `cron` (porta 3400), `notifications` (porta 3200) e `worker` (porta 3300)
 > **não devem ser expostos publicamente** — comunicam apenas via Redis/BullMQ internamente.
+> A única exceção é o dashboard de filas do `worker`, que chega ao browser **apenas** pelo
+> `location ^~ /admin/queues/` do `frontend.conf` (o `^~` é obrigatório: sem ele a regra dos
+> ficheiros estáticos devolve 404 aos `.js`/`.css` do dashboard). O `worker` escuta em todas as
+> interfaces, por isso a firewall tem de bloquear a porta `3300`. O `nginx.conf.template` interno
+> do container `web` não faz proxy do dashboard — quem o faz é o nginx do host.
 
 ---
 
