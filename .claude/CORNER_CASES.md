@@ -124,6 +124,14 @@ Under that distribution model, an incremental migration added here would reach *
 
 <!-- Add Angular edge cases here -->
 
+### `<mat-dialog-content class="flex …">` silently renders as `display: block`
+
+**Symptom:** dialog form fields sit side by side in narrow inline rows (and overflow the dialog) instead of stacking, even though `<mat-dialog-content>` has `flex flex-col gap-2`.
+
+**Cause:** Material's `.mat-mdc-dialog-content { display: block }` is injected **unlayered**, while Tailwind v4 utilities live in `@layer utilities`. Unlayered CSS beats any layered rule regardless of specificity, so `.flex` loses, and the `inline-flex` `mat-form-field`s flow inline. `flex-col`/`gap-*` still compute, but they do nothing on a block container. This affected every dialog in `apps/web`.
+
+**Fix:** a global unlayered `.mat-mdc-dialog-content.flex { display: flex; }` in `apps/web/src/styles.scss` (specificity 0,2,0 beats Material's 0,1,0 regardless of injection order). When a Tailwind utility "does nothing" on a Material element, check the computed style for an unlayered Material rule before adding more classes.
+
 ---
 
 ## Deployment / Nginx
