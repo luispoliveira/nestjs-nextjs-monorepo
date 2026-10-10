@@ -141,7 +141,7 @@ requirements: `openspec/specs/local-observability-stack/spec.md`.
 
 | Provider                   | Type              | Role                                                            |
 | -------------------------- | ----------------- | --------------------------------------------------------------- |
-| `AllExceptionFilter`       | `APP_FILTER`      | Normalised error responses; Sentry capture for 5xx; 422 for Zod |
+| `AllExceptionFilter`       | `APP_FILTER`      | Normalised error responses; Sentry capture for 5xx; 400 for Zod |
 | `LoggingInterceptor`       | `APP_INTERCEPTOR` | Logs HTTP req/res to MongoDB                                    |
 | `CorrelationInterceptor`   | `APP_INTERCEPTOR` | Threads `correlationId` from RPC payloads into CLS              |
 | `ZodValidationPipe`        | `APP_PIPE`        | Request body validation                                         |

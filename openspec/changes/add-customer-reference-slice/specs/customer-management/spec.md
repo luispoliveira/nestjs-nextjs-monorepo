@@ -37,12 +37,12 @@ Create and update bodies SHALL be validated against the same schemas that the ad
 #### Scenario: Missing name on create
 
 - **WHEN** an admin sends `POST /api/v1/customers` without `name`
-- **THEN** the response is 422 and no customer is created
+- **THEN** the response is 400 and no customer is created
 
 #### Scenario: Invalid NIF
 
 - **WHEN** an admin sends a create or update body whose `taxId` fails the NIF checksum
-- **THEN** the response is 422 and no customer is created or changed
+- **THEN** the response is 400 and no customer is created or changed
 
 #### Scenario: Clearing the NIF
 
@@ -118,12 +118,12 @@ No two non-deleted customers SHALL share the same NIF, compared after normalizat
 #### Scenario: Sort field outside the allow-list
 
 - **WHEN** the list is requested with `sortBy=taxId` or any field not in the allow-list
-- **THEN** the response is 422
+- **THEN** the response is 400
 
 #### Scenario: Page size above the limit
 
 - **WHEN** the list is requested with `take=101`
-- **THEN** the response is 422
+- **THEN** the response is 400
 
 ### Requirement: Customer list supports a single search term
 

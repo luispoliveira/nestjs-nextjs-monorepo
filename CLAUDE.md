@@ -189,7 +189,7 @@ Prefer the pre-built `NotificationsPublisher` from `@repo/shared/publishers` ins
 
 - Use NestJS `Logger` (backed by pino). Correlation IDs are auto-threaded.
 - HTTP req/res logs are persisted to MongoDB by `LoggingInterceptor` (probes are skipped: any path containing the segment `/health`, `/metrics` or `/favicon.ico`, under any global prefix and ignoring the query string — same `isSilentPath` rule as pino auto-logging and Sentry sampling).
-- `AllExceptionFilter` returns `{ statusCode, timestamp, path, message, correlationId }`. Throw standard `NestJS` HTTP exceptions (`NotFoundException`, `BadRequestException`, …). `ZodValidationException` → 422.
+- `AllExceptionFilter` returns `{ statusCode, timestamp, path, message, correlationId }`. Throw standard `NestJS` HTTP exceptions (`NotFoundException`, `BadRequestException`, …). `ZodValidationException` → 400 with an `errors` array of Zod issues.
 
 ---
 
