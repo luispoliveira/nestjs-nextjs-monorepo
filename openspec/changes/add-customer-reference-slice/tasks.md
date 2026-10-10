@@ -36,11 +36,11 @@
 
 ## 6. Customers admin UI
 
-- [ ] 6.1 test(web): apps/web: write `features/customers/customers.api.spec.ts` with `provideHttpClientTesting`: `list` calls `/api/v1/customers` with the query params and returns parsed data; a malformed list response rejects; create/update/remove hit the right method and path — verify the suite fails
-- [ ] 6.2 feat(web): apps/web: add `provideHttpClient(withFetch())` to `app.config.ts` and implement `features/customers/customers.api.ts` per design D7 — verify `pnpm --filter web test` passes for the API spec
-- [ ] 6.3 test(web): apps/web: write `features/customers/customer-form-dialog/customer-form-dialog.spec.ts` (invalid NIF shows a field error and blocks submit; a 409 keeps the dialog open with a `conflict` error on `taxId`; another error shows a snackbar and keeps the dialog open; edit mode pre-fills and sends only the changes) and `features/customers/customers.spec.ts` (admin sees create/edit/delete, non-admin sees none; delete only after confirm; a successful write invalidates `['customers']`; a load error renders no rows) — verify both suites fail
-- [ ] 6.4 feat(web): apps/web: implement `features/customers/customers.{ts,html,scss}` and `customer-form-dialog/` per design D8 (debounced search, `MatPaginator`, reuse `features/users/confirm-dialog`), add the `customers` child route under the shell and the `Customers` entry (`contacts` icon, `adminOnly: false`) in the `Main` nav group — verify `pnpm --filter web test` and `pnpm --filter web build` pass
-- [ ] 6.5 Commit group 6 with `/commit`
+- [x] 6.1 test(web): apps/web: write `features/customers/customers.api.spec.ts` with `provideHttpClientTesting`: `list` calls `/api/v1/customers` with the query params and returns parsed data; a malformed list response rejects; create/update/remove hit the right method and path — verify the suite fails
+- [x] 6.2 feat(web): apps/web: add `provideHttpClient(withFetch())` to `app.config.ts` and implement `features/customers/customers.api.ts` per design D7 — verify `pnpm --filter web test` passes for the API spec
+- [x] 6.3 test(web): apps/web: write `features/customers/customer-form-dialog/customer-form-dialog.spec.ts` (invalid NIF shows a field error and blocks submit; a 409 keeps the dialog open with a `conflict` error on `taxId`; another error shows a snackbar and keeps the dialog open; edit mode pre-fills and sends only the changes) and `features/customers/customers.spec.ts` (admin sees create/edit/delete, non-admin sees none; delete only after confirm; a successful write invalidates `['customers']`; a load error renders no rows) — verify both suites fail
+- [x] 6.4 feat(web): apps/web: implement `features/customers/customers.{ts,html,scss}` and `customer-form-dialog/` per design D8 (debounced search, `MatPaginator`, reuse `features/users/confirm-dialog`), add the `customers` child route under the shell and the `Customers` entry (`contacts` icon, `adminOnly: false`) in the `Main` nav group — verify `pnpm --filter web test` and `pnpm --filter web build` pass
+- [x] 6.5 Commit group 6 with `/commit`
 
 ## 7. Removal note and end-to-end verification
 

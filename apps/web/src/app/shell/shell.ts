@@ -25,7 +25,13 @@ interface NavGroup {
 
 /** Groups mirror the reference admin template's sidebar ("Main" / "System" sections). */
 const NAV_GROUPS: NavGroup[] = [
-  { label: 'Main', entries: [{ label: 'Dashboard', path: '/dashboard', icon: 'space_dashboard', adminOnly: false }] },
+  {
+    label: 'Main',
+    entries: [
+      { label: 'Dashboard', path: '/dashboard', icon: 'space_dashboard', adminOnly: false },
+      { label: 'Customers', path: '/customers', icon: 'contacts', adminOnly: false },
+    ],
+  },
   { label: 'System', entries: [{ label: 'Users', path: '/users', icon: 'group', adminOnly: true }] },
 ];
 
