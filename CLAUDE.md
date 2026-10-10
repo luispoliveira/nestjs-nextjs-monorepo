@@ -189,6 +189,7 @@ Prefer the pre-built `NotificationsPublisher` from `@repo/shared/publishers` ins
 
 - Use NestJS `Logger` (backed by pino). Correlation IDs are auto-threaded.
 - HTTP req/res logs are persisted to MongoDB by `LoggingInterceptor` (probes are skipped: any path containing the segment `/health`, `/metrics` or `/favicon.ico`, under any global prefix and ignoring the query string — same `isSilentPath` rule as pino auto-logging and Sentry sampling).
+- Audit trail: writes that matter are recorded in Mongo `audit_events` (separate from the request `Log`, which cannot see better-auth routes or guard rejections). In `apps/api` decorate the handler with `@Audit('<action>', { targetType, fields })`; in `apps/auth` add the path to `AUTH_AUDIT_PATHS`. Actions live in `AUDIT_ACTIONS` (`@repo/shared-types`). Events keep field names only, plus values for `SAFE_CHANGE_FIELDS`; recording is best-effort (never fails the action). `AuditContextGuard` must stay the first global guard in `apps/api`. Retention: `AUDIT_RETENTION_DAYS`.
 - `AllExceptionFilter` returns `{ statusCode, timestamp, path, message, correlationId }`. Throw standard `NestJS` HTTP exceptions (`NotFoundException`, `BadRequestException`, …). `ZodValidationException` → 400 with an `errors` array of Zod issues.
 
 ---

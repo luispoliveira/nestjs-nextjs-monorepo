@@ -57,6 +57,14 @@ Two more things surfaced while smoke-testing against a fake ingest endpoint:
 
 If a future better-auth upgrade reports a similar mismatch for a different plugin, check whether the plugin's own schema definition actually changed between versions (a real new requirement) before assuming it did — as with `Account.issuer`, better-auth sometimes reverts a schema change between versions, and the two failure modes look identical from the error message alone. Diff the installed package's schema source between versions before writing a migration.
 
+### better-auth routes run outside Nest: no CLS, no interceptors, and an after hook that throws replaces the response
+
+**Symptom:** audit events recorded from a better-auth hook had no `correlationId`, `/sign-out` events had no actor, and the Mongo request `Log` has no `/api/auth/*` entries at all.
+
+**Cause:** `@thallesp/nestjs-better-auth` mounts the handler with `httpAdapter.use(...)`, i.e. raw Express, ahead of Nest's middleware chain. So (1) the global CLS middleware never runs for those routes, and `ClsService.get()` has no store; (2) interceptors and guards never see them; (3) better-auth clears the session during `/sign-out`, so by the time an after hook runs `ctx.context.session` is gone; (4) better-auth runs after hooks on failures too (`ctx.context.returned` is the `APIError`) and an `APIError` thrown from an after hook **replaces the real response**.
+
+**Fix:** `apps/auth/src/audit/`: pass the module's `middleware` option (`withCorrelationId(cls)`) to wrap the handler in a CLS context; a `@BeforeHook('/sign-out')` looks the session up first and stashes it on `ctx.context.auditSession`; and `AuthAuditHook.onAfter` wraps everything in try/catch and never throws. Detect a failed request by shape (`Error` with a numeric `statusCode`), not `instanceof`, so unit tests need not load the ESM better-auth package.
+
 ### `*` means opposite things to `enableCors` and to `trustedOrigins`
 
 **Symptom:** a `CORS_ORIGIN`/origin-allowlist value of `*` looks like it should behave the same way in every place it's consumed, but it doesn't — in one place it silently blocks everything, in the other it silently trusts everything.
@@ -195,6 +203,14 @@ See `openspec/changes/update-monorepo-dependencies/design.md` (D5) for the full 
 **Cause:** in ESM mode `ts-jest` compiles the app's own `src/` to ESM. A controller that imports both `@repo/shared` (CommonJS, which `require`s `@repo/database` → `@repo/shared-types`) and `@repo/shared-types` (ESM) puts `shared-types` into the ESM graph that is being linked. The CJS `require()` of it then counts as a cycle, and Jest refuses it. `apps/auth`'s integration suite never imports app source, so it never hits this.
 
 **Fix:** keep the suite's **test files in CommonJS** (plain `ts-jest`, no `useESM`/`extensionsToTreatAsEsm`, `tsconfig.test.json`), but **keep `NODE_OPTIONS='--experimental-vm-modules'`** on the script. That flag is what lets Jest `require(esm)` the pure-ESM `@faker-js/faker` from `@repo/testing-utils` (Node ≥24.9). See `apps/api/test/jest-integration.json`. With CJS test files the `jest` global is injected, so do not `import { jest } from '@jest/globals'`.
+
+### `Nest can't resolve ClsService` in an ESM-mode Jest suite — import it from `@repo/shared`
+
+**Symptom:** `apps/auth`'s e2e (ESM Jest) fails at boot with `Nest can't resolve dependencies of the Symbol(AUTH_MODULE_OPTIONS) (…, ?)… ClsService at index [2]`, although the same code runs fine under `pnpm dev`.
+
+**Cause:** `inject: [ClsService]` imported from `nestjs-cls` in the app. Under ESM mode Jest loads the app's own copy of the package as ESM while `@repo/shared`'s CommonJS `dist` loaded another, so the `ClsService` class (the DI token) differs from the one `SharedModule`'s `ClsModule` provides.
+
+**Fix:** `@repo/shared` re-exports `ClsService`; apps import it from there (and do not declare `nestjs-cls` themselves). Same family as the `require(esm)` entry above: anything shared that is also a DI token must come from a single package.
 
 ### `jest.setup.ts` `override: true` silently re-points `globalSetup`'s container URLs at localhost
 

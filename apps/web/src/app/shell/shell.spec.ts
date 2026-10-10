@@ -87,6 +87,7 @@ describe('Shell', () => {
 
     expect(labels).toContain('Dashboard');
     expect(labels).toContain('Users');
+    expect(labels).toContain('Audit log');
   });
 
   it('hides the admin-only nav entry for a non-admin session', () => {
@@ -98,6 +99,7 @@ describe('Shell', () => {
 
     expect(labels).toContain('Dashboard');
     expect(labels).not.toContain('Users');
+    expect(labels).not.toContain('Audit log');
   });
 
   it('does not show the impersonation banner for a normal session', () => {

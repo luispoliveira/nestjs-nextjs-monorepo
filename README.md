@@ -263,6 +263,7 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=change-me
 METRICS_TOKEN=
 SENTRY_DSN=
+AUDIT_RETENTION_DAYS=365
 ```
 
 ### `apps/api/.env`
@@ -278,7 +279,10 @@ METRICS_TOKEN=
 SENTRY_DSN=
 FIELD_ENCRYPTION_KEY=<base64, 32 bytes>
 FIELD_ENCRYPTION_HMAC_KEY=<base64>
+AUDIT_RETENTION_DAYS=365
 ```
+
+`AUDIT_RETENTION_DAYS` (optional, default `365`; on `apps/auth` and `apps/api`) is how many days an [audit event](#audit-log) is kept. Each event stores its own expiry, so changing the value only affects events recorded afterwards; existing events keep the expiry they were given.
 
 `FIELD_ENCRYPTION_KEY` (AES-256-GCM) and `FIELD_ENCRYPTION_HMAC_KEY` (blind index) protect PII columns at rest, such as the customer NIF. Both are required: the API refuses to boot without them, or when the encryption key does not decode to 32 bytes. `pnpm setup` generates them. To generate one by hand: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`.
 
@@ -412,6 +416,20 @@ import {
 ### `@repo/mail`
 
 Email delivery via Brevo. Configure with `MailModule.forRootAsync()`. Logs all sent emails to MongoDB (`EmailLog`) with a 30-day TTL.
+
+## Audit log
+
+Authentication, account-management and customer write actions are recorded in an append-only MongoDB collection (`audit_events`), separate from the HTTP request `Log`. Admins read it on the `/audit` page (`GET /api/v1/audit-events`), filtering by action, outcome, actor (email or id), target and dates. An email also finds the failed sign-ins that tried it.
+
+- **What is recorded:** `apps/auth` records every audited better-auth route (sign-in/up/out, password and email changes, 2FA, session revocation, and the admin user actions: create, update, remove, ban, unban, role, password, impersonate), on success **and** on failure. `apps/api` records the writes marked with `@Audit`. Reads are never recorded.
+- **What an event holds:** actor (and the real admin during an impersonation), action, target, outcome with error code, changed **field names**, values only for `role`, `banned`, `banReason` and `banExpires`, IP, user agent and the request's correlation ID. Passwords, tokens, codes, NIFs and email values are never stored. A **failed** action records no changed fields or values, since nothing changed. A failed sign-in keeps the attempted email.
+- **Best-effort:** if an event cannot be stored the audited action is not affected; the failure goes to the log and Sentry. In `apps/auth` a response waits at most 2 s for its event (`AUDIT_HOOK_MAX_WAIT_MS`), so an unreachable Mongo cannot stall sign-ins.
+- **Bounded:** every field a client controls is truncated before storing (emails 254 characters, user agent 256, at most 50 changed-field names of 64, change values 500), so no request can store a large event.
+- **Client address:** the entry the trusted proxy appended to `X-Forwarded-For` (`TRUSTED_PROXY_HOPS`, 1 for the documented nginx topology, same rule as Express `trust proxy`); the first entry is client-supplied and is never used, and a value that is not an IP address is dropped instead of stored. Behind two proxies, raise `TRUSTED_PROXY_HOPS` in `packages/shared/src/constants/proxy.ts`.
+- **Retention:** `AUDIT_RETENTION_DAYS` (default 365). Events cannot be edited or deleted through the API; they only expire.
+- **Not an audit trail:** the HTTP request `Log` (30 days) is a debugging aid. It does not see better-auth routes or requests rejected by guards.
+
+To audit a new write in `apps/api`, decorate the handler with `@Audit('<action>', { targetType, fields })` (the action must exist in `AUDIT_ACTIONS` in `@repo/shared-types`). To audit another better-auth endpoint, add its path to `AUTH_AUDIT_PATHS` in `apps/auth/src/audit/auth-audit.ts`.
 
 ## Reference slice: Customers
 
